@@ -19,16 +19,76 @@
         <!-- カメラビュー -->
         <div x-show="!photo && cameraActive" class="mb-4">
           <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <!-- ビデオエリア -->
             <div class="relative">
               <video 
                 x-ref="video"
                 autoplay
                 playsinline
                 class="w-full"
+                @touchstart="handleTouchStart"
+                @touchmove="handleTouchMove"
+                @touchend="handleTouchEnd"
               ></video>
               <canvas x-ref="canvas" class="hidden"></canvas>
             </div>
-            <div class="p-4 space-y-2">
+            
+            <!-- コントロールエリア -->
+            <div class="bg-gray-100 p-4 space-y-4">
+              <!-- トーチとカメラ切り替え -->
+              <div class="flex items-center justify-between">
+                <!-- トーチボタン -->
+                <button
+                  @click="toggleTorch"
+                  class="p-3 rounded-full bg-gray-700 text-white hover:bg-gray-800 transition-all"
+                  :class="{ 'bg-yellow-500 hover:bg-yellow-600': torchOn, 'opacity-30': !torchSupported }"
+                  :title="torchSupported ? 'トーチ' : 'トーチはサポートされていません'"
+                >
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                  </svg>
+                </button>
+                
+                <!-- カメラ切り替えボタン -->
+                <div class="flex gap-2" :class="{ 'opacity-30': availableZooms.length <= 1 }">
+                  <template x-for="zoom in availableZooms" :key="zoom">
+                    <button
+                      @click="selectZoom(zoom)"
+                      :disabled="availableZooms.length <= 1"
+                      class="px-3 py-1 rounded-full text-sm font-medium transition-all disabled:cursor-not-allowed"
+                      :class="currentCamera && currentCamera.zoom === zoom ? 
+                        'bg-yellow-500 text-black' : 
+                        'bg-gray-700 text-white hover:bg-gray-800 disabled:hover:bg-gray-700'"
+                      x-text="zoom + 'x'"
+                    >
+                    </button>
+                  </template>
+                </div>
+              </div>
+              
+              <!-- ズームスライダー -->
+              <div :class="{ 'opacity-30': !zoomSupported || !zoomCapabilities }">
+                <div class="flex items-center gap-3">
+                  <span class="text-gray-700 text-sm font-medium">1x</span>
+                  <input
+                    type="range"
+                    :min="zoomCapabilities?.min || 1"
+                    :max="zoomCapabilities?.max || 1"
+                    :step="zoomCapabilities?.step || 0.1"
+                    :value="currentZoom"
+                    @input="updateZoom($event.target.value)"
+                    :disabled="!zoomSupported || !zoomCapabilities"
+                    class="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                    style="background-image: linear-gradient(to right, #fbbf24 0%, #fbbf24 var(--value), #e5e7eb var(--value), #e5e7eb 100%);"
+                    :style="'--value: ' + ((currentZoom - (zoomCapabilities?.min || 1)) / ((zoomCapabilities?.max || 1) - (zoomCapabilities?.min || 1)) * 100) + '%'"
+                  >
+                  <span class="text-gray-700 text-sm font-medium" x-text="currentZoom.toFixed(1) + 'x'"></span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- 撮影/キャンセルボタン -->
+            <div class="p-4 space-y-2 border-t border-gray-200">
               <button
                 @click="capture"
                 :disabled="isLoading"
@@ -82,6 +142,67 @@
             </div>
           </div>
         </div>
+        
+        <!-- デバッグパネルトグルボタン -->
+        <div class="fixed bottom-4 right-4 z-50">
+          <button
+            @click="toggleDebug"
+            class="p-3 rounded-full bg-gray-800 text-white hover:bg-gray-700 shadow-lg"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- デバッグパネル -->
+        <div
+          x-show="showDebug"
+          x-transition
+          class="fixed inset-x-0 bottom-0 bg-gray-900 text-white p-4 max-h-96 overflow-y-auto z-40"
+        >
+          <h3 class="text-lg font-bold mb-4">デバッグ情報</h3>
+          
+          <!-- API対応状況 -->
+          <div x-show="apiSupport" class="mb-6">
+            <h4 class="text-sm font-semibold mb-2">API対応状況</h4>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <template x-for="[key, supported] in Object.entries(apiSupport || {})" :key="key">
+                <div class="flex items-center gap-2">
+                  <span x-text="supported ? '✅' : '❌'"></span>
+                  <span x-text="key"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+          
+          <!-- カメラパラメータ -->
+          <div x-show="cameraParams" class="mb-4">
+            <h4 class="text-sm font-semibold mb-2">現在のカメラパラメータ</h4>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <template x-for="[key, value] in Object.entries(cameraParams || {})" :key="key">
+                <div class="flex items-center gap-2" x-show="value !== undefined">
+                  <span class="font-mono" x-text="key + ':'"></span>
+                  <span class="font-mono text-green-400" x-text="value"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+          
+          <!-- 利用可能なカメラ -->
+          <div x-show="availableCameras.length > 0" class="mb-4">
+            <h4 class="text-sm font-semibold mb-2">利用可能なカメラ</h4>
+            <div class="text-xs space-y-1">
+              <template x-for="camera in availableCameras" :key="camera.deviceId">
+                <div class="flex items-center gap-2">
+                  <span x-text="currentCamera && currentCamera.deviceId === camera.deviceId ? '▶' : ' '"></span>
+                  <span x-text="camera.label + ' (' + camera.zoom + 'x)'"></span>
+                </div>
+              </template>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     
@@ -95,6 +216,19 @@
           photo: null,
           error: null,
           isLoading: false,
+          torchOn: false,
+          torchSupported: false,
+          availableCameras: [],
+          currentCamera: null,
+          availableZooms: [],
+          showDebug: false,
+          apiSupport: null,
+          cameraParams: null,
+          zoomSupported: false,
+          zoomCapabilities: null,
+          currentZoom: 1,
+          initialPinchDistance: 0,
+          initialZoom: 1,
           
           async startCamera() {
             this.isLoading = true
@@ -115,8 +249,27 @@
               // カメラを開始
               await this.camera.start()
               this.cameraActive = true
+              
+              // トーチサポート状態を確認
+              this.torchSupported = this.camera.isTorchSupported()
+              this.torchOn = this.camera.getTorchState()
+              
+              // 利用可能なカメラを取得
+              this.availableCameras = this.camera.getAvailableCameras()
+              this.currentCamera = this.camera.getCurrentCamera()
+              this.availableZooms = [...new Set(this.availableCameras.map(cam => cam.zoom))].sort()
+              
+              // デバッグ情報を取得
+              this.updateDebugInfo()
+              
+              // ズームサポートを確認
+              this.zoomSupported = this.camera.isZoomSupported()
+              if (this.zoomSupported) {
+                this.zoomCapabilities = this.camera.getZoomCapabilities()
+                this.currentZoom = this.camera.getCurrentZoom()
+              }
             } catch (error) {
-              this.error = error.message
+              this.showError(error.message)
               console.error('Camera error:', error)
             } finally {
               this.isLoading = false
@@ -133,7 +286,7 @@
                 this.stopCamera()
               }
             } catch (error) {
-              this.error = error.message
+              this.showError(error.message)
               console.error('Capture error:', error)
             }
           },
@@ -143,6 +296,78 @@
               this.camera.stop()
               this.camera = null
               this.cameraActive = false
+              this.torchOn = false
+              this.torchSupported = false
+              this.availableCameras = []
+              this.currentCamera = null
+              this.availableZooms = []
+              this.apiSupport = null
+              this.cameraParams = null
+              this.zoomSupported = false
+              this.zoomCapabilities = null
+              this.currentZoom = 1
+            }
+          },
+          
+          async toggleTorch() {
+            if (!this.camera) return
+            
+            // トーチサポートを再確認
+            this.torchSupported = this.camera.isTorchSupported()
+            
+            if (!this.torchSupported) {
+              this.showError('このデバイスはトーチ機能をサポートしていません')
+              return
+            }
+            
+            try {
+              this.torchOn = await this.camera.toggleTorch()
+            } catch (error) {
+              this.showError(error.message)
+              console.error('Torch error:', error)
+            }
+          },
+          
+          async selectZoom(zoom) {
+            if (!this.camera) return
+            
+            try {
+              await this.camera.selectCameraByZoom(zoom)
+              this.currentCamera = this.camera.getCurrentCamera()
+              
+              // カメラが変わったのでトーチ状態を再確認
+              this.torchSupported = this.camera.isTorchSupported()
+              this.torchOn = this.camera.getTorchState()
+              
+              // デバッグ情報を更新
+              this.updateDebugInfo()
+              
+              // ズームサポートを再確認
+              this.zoomSupported = this.camera.isZoomSupported()
+              if (this.zoomSupported) {
+                this.zoomCapabilities = this.camera.getZoomCapabilities()
+                this.currentZoom = this.camera.getCurrentZoom()
+              }
+            } catch (error) {
+              this.showError(error.message)
+              console.error('Camera switch error:', error)
+            }
+          },
+          
+          updateDebugInfo() {
+            if (!this.camera) return
+            
+            this.apiSupport = this.camera.getAPISupport()
+            this.cameraParams = this.camera.getCurrentParameters()
+            
+            // ズーム情報を更新
+            if (this.zoomSupported) {
+              this.currentZoom = this.camera.getCurrentZoom()
+            }
+            
+            // パラメータを定期的に更新
+            if (this.cameraActive) {
+              setTimeout(() => this.updateDebugInfo(), 1000)
             }
           },
           
@@ -155,6 +380,72 @@
           sendMail() {
             // TODO: メール送信機能の実装
             alert('メール送信機能は後で実装します')
+          },
+          
+          toggleDebug() {
+            this.showDebug = !this.showDebug
+            if (this.showDebug && this.camera) {
+              this.updateDebugInfo()
+            }
+          },
+          
+          showError(message) {
+            this.error = message
+            // 3秒後にエラーメッセージを消す
+            setTimeout(() => {
+              if (this.error === message) {
+                this.error = null
+              }
+            }, 3000)
+          },
+          
+          async updateZoom(value) {
+            if (!this.camera || !this.zoomSupported) return
+            
+            try {
+              await this.camera.applyZoom(parseFloat(value))
+              this.currentZoom = this.camera.getCurrentZoom()
+            } catch (error) {
+              this.showError(error.message)
+              console.error('Zoom error:', error)
+            }
+          },
+          
+          handleTouchStart(event) {
+            if (event.touches.length === 2) {
+              // ピンチジェスチャー開始
+              const touch1 = event.touches[0]
+              const touch2 = event.touches[1]
+              this.initialPinchDistance = Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+              )
+              this.initialZoom = this.currentZoom
+            }
+          },
+          
+          handleTouchMove(event) {
+            if (event.touches.length === 2 && this.initialPinchDistance > 0) {
+              event.preventDefault()
+              
+              const touch1 = event.touches[0]
+              const touch2 = event.touches[1]
+              const currentDistance = Math.hypot(
+                touch2.clientX - touch1.clientX,
+                touch2.clientY - touch1.clientY
+              )
+              
+              const scale = currentDistance / this.initialPinchDistance
+              const newZoom = this.initialZoom * scale
+              
+              this.updateZoom(newZoom)
+            }
+          },
+          
+          handleTouchEnd(event) {
+            if (event.touches.length < 2) {
+              this.initialPinchDistance = 0
+            }
           }
         }))
       })
