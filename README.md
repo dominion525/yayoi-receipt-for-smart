@@ -53,7 +53,7 @@ src/
 
 ### Phase 1: MVP（基本機能）
 - [x] プロジェクトセットアップ
-- [ ] Alpine.js + TypeScript環境構築
+- [x] Alpine.js + TypeScript環境構築
 - [ ] カメラアクセス機能
 - [ ] 画像キャプチャ・プレビュー
 - [ ] メール送信機能
@@ -79,11 +79,23 @@ npm install
 # 開発サーバーの起動
 npm run dev
 
+# バックグラウンドで開発サーバーを起動（推奨）
+pkill -f "vite" || true && nohup npm run dev > /dev/null 2>&1 &
+
 # ビルド
 npm run build
 
 # プレビュー
 npm run preview
+
+# テストの実行
+npm test
+
+# テストUI
+npm run test:ui
+
+# カバレッジレポート
+npm run test:coverage
 ```
 
 ## セキュリティについて

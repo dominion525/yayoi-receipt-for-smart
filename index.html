@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>スマート レシート for 弥生</title>
+  </head>
+  <body>
+    <div id="app" class="min-h-screen bg-gray-50" x-data="receiptApp">
+      <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">スマート レシート for 弥生</h1>
+        
+        <!-- カメラビュー -->
+        <div x-show="!photo" class="max-w-md mx-auto">
+          <div class="bg-white rounded-lg shadow-md p-6">
+            <p class="text-center text-gray-600 mb-4">開発中...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <script>
+      document.addEventListener('alpine:init', () => {
+        Alpine.data('receiptApp', () => ({
+          photo: null,
+        }))
+      })
+    </script>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
