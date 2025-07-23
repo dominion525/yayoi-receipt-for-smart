@@ -14,6 +14,15 @@
 pkill -f "vite" || true && nohup npm run dev > /dev/null 2>&1 &
 ```
 
+**重要**: Viteはホットリロードに対応しているため、以下のファイルを変更してもサーバーの再起動は不要です：
+- `.html`, `.ts`, `.js`, `.css`ファイル
+- `src/`配下のすべてのソースコード
+
+サーバー再起動が必要なケース：
+- `vite.config.ts`の変更
+- `package.json`の変更（依存関係の追加など）
+- その他の設定ファイルの変更
+
 #### iPhone実機テスト
 ngrokを使用してHTTPS環境を構築：
 ```bash

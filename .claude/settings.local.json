@@ -7,7 +7,8 @@
       "Bash(echo -e \"QRコードを生成する場合:\\nbrew install qrencode\\nqrencode -o qr.png https://671379d109e1.ngrok-free.app\")",
       "Bash(qrencode:*)",
       "Bash(open:*)",
-      "Bash(brew install:*)"
+      "Bash(brew install:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
