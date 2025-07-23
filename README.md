@@ -110,6 +110,63 @@ npm run test:coverage
 - PWAとしてホーム画面への追加を推奨
 - viewport設定によるiOS特有の問題への対処
 
+## iPhone実機テスト手順
+
+カメラ機能はHTTPS環境でのみ動作するため、実機テストにはngrokを使用します。
+
+### 1. ngrokのセットアップ
+
+```bash
+# ngrokのインストール（初回のみ）
+brew install ngrok
+
+# ngrokアカウントの作成と認証トークンの設定（初回のみ）
+# https://dashboard.ngrok.com/signup でアカウント作成
+# https://dashboard.ngrok.com/get-started/your-authtoken から認証トークンを取得
+ngrok config add-authtoken YOUR_AUTH_TOKEN
+```
+
+### 2. 実機テストの実行
+
+```bash
+# 開発サーバーを起動
+npm run dev
+
+# 別ターミナルでngrokを起動
+ngrok http 5173
+
+# 生成されたHTTPS URLをiPhoneのSafariで開く
+# 例: https://xxxxxxxxxxxx.ngrok-free.app
+```
+
+### 3. QRコードでの共有
+
+#### 自動生成機能（推奨）
+
+Claude Codeで開発中の場合、以下のコマンドで自動的にQRコードを生成・表示できます：
+
+```
+/qr
+```
+
+または単に「QRコードください」と言うだけでも動作します。
+
+#### 手動生成
+
+```bash
+# qrencodeのインストール
+brew install qrencode
+
+# QRコード生成
+qrencode -o qr.png YOUR_NGROK_URL
+```
+
+### 注意事項
+
+- ngrokの無料プランでは8時間でセッションが切断されます
+- URLは起動毎に変更されます
+- 初回アクセス時にngrokの警告画面が表示されますが、「Visit Site」をクリックして進んでください
+
 ## ライセンス
 
 [ライセンスを後で決定]

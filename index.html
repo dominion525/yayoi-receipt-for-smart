@@ -8,22 +8,147 @@
   </head>
   <body>
     <div id="app" class="min-h-screen bg-gray-50" x-data="receiptApp">
-      <div class="container mx-auto px-4 py-8">
+      <div class="container mx-auto px-4 py-8 max-w-lg">
         <h1 class="text-3xl font-bold text-center mb-8">スマート レシート for 弥生</h1>
         
+        <!-- エラーメッセージ -->
+        <div x-show="error" x-transition class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+          <p x-text="error"></p>
+        </div>
+        
         <!-- カメラビュー -->
-        <div x-show="!photo" class="max-w-md mx-auto">
+        <div x-show="!photo && cameraActive" class="mb-4">
+          <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="relative">
+              <video 
+                x-ref="video"
+                autoplay
+                playsinline
+                class="w-full"
+              ></video>
+              <canvas x-ref="canvas" class="hidden"></canvas>
+            </div>
+            <div class="p-4">
+              <button
+                @click="capture"
+                :disabled="isLoading"
+                class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                撮影
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- カメラ起動ボタン -->
+        <div x-show="!photo && !cameraActive" class="mb-4">
           <div class="bg-white rounded-lg shadow-md p-6">
-            <p class="text-center text-gray-600 mb-4">開発中...</p>
+            <p class="text-center text-gray-600 mb-4">レシートを撮影してください</p>
+            <button
+              @click="startCamera"
+              :disabled="isLoading"
+              class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span x-show="!isLoading">カメラを起動</span>
+              <span x-show="isLoading">起動中...</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- 写真プレビュー -->
+        <div x-show="photo" class="mb-4">
+          <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <img :src="photo" alt="撮影したレシート" class="w-full">
+            <div class="p-4 space-y-2">
+              <button
+                @click="retake"
+                class="w-full bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+              >
+                撮り直す
+              </button>
+              <button
+                @click="sendMail"
+                class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded"
+              >
+                メールで送信
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
     
-    <script>
+    <script type="module">
+      import { Camera } from '/src/lib/camera.ts'
+      
       document.addEventListener('alpine:init', () => {
         Alpine.data('receiptApp', () => ({
+          camera: null,
+          cameraActive: false,
           photo: null,
+          error: null,
+          isLoading: false,
+          
+          async startCamera() {
+            this.isLoading = true
+            this.error = null
+            
+            try {
+              // カメラサポートチェック
+              if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('このブラウザはカメラ機能をサポートしていません')
+              }
+              
+              // Cameraインスタンスを作成
+              this.camera = new Camera({
+                video: this.$refs.video,
+                canvas: this.$refs.canvas
+              })
+              
+              // カメラを開始
+              await this.camera.start()
+              this.cameraActive = true
+            } catch (error) {
+              this.error = error.message
+              console.error('Camera error:', error)
+            } finally {
+              this.isLoading = false
+            }
+          },
+          
+          capture() {
+            if (!this.camera) return
+            
+            try {
+              const imageData = this.camera.capture()
+              if (imageData) {
+                this.photo = imageData
+                this.stopCamera()
+              }
+            } catch (error) {
+              this.error = error.message
+              console.error('Capture error:', error)
+            }
+          },
+          
+          stopCamera() {
+            if (this.camera) {
+              this.camera.stop()
+              this.camera = null
+              this.cameraActive = false
+            }
+          },
+          
+          retake() {
+            this.photo = null
+            this.error = null
+            this.startCamera()
+          },
+          
+          sendMail() {
+            // TODO: メール送信機能の実装
+            alert('メール送信機能は後で実装します')
+          }
         }))
       })
     </script>
