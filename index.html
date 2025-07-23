@@ -20,12 +20,13 @@
         <div x-show="!photo && cameraActive" class="mb-4">
           <div class="bg-white rounded-lg shadow-md overflow-hidden">
             <!-- ビデオエリア -->
-            <div class="relative">
+            <div class="relative bg-black" style="min-height: 400px;">
               <video 
                 x-ref="video"
                 autoplay
                 playsinline
                 class="w-full"
+                style="display: block;"
                 @touchstart="handleTouchStart"
                 @touchmove="handleTouchMove"
                 @touchend="handleTouchEnd"
@@ -35,56 +36,52 @@
             
             <!-- コントロールエリア -->
             <div class="bg-gray-100 p-4 space-y-4">
-              <!-- トーチとカメラ切り替え -->
+              <!-- トーチ、デバッグ、ズームコントロール -->
               <div class="flex items-center justify-between">
-                <!-- トーチボタン -->
-                <button
-                  @click="toggleTorch"
-                  class="p-3 rounded-full bg-gray-700 text-white hover:bg-gray-800 transition-all"
-                  :class="{ 'bg-yellow-500 hover:bg-yellow-600': torchOn, 'opacity-30': !torchSupported }"
-                  :title="torchSupported ? 'トーチ' : 'トーチはサポートされていません'"
-                >
-                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                  </svg>
-                </button>
+                <!-- 左側: トーチとデバッグボタン -->
+                <div class="flex items-center gap-3">
+                  <!-- トーチボタン -->
+                  <button
+                    @click="toggleTorch"
+                    class="p-3 rounded-full bg-gray-700 text-white hover:bg-gray-800 transition-all"
+                    :class="{ 'bg-yellow-500 hover:bg-yellow-600': torchOn, 'opacity-30': !torchSupported }"
+                    :title="torchSupported ? 'トーチ' : 'トーチはサポートされていません'"
+                  >
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                  </button>
+                  
+                  <!-- デバッグボタン -->
+                  <button
+                    @click="toggleDebug"
+                    class="p-2 rounded-full bg-gray-600 text-white hover:bg-gray-700 transition-all opacity-60 hover:opacity-100"
+                    :class="{ 'bg-blue-600 hover:bg-blue-700 opacity-100': showDebug }"
+                    title="デバッグ"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+                    </svg>
+                  </button>
+                </div>
                 
-                <!-- カメラ切り替えボタン -->
-                <div class="flex gap-2" :class="{ 'opacity-30': availableZooms.length <= 1 }">
-                  <template x-for="zoom in availableZooms" :key="zoom">
+                <!-- 右側: ズームボタン -->
+                <div class="flex gap-2" :class="{ 'opacity-30': availableZoomLevels.length <= 1 }">
+                  <template x-for="level in availableZoomLevels" :key="level">
                     <button
-                      @click="selectZoom(zoom)"
-                      :disabled="availableZooms.length <= 1"
+                      @click="selectZoomLevel(level)"
+                      :disabled="availableZoomLevels.length <= 1"
                       class="px-3 py-1 rounded-full text-sm font-medium transition-all disabled:cursor-not-allowed"
-                      :class="currentCamera && currentCamera.zoom === zoom ? 
+                      :class="Math.abs(currentZoomLevel - level) < 0.01 ? 
                         'bg-yellow-500 text-black' : 
                         'bg-gray-700 text-white hover:bg-gray-800 disabled:hover:bg-gray-700'"
-                      x-text="zoom + 'x'"
+                      x-text="level + 'x'"
                     >
                     </button>
                   </template>
                 </div>
               </div>
               
-              <!-- ズームスライダー -->
-              <div :class="{ 'opacity-30': !zoomSupported || !zoomCapabilities }">
-                <div class="flex items-center gap-3">
-                  <span class="text-gray-700 text-sm font-medium">1x</span>
-                  <input
-                    type="range"
-                    :min="zoomCapabilities?.min || 1"
-                    :max="zoomCapabilities?.max || 1"
-                    :step="zoomCapabilities?.step || 0.1"
-                    :value="currentZoom"
-                    @input="updateZoom($event.target.value)"
-                    :disabled="!zoomSupported || !zoomCapabilities"
-                    class="flex-1 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
-                    style="background-image: linear-gradient(to right, #fbbf24 0%, #fbbf24 var(--value), #e5e7eb var(--value), #e5e7eb 100%);"
-                    :style="'--value: ' + ((currentZoom - (zoomCapabilities?.min || 1)) / ((zoomCapabilities?.max || 1) - (zoomCapabilities?.min || 1)) * 100) + '%'"
-                  >
-                  <span class="text-gray-700 text-sm font-medium" x-text="currentZoom.toFixed(1) + 'x'"></span>
-                </div>
-              </div>
             </div>
             
             <!-- 撮影/キャンセルボタン -->

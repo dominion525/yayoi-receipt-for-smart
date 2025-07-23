@@ -1,6 +1,12 @@
 import { Camera } from './lib/camera'
 import Alpine from 'alpinejs'
 
+export interface DebugLog {
+  time: string
+  type: 'info' | 'success' | 'warning' | 'error' | 'debug'
+  message: string
+}
+
 export interface ReceiptAppData {
   camera: Camera | null
   cameraActive: boolean
@@ -12,6 +18,9 @@ export interface ReceiptAppData {
   availableCameras: any[]
   currentCamera: any | null
   availableZooms: number[]
+  availableZoomLevels: number[]
+  currentZoomLevel: number
+  currentZoomType: 'optical' | 'digital'
   showDebug: boolean
   apiSupport: any | null
   cameraParams: any | null
@@ -20,6 +29,8 @@ export interface ReceiptAppData {
   currentZoom: number
   initialPinchDistance: number
   initialZoom: number
+  deviceInfo: any | null
+  debugLogs: DebugLog[]
 }
 
 export function receiptApp(): ReceiptAppData & Record<string, any> {
@@ -34,6 +45,9 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     availableCameras: [],
     currentCamera: null,
     availableZooms: [],
+    availableZoomLevels: [],
+    currentZoomLevel: 1,
+    currentZoomType: 'optical' as 'optical' | 'digital',
     showDebug: false,
     apiSupport: null,
     cameraParams: null,
@@ -42,6 +56,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     currentZoom: 1,
     initialPinchDistance: 0,
     initialZoom: 1,
+    deviceInfo: null,
+    debugLogs: [],
     
     async startCamera() {
       this.isLoading = true
@@ -56,7 +72,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         // Cameraインスタンスを作成
         this.camera = new Camera({
           video: this.$refs.video,
-          canvas: this.$refs.canvas
+          canvas: this.$refs.canvas,
+          onLog: (message, type) => this.addDebugLog(message, type)
         })
         
         // カメラを開始
@@ -72,6 +89,17 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         this.currentCamera = this.camera.getCurrentCamera()
         this.availableZooms = [...new Set(this.availableCameras.map(cam => cam.zoom))].sort()
         
+        // 初回起動時の物理カメラ情報をログ
+        if (this.availableCameras.length > 1) {
+          this.addDebugLog(`物理カメラ ${this.availableCameras.length}台検出: ${this.availableCameras.map(c => c.zoom + 'x').join(', ')}`, 'info')
+        }
+        
+        // 統合ズーム情報を取得
+        this.availableZoomLevels = this.camera.getAvailableZoomLevels()
+        const zoomInfo = this.camera.getCurrentZoomInfo()
+        this.currentZoomLevel = zoomInfo.level
+        this.currentZoomType = zoomInfo.type
+        
         // デバッグ情報を取得
         this.updateDebugInfo()
         
@@ -81,6 +109,9 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           this.zoomCapabilities = this.camera.getZoomCapabilities()
           this.currentZoom = this.camera.getCurrentZoom()
         }
+        
+        // デバイス情報を取得
+        this.deviceInfo = this.camera.getDeviceInfo()
       } catch (error: any) {
         this.showError(error.message)
         console.error('Camera error:', error)
@@ -114,11 +145,15 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         this.availableCameras = []
         this.currentCamera = null
         this.availableZooms = []
+        this.availableZoomLevels = []
+        this.currentZoomLevel = 1
+        this.currentZoomType = 'optical' as 'optical' | 'digital'
         this.apiSupport = null
         this.cameraParams = null
         this.zoomSupported = false
         this.zoomCapabilities = null
         this.currentZoom = 1
+        this.deviceInfo = null
       }
     },
     
@@ -172,9 +207,71 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           this.zoomCapabilities = this.camera.getZoomCapabilities()
           this.currentZoom = this.camera.getCurrentZoom()
         }
+        
+        // デバイス情報を更新
+        this.deviceInfo = this.camera.getDeviceInfo()
       } catch (error: any) {
         this.showError(error.message)
         console.error('Camera switch error:', error)
+      }
+    },
+    
+    async selectZoomLevel(level: number) {
+      if (!this.camera) return
+      
+      // 即座にUI状態を更新（レスポンシブなUX）
+      this.currentZoomLevel = level
+      this.addDebugLog(`UI状態を即座に更新: ${level}x`, 'info')
+      
+      try {
+        // カメラ処理を実行
+        await this.camera.setZoomLevel(level)
+        
+        // カメラ処理完了後、実際の状態で同期
+        const zoomInfo = this.camera.getCurrentZoomInfo()
+        this.currentZoomLevel = zoomInfo.level
+        this.currentZoomType = zoomInfo.type
+        
+        this.addDebugLog(`カメラ処理完了後の同期: ${zoomInfo.level}x (${zoomInfo.type})`, 'success')
+        
+        // カメラ情報を更新
+        this.currentCamera = this.camera.getCurrentCamera()
+        
+        // トーチ状態を再確認
+        this.torchSupported = this.camera.isTorchSupported()
+        this.torchOn = this.camera.getTorchState()
+        
+        // デバッグ情報を更新
+        this.updateDebugInfo()
+        
+        // 既存のズーム情報を更新
+        this.zoomSupported = this.camera.isZoomSupported()
+        if (this.zoomSupported) {
+          this.zoomCapabilities = this.camera.getZoomCapabilities()
+          this.currentZoom = this.camera.getCurrentZoom()
+        }
+        
+        // デバイス情報を更新
+        this.deviceInfo = this.camera.getDeviceInfo()
+        
+        // Alpine.jsの次の更新サイクルでUI更新を確実にトリガー
+        this.$nextTick(() => {
+          // 強制的にリアクティブ更新をトリガー
+          const currentZoomLevel = this.currentZoomLevel
+          const currentZoomType = this.currentZoomType
+          this.currentZoomLevel = currentZoomLevel
+          this.currentZoomType = currentZoomType
+        })
+      } catch (error: any) {
+        // エラー時は元の状態に戻す
+        const zoomInfo = this.camera?.getCurrentZoomInfo()
+        if (zoomInfo) {
+          this.currentZoomLevel = zoomInfo.level
+          this.currentZoomType = zoomInfo.type
+        }
+        
+        this.showError(error.message)
+        console.error('Zoom level error:', error)
       }
     },
     
@@ -189,10 +286,18 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         this.currentZoom = this.camera.getCurrentZoom()
       }
       
-      // パラメータを定期的に更新
-      if (this.cameraActive) {
-        setTimeout(() => this.updateDebugInfo(), 1000)
-      }
+      // 統合ズーム情報を更新（重要：デバッグパネル表示用）
+      const zoomInfo = this.camera.getCurrentZoomInfo()
+      this.currentZoomLevel = zoomInfo.level
+      this.currentZoomType = zoomInfo.type
+      
+      // デバイス情報を更新
+      this.deviceInfo = this.camera.getDeviceInfo()
+      
+      // パラメータを定期的に更新（コメントアウト - 過剰な更新を防ぐ）
+      // if (this.cameraActive) {
+      //   setTimeout(() => this.updateDebugInfo(), 1000)
+      // }
     },
     
     toggleDebug() {
@@ -218,6 +323,11 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       try {
         await this.camera.applyZoom(parseFloat(value.toString()))
         this.currentZoom = this.camera.getCurrentZoom()
+        
+        // 統合ズーム情報を更新
+        const zoomInfo = this.camera.getCurrentZoomInfo()
+        this.currentZoomLevel = zoomInfo.level
+        this.currentZoomType = zoomInfo.type
       } catch (error: any) {
         this.showError(error.message)
         console.error('Zoom error:', error)
@@ -258,6 +368,63 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     handleTouchEnd(event: TouchEvent) {
       if (event.touches.length < 2) {
         this.initialPinchDistance = 0
+      }
+    },
+    
+    addDebugLog(message: string, type: 'info' | 'success' | 'warning' | 'error' | 'debug' = 'info') {
+      const now = new Date()
+      const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`
+      
+      this.debugLogs.push({ time, type, message })
+      
+      // 最大100件に制限
+      if (this.debugLogs.length > 100) {
+        this.debugLogs.shift()
+      }
+      
+      // 最新のログが見えるようにスクロール
+      this.$nextTick(() => {
+        const logContainer = document.querySelector('#debug-panel .bg-black')
+        if (logContainer) {
+          logContainer.scrollTop = logContainer.scrollHeight
+        }
+      })
+    },
+    
+    clearDebugLogs() {
+      this.debugLogs = []
+    },
+    
+    copyDebugLogs() {
+      const logText = this.debugLogs
+        .map(log => `[${log.time}] ${log.type.toUpperCase()}: ${log.message}`)
+        .join('\n')
+      
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(logText)
+          .then(() => {
+            this.addDebugLog('ログをクリップボードにコピーしました', 'success')
+          })
+          .catch(err => {
+            this.addDebugLog('ログのコピーに失敗しました', 'error')
+            console.error('Copy failed:', err)
+          })
+      } else {
+        // フォールバック: テキストエリアを使用
+        const textarea = document.createElement('textarea')
+        textarea.value = logText
+        textarea.style.position = 'absolute'
+        textarea.style.left = '-999999px'
+        document.body.appendChild(textarea)
+        textarea.select()
+        try {
+          document.execCommand('copy')
+          this.addDebugLog('ログをクリップボードにコピーしました', 'success')
+        } catch (err) {
+          this.addDebugLog('ログのコピーに失敗しました', 'error')
+          console.error('Copy failed:', err)
+        }
+        document.body.removeChild(textarea)
       }
     }
   }

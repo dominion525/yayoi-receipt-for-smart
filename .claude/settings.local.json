@@ -8,7 +8,11 @@
       "Bash(qrencode:*)",
       "Bash(open:*)",
       "Bash(brew install:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(gemini:*)",
+      "WebFetch(domain:developer.mozilla.org)",
+      "WebFetch(domain:w3c.github.io)",
+      "WebFetch(domain:developer.apple.com)"
     ],
     "deny": []
   }
