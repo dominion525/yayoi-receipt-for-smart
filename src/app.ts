@@ -1,10 +1,49 @@
 import { Camera } from './lib/camera'
+import { emailSender } from './lib/mail'
 import Alpine from 'alpinejs'
 
 export interface DebugLog {
   time: string
   type: 'info' | 'success' | 'warning' | 'error' | 'debug'
   message: string
+}
+
+export interface AppSettings {
+  email: string
+  apiKey: string
+}
+
+// localStorage管理用の定数とユーティリティ
+const STORAGE_KEY = 'yayoi-receipt-settings'
+
+function loadSettingsFromStorage(): AppSettings {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      return {
+        email: parsed.email || '',
+        apiKey: parsed.apiKey || ''
+      }
+    }
+  } catch (error) {
+    console.error('設定の読み込みに失敗しました:', error)
+  }
+  
+  return {
+    email: '',
+    apiKey: ''
+  }
+}
+
+function saveSettingsToStorage(settings: AppSettings): boolean {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    return true
+  } catch (error) {
+    console.error('設定の保存に失敗しました:', error)
+    return false
+  }
 }
 
 export interface ReceiptAppData {
@@ -31,6 +70,11 @@ export interface ReceiptAppData {
   initialZoom: number
   deviceInfo: any | null
   debugLogs: DebugLog[]
+  showSettings: boolean
+  settings: AppSettings
+  tempSettings: AppSettings
+  isSettingsComplete: boolean
+  isSendingTestEmail: boolean
 }
 
 export function receiptApp(): ReceiptAppData & Record<string, any> {
@@ -58,8 +102,33 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     initialZoom: 1,
     deviceInfo: null,
     debugLogs: [],
+    showSettings: false,
+    settings: loadSettingsFromStorage(),
+    tempSettings: {
+      email: '',
+      apiKey: ''
+    },
+    isSendingTestEmail: false,
+    
+    // 初期化時に設定完了状態をチェック
+    get isSettingsComplete() {
+      return this.checkSettingsComplete()
+    },
+    
+    // 初期化処理
+    init() {
+      // 保存されたAPIキーがあれば設定
+      if (this.settings.apiKey) {
+        emailSender.setApiKey(this.settings.apiKey)
+      }
+    },
     
     async startCamera() {
+      // 既にカメラが起動している場合はスキップ
+      if (this.cameraActive || this.isLoading) {
+        return
+      }
+      
       this.isLoading = true
       this.error = null
       
@@ -67,6 +136,11 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         // カメラサポートチェック
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           throw new Error('このブラウザはカメラ機能をサポートしていません')
+        }
+        
+        // HTTPS接続チェック（開発環境を除く）
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+          throw new Error('カメラアクセスにはHTTPS接続が必要です')
         }
         
         // Cameraインスタンスを作成
@@ -113,7 +187,21 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         // デバイス情報を取得
         this.deviceInfo = this.camera.getDeviceInfo()
       } catch (error: any) {
-        this.showError(error.message)
+        // より詳細なエラーメッセージを提供
+        let errorMessage = error.message
+        
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+          errorMessage = 'カメラへのアクセスが拒否されました。ブラウザの設定でカメラの使用を許可してください。'
+        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+          errorMessage = 'カメラが見つかりません。カメラが接続されているか確認してください。'
+        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+          errorMessage = 'カメラを起動できません。他のアプリケーションがカメラを使用している可能性があります。'
+        } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
+          errorMessage = 'カメラの設定に問題があります。別のカメラを試してください。'
+        }
+        
+        this.showError(errorMessage)
+        this.addDebugLog(`カメラエラー: ${error.name} - ${error.message}`, 'error')
         console.error('Camera error:', error)
       } finally {
         this.isLoading = false
@@ -163,9 +251,57 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       this.startCamera()
     },
     
-    sendMail() {
-      // TODO: メール送信機能の実装
-      alert('メール送信機能は後で実装します')
+    async sendMail() {
+      if (!this.photo) {
+        this.showError('写真が撮影されていません')
+        return
+      }
+      
+      // 設定が完了しているか確認
+      if (!this.checkSettingsComplete()) {
+        this.showError('メール設定が完了していません。設定を行ってください。')
+        this.openSettings()
+        return
+      }
+      
+      this.isLoading = true
+      this.addDebugLog('レシート画像をメール送信中...', 'info')
+      
+      try {
+        // レシート画像を送信
+        const result = await emailSender.sendReceipt(
+          this.settings.email,
+          this.photo
+        )
+        
+        if (result.success) {
+          this.addDebugLog(`レシート画像を送信しました: messageId=${result.messageId}`, 'success')
+          
+          // 成功メッセージを表示
+          const successMessage = 'レシート画像をメール送信しました'
+          this.error = '✅ ' + successMessage
+          setTimeout(() => {
+            if (this.error === '✅ ' + successMessage) {
+              this.error = null
+            }
+          }, 3000)
+          
+          // 写真をクリアしてカメラに戻る
+          this.retake()
+          
+        } else {
+          this.addDebugLog(`メール送信失敗: ${result.error}`, 'error')
+          this.showError(`メール送信に失敗しました: ${result.error}`)
+        }
+        
+      } catch (error: any) {
+        this.addDebugLog(`メール送信エラー: ${error.message}`, 'error')
+        this.showError(`予期しないエラーが発生しました: ${error.message}`)
+        console.error('Send mail error:', error)
+        
+      } finally {
+        this.isLoading = false
+      }
     },
     
     async toggleTorch() {
@@ -425,6 +561,116 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           console.error('Copy failed:', err)
         }
         document.body.removeChild(textarea)
+      }
+    },
+    
+    // 設定関連メソッド
+    openSettings() {
+      // 現在の設定を一時設定にコピー
+      this.tempSettings = {
+        email: this.settings.email,
+        apiKey: this.settings.apiKey
+      }
+      this.showSettings = true
+    },
+    
+    closeSettings() {
+      this.showSettings = false
+      // 一時設定をクリア
+      this.tempSettings = {
+        email: '',
+        apiKey: ''
+      }
+    },
+    
+    saveSettings() {
+      // 簡単なバリデーション
+      if (!this.tempSettings.email.trim() || !this.tempSettings.apiKey.trim()) {
+        this.showError('メールアドレスとAPIキーを入力してください')
+        return
+      }
+      
+      // 設定データを準備
+      const newSettings: AppSettings = {
+        email: this.tempSettings.email.trim(),
+        apiKey: this.tempSettings.apiKey.trim()
+      }
+      
+      // localStorageに保存
+      if (saveSettingsToStorage(newSettings)) {
+        // 保存成功時のみ状態を更新
+        this.settings = newSettings
+        
+        // EmailSenderにAPIキーを設定
+        emailSender.setApiKey(newSettings.apiKey)
+        
+        this.closeSettings()
+        this.addDebugLog('設定をlocalStorageに保存しました', 'success')
+      } else {
+        // 保存失敗時のエラー処理
+        this.showError('設定の保存に失敗しました。ブラウザの設定を確認してください。')
+        this.addDebugLog('localStorage保存エラー', 'error')
+      }
+    },
+    
+    // 設定完了チェック
+    checkSettingsComplete() {
+      return this.settings.email.trim() !== '' && this.settings.apiKey.trim() !== ''
+    },
+    
+    // テストメール送信
+    async sendTestEmail() {
+      // バリデーション
+      if (!this.tempSettings.email.trim() || !this.tempSettings.apiKey.trim()) {
+        this.showError('メールアドレスとAPIキーを入力してください')
+        return
+      }
+      
+      this.isSendingTestEmail = true
+      this.addDebugLog('テストメール送信を開始...', 'info')
+      
+      try {
+        // テストメール送信
+        const result = await emailSender.sendTestEmail(
+          this.tempSettings.apiKey.trim(),
+          this.tempSettings.email.trim(),
+          this.tempSettings.email.trim()
+        )
+        
+        if (result.success) {
+          this.addDebugLog(`テストメール送信成功: messageId=${result.messageId}`, 'success')
+          this.showError('') // エラーメッセージをクリア
+          
+          // 成功メッセージを表示
+          const successMessage = 'テストメールを送信しました。指定したメールアドレスを確認してください。'
+          this.addDebugLog(successMessage, 'success')
+          
+          // 一時的に成功メッセージを表示（3秒後に消える）
+          const originalError = this.error
+          this.error = '✅ ' + successMessage
+          setTimeout(() => {
+            if (this.error === '✅ ' + successMessage) {
+              this.error = originalError
+            }
+          }, 5000)
+          
+        } else {
+          this.addDebugLog(`テストメール送信失敗: ${result.error}`, 'error')
+          this.showError(`テストメール送信に失敗しました: ${result.error}`)
+          
+          // 詳細なエラー情報をデバッグログに記録
+          if (result.details) {
+            this.addDebugLog(`エラー詳細: ${JSON.stringify(result.details)}`, 'debug')
+          }
+        }
+        
+      } catch (error: any) {
+        this.addDebugLog(`テストメール送信エラー: ${error.message}`, 'error')
+        this.showError(`予期しないエラーが発生しました: ${error.message}`)
+        console.error('Test email error:', error)
+        
+      } finally {
+        this.isSendingTestEmail = false
       }
     }
   }

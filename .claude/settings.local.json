@@ -12,7 +12,9 @@
       "Bash(gemini:*)",
       "WebFetch(domain:developer.mozilla.org)",
       "WebFetch(domain:w3c.github.io)",
-      "WebFetch(domain:developer.apple.com)"
+      "WebFetch(domain:developer.apple.com)",
+      "Bash(mkdir:*)",
+      "Bash(npm test:*)"
     ],
     "deny": []
   }

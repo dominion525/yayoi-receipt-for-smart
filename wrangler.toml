@@ -1,0 +1,10 @@
+name = "yayoi-receipt-for-smart"
+main = "worker.js"
+compatibility_date = "2025-01-23"
+
+[env.production]
+workers_dev = false
+
+# 環境変数（必要に応じて）
+# [env.production.vars]
+# SOME_VAR = "value"

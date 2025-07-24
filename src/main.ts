@@ -3,6 +3,7 @@ import './styles/main.css'
 import Alpine from 'alpinejs'
 import './app'
 import { debugPanelTemplate } from './components/debug-panel'
+import { settingsModalTemplate } from './components/settings-modal'
 
 // Alpine.jsをwindowに登録
 window.Alpine = Alpine
@@ -19,6 +20,12 @@ function init() {
   const debugPanelContainer = document.getElementById('debug-panel')
   if (debugPanelContainer) {
     debugPanelContainer.innerHTML = debugPanelTemplate
+  }
+  
+  // 設定モーダルを挿入
+  const settingsModalContainer = document.getElementById('settings-modal')
+  if (settingsModalContainer) {
+    settingsModalContainer.innerHTML = settingsModalTemplate
   }
   
   // Alpine.jsを初期化

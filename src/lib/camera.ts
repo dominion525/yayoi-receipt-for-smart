@@ -104,7 +104,7 @@ export class Camera {
       
       // 物理カメラ検出状況をログ
       if (this.devices.length > 0) {
-        this.log(`検出されたカメラ: ${this.devices.length}台 (${this.devices.map(d => d.zoom + 'x').join(', ')})`, 'info')
+        this.log(`検出されたカメラ: ${this.devices.length}台 (${this.devices.map(d => d.zoom + 'x').join(', ')})`, 'debug')
         // 望遠カメラの検出ログ
         const telephotoCameras = this.devices.filter(d => d.zoom === 2 || d.zoom === 3)
         if (telephotoCameras.length > 0) {
@@ -157,13 +157,42 @@ export class Camera {
           // モバイル: 背面カメラを指定
           constraints.video.facingMode = { exact: 'environment' }
         } else {
-          // PC: フロントカメラを許可
-          constraints.video.facingMode = 'user'
+          // PC: facingModeを指定しない（どのカメラでも許可）
+          // constraints.video.facingMode を設定しない
         }
       }
 
-      this.stream = await navigator.mediaDevices.getUserMedia(constraints)
-      this.video.srcObject = this.stream
+      try {
+        this.stream = await navigator.mediaDevices.getUserMedia(constraints)
+        this.video.srcObject = this.stream
+      } catch (error: any) {
+        // エラーの詳細情報をログ
+        this.log(`カメラ起動エラー: ${error.name} - ${error.message}`, 'error')
+        
+        // PCブラウザでfacingModeエラーの場合は、facingModeなしで再試行
+        if (!this.isMobile && error.name === 'OverconstrainedError') {
+          this.log('PCブラウザでfacingMode制約エラー。制約を緩和して再試行...', 'warning')
+          
+          // facingModeを削除して再試行
+          const fallbackConstraints: CameraConstraints = {
+            audio: false,
+            video: {
+              width: { ideal: this.width },
+              height: { ideal: this.height }
+            }
+          }
+          
+          if (deviceId) {
+            fallbackConstraints.video.deviceId = { exact: deviceId }
+          }
+          
+          this.stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints)
+          this.video.srcObject = this.stream
+        } else {
+          // その他のエラーはそのまま投げる
+          throw error
+        }
+      }
       
       // ビデオトラックを保存
       const videoTracks = this.stream.getVideoTracks()
@@ -272,7 +301,7 @@ export class Camera {
     })
 
     // ラベルベース判定のみを使用してシンプルに処理
-    this.log('ラベルベースのカメラ分析を開始...', 'info')
+    this.log('ラベルベースのカメラ分析を開始...', 'debug')
     
     this.devices = filteredDevices.map((device, index) => {
       const label = device.label || ''
