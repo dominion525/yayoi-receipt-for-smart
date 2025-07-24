@@ -5,6 +5,11 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>スマート レシート for 弥生</title>
+    <meta name="description" content="レシートを撮影してメール送信。経理業務を効率化するWebアプリケーション。">
+    <meta property="og:title" content="スマート レシート for 弥生">
+    <meta property="og:description" content="レシートを撮影してメール送信。経理業務を効率化。">
+    <meta property="og:url" content="https://receipt.dominion525.com">
+    <link rel="canonical" href="https://receipt.dominion525.com">
   </head>
   <body>
     <div id="app" class="min-h-screen bg-gray-50" x-data="receiptApp" x-init="init()">
@@ -30,8 +35,17 @@
                 @touchstart="handleTouchStart"
                 @touchmove="handleTouchMove"
                 @touchend="handleTouchEnd"
+                :class="{ 'shutter-effect': showCaptureEffect }"
               ></video>
               <canvas x-ref="canvas" class="hidden"></canvas>
+              
+              <!-- キャプチャエフェクト -->
+              <div
+                x-show="showCaptureEffect"
+                x-transition:enter="transition-opacity duration-200"
+                x-transition:leave="transition-opacity duration-100"
+                class="absolute inset-0 bg-white pointer-events-none camera-flash"
+              ></div>
             </div>
             
             <!-- コントロールエリア -->
@@ -150,12 +164,24 @@
               >
                 撮り直す
               </button>
-              <button
-                @click="sendMail"
-                class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded"
-              >
-                メールで送信
-              </button>
+              <!-- 送信先選択ボタン -->
+              <div class="space-y-2">
+                <template x-for="preset in settings.sendPresets.filter(p => p.isActive && p.recipients.length > 0)" :key="preset.id">
+                  <button
+                    @click="sendMailToPreset(preset.id)"
+                    :disabled="isSendingMail"
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    :class="preset.id === 'all' ? 'bg-green-500 hover:bg-green-600' : ''"
+                  >
+                    <svg x-show="isSendingMail" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span x-text="isSendingMail ? '送信中...' : preset.name"></span>
+                    <span class="text-xs opacity-75" x-text="`(${preset.recipients.length})`"></span>
+                  </button>
+                </template>
+              </div>
             </div>
           </div>
         </div>

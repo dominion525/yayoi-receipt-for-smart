@@ -10,7 +10,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "proxy": "node proxy-server.cjs",
+    "proxy": "node simple-proxy.cjs",
     "dev:all": "npm run proxy & npm run dev"
   },
   "devDependencies": {

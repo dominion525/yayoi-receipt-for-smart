@@ -16,17 +16,8 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
     }
   }
   
-  // Root redirect to health
-  if (pathname === '/' && method === 'GET') {
-    return {
-      status: 302,
-      headers: { ...CORS_HEADERS, 'Location': '/health' },
-      body: null
-    }
-  }
-  
   // Health check endpoint
-  if (pathname === '/health' && method === 'GET') {
+  if ((pathname === '/health' || pathname === '/api/health') && method === 'GET') {
     return {
       status: 200,
       headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
@@ -38,8 +29,8 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
     }
   }
   
-  // Email sending endpoint
-  if (pathname === '/api/send-email' && method === 'POST') {
+  // Email sending endpoint (両方のパスに対応)
+  if ((pathname === '/api/send-email' || pathname === '/send-email') && method === 'POST') {
     try {
       const body = await getBody()
       const data = JSON.parse(body)

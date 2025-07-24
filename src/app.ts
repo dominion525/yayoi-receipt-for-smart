@@ -8,9 +8,19 @@ export interface DebugLog {
   message: string
 }
 
+export interface SendPreset {
+  id: string
+  name: string
+  recipients: string[]
+  isActive: boolean
+}
+
 export interface AppSettings {
   email: string
   apiKey: string
+  dropboxEmail?: string
+  backupEmail?: string
+  sendPresets: SendPreset[]
 }
 
 // localStorage管理用の定数とユーティリティ
@@ -21,23 +31,93 @@ function loadSettingsFromStorage(): AppSettings {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const parsed = JSON.parse(stored)
-      return {
-        email: parsed.email || '',
-        apiKey: parsed.apiKey || ''
+      console.log('読み込まれた設定:', parsed)
+      
+      // プリセットが保存されていない場合は、メールアドレスから自動生成
+      if (!parsed.sendPresets) {
+        console.log('プリセットが存在しないため、自動生成します')
+        const presets: SendPreset[] = []
+        
+        // メインアドレス
+        if (parsed.email) {
+          presets.push({
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: [parsed.email],
+            isActive: true
+          })
+        }
+        
+        // Dropboxアドレス
+        if (parsed.dropboxEmail) {
+          console.log('Dropboxアドレスを検出:', parsed.dropboxEmail)
+          presets.push({
+            id: 'dropbox',
+            name: 'Dropboxに保存',
+            recipients: [parsed.dropboxEmail],
+            isActive: true
+          })
+        }
+        
+        // バックアップアドレス
+        if (parsed.backupEmail) {
+          presets.push({
+            id: 'backup',
+            name: 'バックアップ',
+            recipients: [parsed.backupEmail],
+            isActive: true
+          })
+        }
+        
+        // すべてに送信
+        const allRecipients = [parsed.email, parsed.dropboxEmail, parsed.backupEmail].filter(email => email)
+        if (allRecipients.length > 1) {
+          presets.push({
+            id: 'all',
+            name: 'すべてに送信',
+            recipients: allRecipients,
+            isActive: true
+          })
+        }
+        
+        parsed.sendPresets = presets
+        console.log('生成されたプリセット:', presets)
       }
+      
+      const result = {
+        email: parsed.email || '',
+        apiKey: parsed.apiKey || '',
+        dropboxEmail: parsed.dropboxEmail || '',
+        backupEmail: parsed.backupEmail || '',
+        sendPresets: parsed.sendPresets
+      }
+      console.log('最終的な設定:', result)
+      return result
     }
   } catch (error) {
     console.error('設定の読み込みに失敗しました:', error)
   }
   
+  // デフォルト設定
   return {
     email: '',
-    apiKey: ''
+    apiKey: '',
+    dropboxEmail: '',
+    backupEmail: '',
+    sendPresets: [
+      {
+        id: 'main',
+        name: 'メインアドレス',
+        recipients: [],
+        isActive: true
+      }
+    ]
   }
 }
 
 function saveSettingsToStorage(settings: AppSettings): boolean {
   try {
+    console.log('保存する設定:', settings)
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
     return true
   } catch (error) {
@@ -75,6 +155,8 @@ export interface ReceiptAppData {
   tempSettings: AppSettings
   isSettingsComplete: boolean
   isSendingTestEmail: boolean
+  showCaptureEffect: boolean
+  isSendingMail: boolean
 }
 
 export function receiptApp(): ReceiptAppData & Record<string, any> {
@@ -106,9 +188,14 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     settings: loadSettingsFromStorage(),
     tempSettings: {
       email: '',
-      apiKey: ''
+      apiKey: '',
+      dropboxEmail: '',
+      backupEmail: '',
+      sendPresets: []
     },
     isSendingTestEmail: false,
+    showCaptureEffect: false,
+    isSendingMail: false,
     
     // 初期化時に設定完了状態をチェック
     get isSettingsComplete() {
@@ -121,6 +208,76 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       if (this.settings.apiKey) {
         emailSender.setApiKey(this.settings.apiKey)
       }
+      
+      // プリセットが空の場合、または古い形式の場合は再生成
+      if (!this.settings.sendPresets || this.settings.sendPresets.length === 0) {
+        console.log('初期化時: プリセットが空なので再生成します')
+        this.regeneratePresets()
+      } else {
+        // Dropboxプリセットが存在するか確認
+        const hasDropboxPreset = this.settings.sendPresets.some(p => p.id === 'dropbox')
+        if (this.settings.dropboxEmail && !hasDropboxPreset) {
+          console.log('初期化時: Dropboxアドレスはあるがプリセットがないので再生成します')
+          this.regeneratePresets()
+        }
+      }
+    },
+    
+    // プリセットを再生成
+    regeneratePresets() {
+      const presets: SendPreset[] = []
+      
+      // メインアドレス
+      if (this.settings.email) {
+        presets.push({
+          id: 'main',
+          name: 'メインアドレス',
+          recipients: [this.settings.email],
+          isActive: true
+        })
+      }
+      
+      // Dropboxアドレス
+      if (this.settings.dropboxEmail) {
+        presets.push({
+          id: 'dropbox',
+          name: 'Dropboxに保存',
+          recipients: [this.settings.dropboxEmail],
+          isActive: true
+        })
+      }
+      
+      // バックアップアドレス
+      if (this.settings.backupEmail) {
+        presets.push({
+          id: 'backup',
+          name: 'バックアップ',
+          recipients: [this.settings.backupEmail],
+          isActive: true
+        })
+      }
+      
+      // すべてに送信
+      const allRecipients = [
+        this.settings.email,
+        this.settings.dropboxEmail,
+        this.settings.backupEmail
+      ].filter(email => email)
+      
+      if (allRecipients.length > 1) {
+        presets.push({
+          id: 'all',
+          name: 'すべてに送信',
+          recipients: allRecipients,
+          isActive: true
+        })
+      }
+      
+      this.settings.sendPresets = presets
+      console.log('再生成されたプリセット:', presets)
+      
+      // 設定を保存
+      saveSettingsToStorage(this.settings)
     },
     
     async startCamera() {
@@ -212,12 +369,25 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       if (!this.camera) return
       
       try {
-        const imageData = this.camera.capture()
-        if (imageData) {
-          this.photo = imageData
-          this.stopCamera()
-        }
+        // キャプチャエフェクトを表示
+        this.showCaptureEffect = true
+        
+        // エフェクトを少し表示してからキャプチャ
+        setTimeout(() => {
+          const imageData = this.camera.capture()
+          if (imageData) {
+            this.photo = imageData
+            this.stopCamera()
+          }
+          
+          // エフェクトを非表示
+          setTimeout(() => {
+            this.showCaptureEffect = false
+          }, 300)
+        }, 100)
+        
       } catch (error: any) {
+        this.showCaptureEffect = false
         this.showError(error.message)
         console.error('Capture error:', error)
       }
@@ -264,7 +434,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         return
       }
       
-      this.isLoading = true
+      this.isSendingMail = true
       this.addDebugLog('レシート画像をメール送信中...', 'info')
       
       try {
@@ -300,7 +470,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         console.error('Send mail error:', error)
         
       } finally {
-        this.isLoading = false
+        this.isSendingMail = false
       }
     },
     
@@ -566,10 +736,13 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     
     // 設定関連メソッド
     openSettings() {
-      // 現在の設定を一時設定にコピー
+      // 現在の設定を一時設定にコピー（深いコピー）
       this.tempSettings = {
         email: this.settings.email,
-        apiKey: this.settings.apiKey
+        apiKey: this.settings.apiKey,
+        dropboxEmail: this.settings.dropboxEmail || '',
+        backupEmail: this.settings.backupEmail || '',
+        sendPresets: JSON.parse(JSON.stringify(this.settings.sendPresets))
       }
       this.showSettings = true
     },
@@ -579,7 +752,10 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       // 一時設定をクリア
       this.tempSettings = {
         email: '',
-        apiKey: ''
+        apiKey: '',
+        dropboxEmail: '',
+        backupEmail: '',
+        sendPresets: []
       }
     },
     
@@ -590,10 +766,16 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         return
       }
       
+      // プリセットを更新
+      this.updatePresetsFromTempSettings()
+      
       // 設定データを準備
       const newSettings: AppSettings = {
         email: this.tempSettings.email.trim(),
-        apiKey: this.tempSettings.apiKey.trim()
+        apiKey: this.tempSettings.apiKey.trim(),
+        dropboxEmail: this.tempSettings.dropboxEmail?.trim() || '',
+        backupEmail: this.tempSettings.backupEmail?.trim() || '',
+        sendPresets: this.tempSettings.sendPresets
       }
       
       // localStorageに保存
@@ -671,6 +853,148 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         
       } finally {
         this.isSendingTestEmail = false
+      }
+    },
+    
+    // プリセットを設定から更新
+    updatePresetsFromTempSettings() {
+      // まずメインプリセットを確保
+      let mainPreset = this.tempSettings.sendPresets.find(p => p.id === 'main')
+      if (!mainPreset) {
+        mainPreset = {
+          id: 'main',
+          name: 'メインアドレス',
+          recipients: [],
+          isActive: true
+        }
+        this.tempSettings.sendPresets.push(mainPreset)
+      }
+      mainPreset.recipients = this.tempSettings.email.trim() ? [this.tempSettings.email.trim()] : []
+      mainPreset.isActive = mainPreset.recipients.length > 0
+      
+      // Dropboxプリセット
+      let dropboxPreset = this.tempSettings.sendPresets.find(p => p.id === 'dropbox')
+      if (this.tempSettings.dropboxEmail?.trim()) {
+        if (!dropboxPreset) {
+          dropboxPreset = {
+            id: 'dropbox',
+            name: 'Dropboxに保存',
+            recipients: [],
+            isActive: true
+          }
+          this.tempSettings.sendPresets.push(dropboxPreset)
+        }
+        dropboxPreset.recipients = [this.tempSettings.dropboxEmail.trim()]
+        dropboxPreset.isActive = true
+      } else if (dropboxPreset) {
+        // メールアドレスが空の場合は無効化
+        dropboxPreset.recipients = []
+        dropboxPreset.isActive = false
+      }
+      
+      // バックアッププリセット
+      let backupPreset = this.tempSettings.sendPresets.find(p => p.id === 'backup')
+      if (this.tempSettings.backupEmail?.trim()) {
+        if (!backupPreset) {
+          backupPreset = {
+            id: 'backup',
+            name: 'バックアップ',
+            recipients: [],
+            isActive: true
+          }
+          this.tempSettings.sendPresets.push(backupPreset)
+        }
+        backupPreset.recipients = [this.tempSettings.backupEmail.trim()]
+        backupPreset.isActive = true
+      } else if (backupPreset) {
+        // メールアドレスが空の場合は無効化
+        backupPreset.recipients = []
+        backupPreset.isActive = false
+      }
+      
+      // すべてに送信プリセット
+      const allRecipients = [
+        this.tempSettings.email,
+        this.tempSettings.dropboxEmail,
+        this.tempSettings.backupEmail
+      ].filter(email => email?.trim())
+      
+      let allPreset = this.tempSettings.sendPresets.find(p => p.id === 'all')
+      if (allRecipients.length > 1) {
+        if (!allPreset) {
+          allPreset = {
+            id: 'all',
+            name: 'すべてに送信',
+            recipients: [],
+            isActive: true
+          }
+          this.tempSettings.sendPresets.push(allPreset)
+        }
+        allPreset.recipients = allRecipients.map(e => e.trim())
+        allPreset.isActive = true
+      } else if (allPreset) {
+        // 複数宛先がない場合は無効化
+        allPreset.recipients = []
+        allPreset.isActive = false
+      }
+      
+      // デバッグログ
+      this.addDebugLog(`プリセット更新完了: ${this.tempSettings.sendPresets.filter(p => p.isActive).length}個のアクティブなプリセット`, 'debug')
+    },
+    
+    // 複数宛先への送信
+    async sendMailToPreset(presetId: string) {
+      console.log(`sendMailToPreset呼び出し: presetId=${presetId}`)
+      console.log('利用可能なプリセット:', this.settings.sendPresets)
+      
+      const preset = this.settings.sendPresets.find(p => p.id === presetId)
+      console.log('選択されたプリセット:', preset)
+      
+      if (!preset || !preset.isActive) {
+        this.showError('送信先が見つかりません')
+        return
+      }
+      
+      this.isSendingMail = true
+      const results = { success: 0, failed: 0 }
+      
+      try {
+        for (const recipient of preset.recipients) {
+          this.addDebugLog(`${recipient}に送信中...`, 'info')
+          
+          try {
+            const result = await emailSender.sendReceipt(recipient, this.photo!)
+            if (result.success) {
+              results.success++
+              this.addDebugLog(`${recipient}への送信成功`, 'success')
+            } else {
+              results.failed++
+              this.addDebugLog(`${recipient}への送信失敗: ${result.error}`, 'error')
+            }
+          } catch (error: any) {
+            results.failed++
+            this.addDebugLog(`${recipient}への送信エラー: ${error.message}`, 'error')
+          }
+        }
+        
+        // 結果を表示
+        if (results.success > 0 && results.failed === 0) {
+          const successMessage = `${results.success}件の送信が完了しました`
+          this.error = '✅ ' + successMessage
+          setTimeout(() => {
+            if (this.error === '✅ ' + successMessage) {
+              this.error = null
+            }
+          }, 3000)
+          
+          // 写真をクリアしてカメラに戻る
+          this.retake()
+        } else if (results.failed > 0) {
+          this.showError(`送信結果: 成功${results.success}件, 失敗${results.failed}件`)
+        }
+        
+      } finally {
+        this.isSendingMail = false
       }
     }
   }

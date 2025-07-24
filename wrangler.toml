@@ -2,6 +2,11 @@ name = "yayoi-receipt-for-smart"
 main = "worker.js"
 compatibility_date = "2025-01-23"
 
+# カスタムドメインでのルーティング
+routes = [
+  { pattern = "receipt.dominion525.com/api/*", zone_name = "dominion525.com" }
+]
+
 [env.production]
 workers_dev = false
 

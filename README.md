@@ -91,14 +91,18 @@ RESEND APIはブラウザから直接呼び出すことができないため（C
 
 5. デプロイされたWorkerのURLを`.env`ファイルに設定:
    ```
-   VITE_PROXY_URL=https://yayoi-receipt-proxy.workers.dev
+   VITE_PROXY_URL=https://yayoi-receipt-for-smart.dominion525.workers.dev
    ```
 
-6. フロントエンドをビルドしてCloudflare Pagesにデプロイ:
+6. フロントエンドをビルドしてデプロイ:
    ```bash
    npm run build
-   # distフォルダをCloudflare Pagesにアップロード
+   # distフォルダをホスティングサービスにアップロード
    ```
+
+### 本番環境URL
+- **カスタムドメイン**: https://receipt.dominion525.com
+- カメラアクセス許可は初回のみで、以降は自動的に許可されます
 
 ### セキュリティ上の注意
 

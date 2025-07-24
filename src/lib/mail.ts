@@ -53,8 +53,12 @@ export class EmailSender {
         }
       }
 
-      // プロキシサーバーにリクエスト
-      const response = await fetch(`${this.proxyUrl}/api/send-email`, {
+      // プロキシサーバーにリクエスト（URLを正規化）
+      const endpoint = this.proxyUrl.endsWith('/api') 
+        ? `${this.proxyUrl}/send-email` 
+        : `${this.proxyUrl}/api/send-email`
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

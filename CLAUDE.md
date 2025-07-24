@@ -6,6 +6,7 @@
 - iPhoneで動作するレシート撮影・送信Webアプリケーション
 - Alpine.js + TypeScript + Viteの軽量構成
 - カメラ機能はHTTPS環境必須
+- 本番環境URL: https://receipt.dominion525.com
 
 ### 開発環境
 

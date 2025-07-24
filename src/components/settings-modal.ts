@@ -51,6 +51,40 @@ export const settingsModalTemplate = `
           >
         </div>
 
+        <!-- Dropboxメールアドレス -->
+        <div>
+          <label for="dropboxEmail" class="block text-sm font-medium text-gray-700 mb-1">
+            Dropbox Email-to-Dropbox
+          </label>
+          <input
+            id="dropboxEmail"
+            type="email"
+            x-model="tempSettings.dropboxEmail"
+            placeholder="xxxx@getdropbox.com"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+          <p class="mt-1 text-xs text-gray-500">
+            Dropboxの専用メールアドレス（オプション）
+          </p>
+        </div>
+
+        <!-- バックアップメールアドレス -->
+        <div>
+          <label for="backupEmail" class="block text-sm font-medium text-gray-700 mb-1">
+            バックアップ用メールアドレス
+          </label>
+          <input
+            id="backupEmail"
+            type="email"
+            x-model="tempSettings.backupEmail"
+            placeholder="backup@example.com"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+          <p class="mt-1 text-xs text-gray-500">
+            追加のバックアップ先（オプション）
+          </p>
+        </div>
+
         <!-- RESEND APIキー -->
         <div>
           <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">
@@ -89,9 +123,9 @@ export const settingsModalTemplate = `
 
         <!-- プロキシサーバー情報 -->
         <div class="bg-green-50 border border-green-200 rounded-md p-3 text-xs text-green-800">
-          <p class="font-semibold mb-1">✅ Cloudflare Workersプロキシ使用中</p>
-          <p>メール送信はCloudflare Workers経由で行われます。</p>
-          <p class="text-gray-600 mt-1">ローカル開発時: <code class="bg-green-100 px-1">npm run proxy</code> も利用可能</p>
+          <p class="font-semibold mb-1">✅ セキュアなメール送信</p>
+          <p>メール送信はCloudflare Workers経由で安全に処理されます。</p>
+          <p class="text-gray-600 mt-1">本番環境: <a href="https://receipt.dominion525.com" class="underline">receipt.dominion525.com</a></p>
         </div>
 
         <!-- アクションボタン -->
