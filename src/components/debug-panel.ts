@@ -74,6 +74,27 @@ export const debugPanelTemplate = `
       </div>
     </div>
     
+    <!-- 送信プリセット情報 -->
+    <div class="mb-6">
+      <h4 class="text-sm font-semibold mb-2 text-yellow-400">送信プリセット</h4>
+      <div class="text-xs space-y-1">
+        <template x-for="preset in settings.sendPresets" :key="preset.id">
+          <div class="ml-2 flex items-center gap-2">
+            <span x-text="preset.isActive ? '✅' : '❌'" class="text-sm"></span>
+            <span x-text="preset.name" class="font-semibold"></span>
+            <span class="text-gray-400">
+              <span x-text="'(' + preset.recipients.length + '件: '"></span>
+              <span x-text="preset.recipients.join(', ')"></span>
+              <span>)</span>
+            </span>
+          </div>
+        </template>
+        <div x-show="settings.sendPresets.length === 0" class="text-gray-500 ml-2">
+          プリセットがありません
+        </div>
+      </div>
+    </div>
+    
     <!-- API対応状況 -->
     <div x-show="apiSupport" class="mb-6">
       <h4 class="text-sm font-semibold mb-2">API対応状況</h4>

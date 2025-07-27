@@ -14,11 +14,24 @@
   <body>
     <div id="app" class="min-h-screen bg-gray-50" x-data="receiptApp" x-init="init()">
       <div class="container mx-auto px-4 py-8 max-w-lg">
-        <h1 class="text-3xl font-bold text-center mb-8">スマート レシート for 弥生</h1>
+        <div class="flex items-center justify-between mb-8">
+          <h1 class="text-3xl font-bold text-center flex-1">スマート レシート for 弥生</h1>
+          <!-- デバッグボタン（常に表示） -->
+          <button
+            @click="toggleDebug"
+            class="p-2 rounded-full bg-gray-600 text-white hover:bg-gray-700 transition-all"
+            :class="{ 'bg-blue-600 hover:bg-blue-700': showDebug }"
+            title="デバッグ情報"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+            </svg>
+          </button>
+        </div>
         
         <!-- エラーメッセージ -->
-        <div x-show="error" x-transition class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-          <p x-text="error"></p>
+        <div x-show="error" x-transition class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded max-h-48 overflow-y-auto">
+          <p x-html="error ? error.replace(/\n/g, '<br>') : ''" class="whitespace-pre-wrap"></p>
         </div>
         
         <!-- カメラビュー -->
@@ -130,12 +143,37 @@
               </p>
             </div>
             
+            <!-- 標準カメラで撮影ボタン（モバイル推奨） -->
+            <input 
+              x-ref="fileInput"
+              type="file" 
+              accept="image/*" 
+              capture="environment"
+              @change="handleNativeCamera"
+              class="hidden"
+            />
+            
+            <button
+              @click="$refs.fileInput.click()"
+              :disabled="!checkSettingsComplete()"
+              class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed mb-2 flex items-center justify-center gap-2"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+              </svg>
+              <span>標準カメラで撮影</span>
+              <span class="text-xs bg-blue-600 px-2 py-1 rounded">推奨</span>
+            </button>
+            
+            <div class="text-center text-xs text-gray-500 mb-3">または</div>
+            
             <button
               @click="startCamera"
               :disabled="isLoading || !checkSettingsComplete()"
               class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed mb-3"
             >
-              <span x-show="!isLoading">カメラを起動</span>
+              <span x-show="!isLoading">アプリ内カメラを起動</span>
               <span x-show="isLoading">起動中...</span>
             </button>
             
@@ -156,18 +194,36 @@
         <!-- 写真プレビュー -->
         <div x-show="photo" class="mb-4">
           <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <img :src="photo" alt="撮影したレシート" class="w-full">
+            <div class="relative">
+              <img :src="photo" alt="撮影したレシート" class="w-full">
+              <!-- キャプチャエフェクト -->
+              <div
+                x-show="showCaptureEffect"
+                x-transition:enter="transition-opacity duration-200"
+                x-transition:leave="transition-opacity duration-100"
+                class="absolute inset-0 bg-white pointer-events-none camera-flash"
+              ></div>
+            </div>
             <div class="p-4 space-y-2">
-              <button
-                @click="retake"
-                class="w-full bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
-              >
-                撮り直す
-              </button>
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  @click="retake"
+                  class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  撮り直す
+                </button>
+                <button
+                  @click="returnToHome"
+                  class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded"
+                >
+                  ホームに戻る
+                </button>
+              </div>
               <!-- 送信先選択ボタン -->
               <div class="space-y-2">
                 <template x-for="preset in settings.sendPresets.filter(p => p.isActive && p.recipients.length > 0)" :key="preset.id">
                   <button
+                    :id="'send-btn-' + preset.id"
                     @click="sendMailToPreset(preset.id)"
                     :disabled="isSendingMail"
                     class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -178,7 +234,7 @@
                       <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     <span x-text="isSendingMail ? '送信中...' : preset.name"></span>
-                    <span class="text-xs opacity-75" x-text="`(${preset.recipients.length})`"></span>
+                    <span class="text-xs opacity-75" x-text="'(' + preset.recipients.length + ')'"></span>
                   </button>
                 </template>
               </div>

@@ -4,8 +4,12 @@ compatibility_date = "2025-01-23"
 
 # カスタムドメインでのルーティング
 routes = [
-  { pattern = "receipt.dominion525.com/api/*", zone_name = "dominion525.com" }
+  { pattern = "receipt.dominion525.com/*", zone_name = "dominion525.com" }
 ]
+
+# 静的アセットの設定
+[assets]
+directory = "./dist"
 
 [env.production]
 workers_dev = false

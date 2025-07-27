@@ -84,6 +84,22 @@ function loadSettingsFromStorage(): AppSettings {
         console.log('生成されたプリセット:', presets)
       }
       
+      // プリセットが存在する場合も、メールアドレスの変更を反映
+      if (parsed.sendPresets && parsed.sendPresets.length > 0) {
+        // Dropboxプリセットの更新
+        const dropboxPreset = parsed.sendPresets.find((p: SendPreset) => p.id === 'dropbox')
+        if (dropboxPreset && parsed.dropboxEmail) {
+          dropboxPreset.recipients = [parsed.dropboxEmail]
+          dropboxPreset.isActive = true
+        }
+        
+        // メインプリセットの更新
+        const mainPreset = parsed.sendPresets.find((p: SendPreset) => p.id === 'main')
+        if (mainPreset && parsed.email) {
+          mainPreset.recipients = [parsed.email]
+        }
+      }
+      
       const result = {
         email: parsed.email || '',
         apiKey: parsed.apiKey || '',
@@ -214,12 +230,74 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         console.log('初期化時: プリセットが空なので再生成します')
         this.regeneratePresets()
       } else {
-        // Dropboxプリセットが存在するか確認
-        const hasDropboxPreset = this.settings.sendPresets.some(p => p.id === 'dropbox')
-        if (this.settings.dropboxEmail && !hasDropboxPreset) {
-          console.log('初期化時: Dropboxアドレスはあるがプリセットがないので再生成します')
-          this.regeneratePresets()
+        // プリセットの整合性チェックと修正
+        let needsUpdate = false
+        
+        // Dropboxプリセットのチェック
+        const dropboxPreset = this.settings.sendPresets.find(p => p.id === 'dropbox')
+        if (this.settings.dropboxEmail) {
+          if (!dropboxPreset) {
+            console.log('初期化時: Dropboxアドレスはあるがプリセットがないので再生成します')
+            needsUpdate = true
+          } else if (!dropboxPreset.isActive || dropboxPreset.recipients.length === 0) {
+            console.log('初期化時: Dropboxプリセットが無効または空なので修正します')
+            dropboxPreset.isActive = true
+            dropboxPreset.recipients = [this.settings.dropboxEmail]
+            needsUpdate = true
+          }
         }
+        
+        // メインプリセットのチェック
+        const mainPreset = this.settings.sendPresets.find(p => p.id === 'main')
+        if (this.settings.email && mainPreset) {
+          if (mainPreset.recipients[0] !== this.settings.email) {
+            console.log('初期化時: メインアドレスが更新されているので修正します')
+            mainPreset.recipients = [this.settings.email]
+            needsUpdate = true
+          }
+        }
+        
+        if (needsUpdate) {
+          console.log('初期化時: プリセットを再生成します')
+          this.regeneratePresets()
+        } else {
+          // 「すべてに送信」プリセットの更新チェック
+          this.updateAllPreset()
+        }
+      }
+      
+      // デバッグ用：現在のプリセット状態を表示
+      console.log('初期化完了時のプリセット:', this.settings.sendPresets)
+      this.addDebugLog(`プリセット数: ${this.settings.sendPresets.filter(p => p.isActive).length}個がアクティブ`, 'info')
+    },
+    
+    // 「すべてに送信」プリセットを更新
+    updateAllPreset() {
+      const allRecipients = [
+        this.settings.email,
+        this.settings.dropboxEmail,
+        this.settings.backupEmail
+      ].filter((email): email is string => !!email)
+      
+      let allPreset = this.settings.sendPresets.find(p => p.id === 'all')
+      
+      if (allRecipients.length > 1) {
+        if (!allPreset) {
+          // プリセットが存在しない場合は追加
+          this.settings.sendPresets.push({
+            id: 'all',
+            name: 'すべてに送信',
+            recipients: allRecipients,
+            isActive: true
+          })
+        } else {
+          // 既存のプリセットを更新
+          allPreset.recipients = allRecipients
+          allPreset.isActive = true
+        }
+      } else if (allPreset) {
+        // 複数宛先がない場合は無効化
+        allPreset.isActive = false
       }
     },
     
@@ -262,7 +340,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         this.settings.email,
         this.settings.dropboxEmail,
         this.settings.backupEmail
-      ].filter(email => email)
+      ].filter((email): email is string => !!email)
       
       if (allRecipients.length > 1) {
         presets.push({
@@ -374,7 +452,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         
         // エフェクトを少し表示してからキャプチャ
         setTimeout(() => {
-          const imageData = this.camera.capture()
+          const imageData = this.camera?.capture()
           if (imageData) {
             this.photo = imageData
             this.stopCamera()
@@ -418,7 +496,59 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     retake() {
       this.photo = null
       this.error = null
-      this.startCamera()
+      // カメラが既に起動している場合のみ再起動
+      if (this.cameraActive) {
+        this.startCamera()
+      }
+    },
+    
+    returnToHome() {
+      this.photo = null
+      this.error = null
+      this.cameraActive = false
+      if (this.camera) {
+        this.camera.stop()
+        this.camera = null
+      }
+    },
+    
+    // 標準カメラアプリでの撮影処理
+    handleNativeCamera(event: Event) {
+      const input = event.target as HTMLInputElement
+      const file = input.files?.[0]
+      
+      if (file) {
+        this.addDebugLog('標準カメラで撮影された画像を処理中...', 'info')
+        
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const result = e.target?.result
+          if (result && typeof result === 'string') {
+            // キャプチャエフェクトを表示
+            this.showCaptureEffect = true
+            
+            // 画像を設定
+            this.photo = result
+            
+            // エフェクトを非表示
+            setTimeout(() => {
+              this.showCaptureEffect = false
+            }, 300)
+            
+            this.addDebugLog('標準カメラで撮影完了', 'success')
+          }
+        }
+        
+        reader.onerror = () => {
+          this.showError('画像の読み込みに失敗しました')
+          this.addDebugLog('画像読み込みエラー', 'error')
+        }
+        
+        reader.readAsDataURL(file)
+      }
+      
+      // inputをリセット（同じファイルを再選択できるように）
+      input.value = ''
     },
     
     async sendMail() {
@@ -441,7 +571,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         // レシート画像を送信
         const result = await emailSender.sendReceipt(
           this.settings.email,
-          this.photo
+          this.photo!
         )
         
         if (result.success) {
@@ -615,12 +745,12 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     
     showError(message: string) {
       this.error = message
-      // 3秒後にエラーメッセージを消す
+      // エラーメッセージを長めに表示（10秒）
       setTimeout(() => {
         if (this.error === message) {
           this.error = null
         }
-      }, 3000)
+      }, 10000)
     },
     
     async updateZoom(value: string | number) {
@@ -645,6 +775,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         // ピンチジェスチャー開始
         const touch1 = event.touches[0]
         const touch2 = event.touches[1]
+        if (!touch1 || !touch2) return
+        
         this.initialPinchDistance = Math.hypot(
           touch2.clientX - touch1.clientX,
           touch2.clientY - touch1.clientY
@@ -659,6 +791,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         
         const touch1 = event.touches[0]
         const touch2 = event.touches[1]
+        if (!touch1 || !touch2) return
+        
         const currentDistance = Math.hypot(
           touch2.clientX - touch1.clientX,
           touch2.clientY - touch1.clientY
@@ -917,7 +1051,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         this.tempSettings.email,
         this.tempSettings.dropboxEmail,
         this.tempSettings.backupEmail
-      ].filter(email => email?.trim())
+      ].filter((email): email is string => !!email?.trim())
       
       let allPreset = this.tempSettings.sendPresets.find(p => p.id === 'all')
       if (allRecipients.length > 1) {
@@ -930,7 +1064,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           }
           this.tempSettings.sendPresets.push(allPreset)
         }
-        allPreset.recipients = allRecipients.map(e => e.trim())
+        allPreset.recipients = allRecipients.map(e => e!.trim())
         allPreset.isActive = true
       } else if (allPreset) {
         // 複数宛先がない場合は無効化
@@ -947,35 +1081,99 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       console.log(`sendMailToPreset呼び出し: presetId=${presetId}`)
       console.log('利用可能なプリセット:', this.settings.sendPresets)
       
+      // デバッグ用：実際にこの関数が呼ばれているか確認
+      this.addDebugLog(`sendMailToPreset開始: presetId=${presetId}`, 'info')
+      
       const preset = this.settings.sendPresets.find(p => p.id === presetId)
       console.log('選択されたプリセット:', preset)
       
       if (!preset || !preset.isActive) {
         this.showError('送信先が見つかりません')
+        this.addDebugLog(`プリセットが見つかりません: presetId=${presetId}`, 'error')
         return
       }
       
+      // 送信先を明示的に表示
+      this.addDebugLog(`送信先: ${preset.name} (${preset.recipients.length}件)`, 'info')
+      preset.recipients.forEach(r => {
+        this.addDebugLog(`  - ${r}`, 'debug')
+      })
+      
       this.isSendingMail = true
       const results = { success: 0, failed: 0 }
+      const errorMessages: string[] = []
       
       try {
         for (const recipient of preset.recipients) {
           this.addDebugLog(`${recipient}に送信中...`, 'info')
+          console.log(`送信処理: ${recipient}`)
+          
+          // APIキーの存在確認
+          if (!this.settings.apiKey) {
+            this.addDebugLog('エラー: APIキーが設定されていません', 'error')
+            errorMessages.push('APIキーが設定されていません')
+            results.failed++
+            console.error('APIキーが設定されていません')
+            continue
+          }
           
           try {
             const result = await emailSender.sendReceipt(recipient, this.photo!)
+            console.log(`送信結果 (${recipient}):`, result)
+            
             if (result.success) {
               results.success++
-              this.addDebugLog(`${recipient}への送信成功`, 'success')
+              this.addDebugLog(`${recipient}への送信成功: ID=${result.messageId}`, 'success')
             } else {
               results.failed++
-              this.addDebugLog(`${recipient}への送信失敗: ${result.error}`, 'error')
+              // エラーメッセージを構築
+              let errorDetail = `${recipient}への送信失敗`
+              if (result.error) {
+                errorDetail += `: ${result.error}`
+              }
+              
+              // デバッグ用に完全な結果をログ出力
+              console.error(`送信失敗 (${recipient}):`, {
+                error: result.error,
+                details: result.details,
+                fullResult: result
+              })
+              
+              // RESEND APIのエラー詳細を解析
+              if (result.details) {
+                console.error('送信エラー詳細:', result.details)
+                if (result.details.name === 'validation_error') {
+                  errorDetail += '\n（メールアドレスが無効です）'
+                } else if (result.details.name === 'invalid_to_address') {
+                  errorDetail += '\n（送信先アドレスが無効です）'
+                } else if (result.details.message) {
+                  errorDetail += `\n（${result.details.message}）`
+                }
+              }
+              
+              // Dropboxのメールアドレス形式を確認
+              if (presetId === 'dropbox' && recipient.includes('@')) {
+                if (!recipient.endsWith('@getdropbox.com') && !recipient.endsWith('@addtodropbox.com')) {
+                  errorDetail += '\n\n⚠️ ヒント: Dropboxのメールアドレスは通常 @getdropbox.com または @addtodropbox.com で終わります'
+                }
+              }
+              
+              errorMessages.push(errorDetail)
+              this.addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
+              console.log('エラーメッセージ追加:', errorDetail)
             }
           } catch (error: any) {
             results.failed++
-            this.addDebugLog(`${recipient}への送信エラー: ${error.message}`, 'error')
+            const errorMsg = `${recipient}への送信エラー: ${error.message}`
+            errorMessages.push(errorMsg)
+            this.addDebugLog(errorMsg, 'error')
+            console.error(`送信例外 (${recipient}):`, error)
           }
         }
+        
+        // デバッグ用：収集したエラーメッセージを出力
+        console.log('収集したエラーメッセージ:', errorMessages)
+        console.log('エラーメッセージ数:', errorMessages.length)
         
         // 結果を表示
         if (results.success > 0 && results.failed === 0) {
@@ -990,7 +1188,18 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           // 写真をクリアしてカメラに戻る
           this.retake()
         } else if (results.failed > 0) {
-          this.showError(`送信結果: 成功${results.success}件, 失敗${results.failed}件`)
+          // エラーメッセージが空の場合の処理
+          if (errorMessages.length === 0) {
+            errorMessages.push('エラーの詳細情報を取得できませんでした')
+            console.warn('エラーメッセージが空でした')
+          }
+          
+          // エラーメッセージをまとめて表示
+          const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
+          const fullError = summary + '\n\n' + errorMessages.join('\n\n')
+          
+          console.log('最終的なエラーメッセージ:', fullError)
+          this.showError(fullError)
         }
         
       } finally {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { EmailSender, EmailResult } from '../mail'
+import { EmailSender } from '../mail'
 
 // モック関数を外部で定義して共有
 const mockSend = vi.fn()
@@ -32,7 +32,7 @@ describe('EmailSender', () => {
   describe('初期化とAPIキー設定', () => {
     it('初期状態ではAPIキーが設定されていない', () => {
       expect(emailSender['apiKey']).toBe('')
-      expect(emailSender['resend']).toBeNull()
+      expect(emailSender['apiKey']).toBe('')
     })
 
     it('setApiKeyでAPIキーを設定できる', () => {
@@ -40,7 +40,7 @@ describe('EmailSender', () => {
       emailSender.setApiKey(apiKey)
       
       expect(emailSender['apiKey']).toBe(apiKey)
-      expect(emailSender['resend']).toBeDefined()
+      expect(emailSender['apiKey']).toBe(apiKey)
     })
   })
 
@@ -294,7 +294,7 @@ describe('EmailSender', () => {
     it('元のAPIキー設定が復元される', async () => {
       // 元のAPIキーを設定
       emailSender.setApiKey('original_api_key')
-      const originalResend = emailSender['resend']
+      // const originalApiKey = emailSender['apiKey']
       
       mockSend.mockResolvedValue({
         data: { id: 'test_123' },
@@ -310,12 +310,12 @@ describe('EmailSender', () => {
 
       // 元の設定が復元されていることを確認
       expect(emailSender['apiKey']).toBe('original_api_key')
-      expect(emailSender['resend']).toBe(originalResend)
+      expect(emailSender['apiKey']).toBe('original_api_key')
     })
 
     it('エラーが発生しても元のAPIキー設定が復元される', async () => {
       emailSender.setApiKey('original_api_key')
-      const originalResend = emailSender['resend']
+      // const originalApiKey = emailSender['apiKey']
       
       mockSend.mockRejectedValue(new Error('Test error'))
 
@@ -327,7 +327,7 @@ describe('EmailSender', () => {
       )
 
       expect(emailSender['apiKey']).toBe('original_api_key')
-      expect(emailSender['resend']).toBe(originalResend)
+      expect(emailSender['apiKey']).toBe('original_api_key')
     })
 
     it('送信時刻が日本時間形式で含まれる', async () => {

@@ -9,10 +9,10 @@ export interface CameraOptions {
 export interface CameraConstraints {
   audio: boolean
   video: {
-    facingMode?: string
+    facingMode?: ConstrainDOMString
     width?: { ideal: number }
     height?: { ideal: number }
-    deviceId?: { exact: string }
+    deviceId?: ConstrainDOMString
   }
 }
 
@@ -104,12 +104,12 @@ export class Camera {
       
       // 物理カメラ検出状況をログ
       if (this.devices.length > 0) {
-        this.log(`検出されたカメラ: ${this.devices.length}台 (${this.devices.map(d => d.zoom + 'x').join(', ')})`, 'debug')
+        this.log(`検出されたカメラ: ${this.devices.length}台 (${this.devices.map(d => (d.zoom ?? 1) + 'x').join(', ')})`, 'debug')
         // 望遠カメラの検出ログ
         const telephotoCameras = this.devices.filter(d => d.zoom === 2 || d.zoom === 3)
         if (telephotoCameras.length > 0) {
           telephotoCameras.forEach(cam => {
-            this.log(`望遠カメラ検出: ${cam.label} → ${cam.zoom}x (ラベル分析による判定)`, 'success')
+            this.log(`望遠カメラ検出: ${cam.label} → ${(cam.zoom ?? 1)}x (ラベル分析による判定)`, 'success')
           })
         }
       }
@@ -124,11 +124,11 @@ export class Camera {
       
       if (deviceId) {
         this.log(`指定されたdeviceIdでカメラを起動: ${deviceId.substring(0, 8)}...`, 'info')
-        constraints.video.deviceId = { exact: deviceId }
+        constraints.video.deviceId = { exact: deviceId } as ConstrainDOMString
         // 指定されたdeviceIdのカメラのズーム倍率を設定
         const targetDevice = this.devices.find(d => d.deviceId === deviceId)
         if (targetDevice) {
-          this.currentZoom = targetDevice.zoom
+          this.currentZoom = targetDevice.zoom ?? 1
         }
       } else if (this.devices.length > 0) {
         // 背面カメラを優先的に選択
@@ -138,16 +138,19 @@ export class Camera {
           device.label.toLowerCase().includes('environment')
         )
         if (rearCamera) {
-          constraints.video.deviceId = { exact: rearCamera.deviceId }
+          constraints.video.deviceId = { exact: rearCamera.deviceId } as ConstrainDOMString
           this.currentDeviceIndex = this.devices.indexOf(rearCamera)
         } else {
           // 背面カメラがない場合の処理
           if (this.isMobile) {
             // モバイル: 背面カメラを厳格に要求
-            constraints.video.facingMode = { exact: 'environment' }
+            constraints.video.facingMode = { exact: 'environment' } as ConstrainDOMString
           } else {
             // PC: 利用可能な最初のカメラを使用
-            constraints.video.deviceId = { exact: this.devices[0].deviceId }
+            const firstDevice = this.devices[0]
+            if (firstDevice) {
+              constraints.video.deviceId = { exact: firstDevice.deviceId } as ConstrainDOMString
+            }
             this.currentDeviceIndex = 0
           }
         }
@@ -183,7 +186,7 @@ export class Camera {
           }
           
           if (deviceId) {
-            fallbackConstraints.video.deviceId = { exact: deviceId }
+            fallbackConstraints.video.deviceId = { exact: deviceId } as ConstrainDOMString
           }
           
           this.stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints)
@@ -197,15 +200,15 @@ export class Camera {
       // ビデオトラックを保存
       const videoTracks = this.stream.getVideoTracks()
       if (videoTracks.length > 0) {
-        this.currentTrack = videoTracks[0]
+        this.currentTrack = videoTracks[0] ?? null
         
         // 実際に起動したカメラ情報をログ出力
-        const settings = this.currentTrack.getSettings() as any
+        const settings = this.currentTrack?.getSettings() as any
         const actualDevice = this.devices.find(d => d.deviceId === settings.deviceId)
         if (actualDevice) {
-          this.log(`カメラ起動成功: ${actualDevice.label} (${actualDevice.zoom}x) [${actualDevice.deviceId.substring(0, 8)}...]`, 'success')
+          this.log(`カメラ起動成功: ${actualDevice.label} (${actualDevice.zoom ?? 1}x) [${actualDevice.deviceId.substring(0, 8)}...]`, 'success')
           // 物理カメラのズーム倍率を設定
-          this.currentZoom = actualDevice.zoom
+          this.currentZoom = actualDevice.zoom ?? 1
           this.log(`currentZoom更新: ${this.currentZoom}x`, 'debug')
         } else {
           this.log(`カメラ起動成功（デバイス不明）: deviceId=${settings.deviceId?.substring(0, 8)}...`, 'warning')
@@ -365,6 +368,9 @@ export class Camera {
     // 次のカメラに切り替え
     this.currentDeviceIndex = (this.currentDeviceIndex + 1) % this.devices.length
     const nextDevice = this.devices[this.currentDeviceIndex]
+    if (!nextDevice) {
+      throw new Error('次のカメラが見つかりません')
+    }
     
     // 切り替え前に現在のビデオサイズを保存
     const currentHeight = this.video.offsetHeight
@@ -426,7 +432,7 @@ export class Camera {
   
   getCurrentCamera(): CameraDevice | null {
     if (this.devices.length === 0) return null
-    return this.devices[this.currentDeviceIndex]
+    return this.devices[this.currentDeviceIndex] ?? null
   }
 
   capture(): string | null {
@@ -579,7 +585,7 @@ export class Camera {
     this.log(`${targetZoom}x カメラを発見: ${camera.label} [${camera.deviceId.substring(0, 8)}...]`, 'success')
     
     const oldCamera = this.getCurrentCamera()
-    this.log(`カメラ切り替え: ${oldCamera ? `${oldCamera.label} (${oldCamera.zoom}x)` : 'なし'} → ${camera.label} (${camera.zoom}x)`, 'info')
+    this.log(`カメラ切り替え: ${oldCamera ? `${oldCamera.label} (${oldCamera.zoom ?? 1}x)` : 'なし'} → ${camera.label} (${camera.zoom ?? 1}x)`, 'info')
     
     this.currentDeviceIndex = this.devices.indexOf(camera)
     
@@ -613,8 +619,8 @@ export class Camera {
     try {
       await this.start(camera.deviceId)
       // 物理カメラ切り替え時は、そのカメラのネイティブズーム倍率を設定
-      this.currentZoom = camera.zoom
-      this.log(`カメラ切り替え完了: ${this.getCurrentCamera()?.label} (${this.getCurrentCamera()?.zoom}x)`, 'success')
+      this.currentZoom = camera.zoom ?? 1
+      this.log(`カメラ切り替え完了: ${this.getCurrentCamera()?.label} (${this.getCurrentCamera()?.zoom ?? 1}x)`, 'success')
       
       // 新しいカメラが起動したら背景と高さ制約を削除
       if (this.video.parentElement) {
@@ -749,8 +755,8 @@ export class Camera {
       // 総合ズーム倍率を計算（物理カメラ倍率 × デジタルズーム）
       const currentCamera = this.getCurrentCamera()
       if (currentCamera) {
-        this.currentZoom = currentCamera.zoom * clampedZoom
-        this.log(`総合ズーム倍率: ${this.currentZoom}x (物理: ${currentCamera.zoom}x × デジタル: ${clampedZoom}x)`, 'debug')
+        this.currentZoom = (currentCamera.zoom ?? 1) * clampedZoom
+        this.log(`総合ズーム倍率: ${this.currentZoom}x (物理: ${(currentCamera.zoom ?? 1)}x × デジタル: ${clampedZoom}x)`, 'debug')
       } else {
         this.currentZoom = clampedZoom
       }
@@ -847,7 +853,7 @@ export class Camera {
       const label = device.label.toLowerCase()
       return !(label.includes('front') || label.includes('user') || label.includes('facetime'))
     })
-    const physicalZooms = rearCameras.map(device => device.zoom)
+    const physicalZooms = rearCameras.map(device => device.zoom ?? 1)
     
     // デジタルズームの最大値を取得
     const digitalCapabilities = this.getZoomCapabilities()
@@ -891,10 +897,10 @@ export class Camera {
     })
     
     
-    const physicalCamera = rearCameras.find(device => device.zoom === targetLevel)
+    const physicalCamera = rearCameras.find(device => (device.zoom ?? 1) === targetLevel)
     
     if (physicalCamera) {
-      this.log(`物理カメラ切り替えを実行: ${physicalCamera.label} (${physicalCamera.zoom}x)`, 'info')
+      this.log(`物理カメラ切り替えを実行: ${physicalCamera.label} (${physicalCamera.zoom ?? 1}x)`, 'info')
       // 光学ズーム（背面物理カメラ切り替え）
       await this.selectCameraByZoom(targetLevel)
     } else {
@@ -905,8 +911,8 @@ export class Camera {
       }
       
       // 現在の物理カメラの倍率を考慮して、必要なデジタルズーム倍率を計算
-      const requiredDigitalZoom = targetLevel / currentCamera.zoom
-      this.log(`現在の物理カメラ: ${currentCamera.zoom}x, 目標: ${targetLevel}x, 必要なデジタルズーム: ${requiredDigitalZoom}x`, 'debug')
+      const requiredDigitalZoom = targetLevel / (currentCamera.zoom ?? 1)
+      this.log(`現在の物理カメラ: ${currentCamera.zoom ?? 1}x, 目標: ${targetLevel}x, 必要なデジタルズーム: ${requiredDigitalZoom}x`, 'debug')
       
       const digitalCapabilities = this.getZoomCapabilities()
       
@@ -956,7 +962,7 @@ export class Camera {
           // デジタルズームが適用されている
           const digitalZoom = this.getCurrentZoom()
           const roundedZoom = Math.round(digitalZoom * 10) / 10
-          const zoomRatio = roundedZoom / currentCamera.zoom
+          const zoomRatio = roundedZoom / (currentCamera.zoom ?? 1)
           
           if (zoomRatio < 1.5 && zoomRatio > 0.67) {
             // センサークロップ範囲内
@@ -976,7 +982,7 @@ export class Camera {
         } else {
           // デジタルズームなし = 物理カメラのネイティブ倍率
           return {
-            level: currentCamera.zoom,
+            level: currentCamera.zoom ?? 1,
             type: 'optical',
             isPhysicalCamera: true
           }

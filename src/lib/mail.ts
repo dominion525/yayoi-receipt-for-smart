@@ -24,7 +24,7 @@ export interface EmailResult {
  */
 export class EmailSender {
   private apiKey: string = ''
-  private proxyUrl: string = import.meta.env.VITE_PROXY_URL || 'http://localhost:3001'
+  private proxyUrl: string = (import.meta as any).env?.VITE_PROXY_URL || 'http://localhost:3001'
 
   /**
    * APIキーを設定
@@ -58,6 +58,12 @@ export class EmailSender {
         ? `${this.proxyUrl}/send-email` 
         : `${this.proxyUrl}/api/send-email`
       
+      console.log('メール送信リクエスト:', {
+        endpoint: endpoint,
+        to: options.to,
+        subject: options.subject
+      })
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -70,17 +76,29 @@ export class EmailSender {
       })
 
       const result = await response.json()
+      
+      console.log('プロキシサーバーレスポンス:', {
+        status: response.status,
+        ok: response.ok,
+        success: result.success,
+        error: result.error,
+        message: result.message,
+        details: result.details,
+        fullResult: result
+      })
 
       if (!response.ok || !result.success) {
         console.error('Email send error:', {
           status: response.status,
           error: result.error,
-          details: result.details
+          message: result.message,
+          details: result.details,
+          fullResult: result
         })
         return {
           success: false,
-          error: result.error || 'メール送信でエラーが発生しました',
-          details: result.details
+          error: result.error || result.message || 'メール送信でエラーが発生しました',
+          details: result.details || result
         }
       }
 
@@ -110,7 +128,7 @@ export class EmailSender {
   /**
    * テストメールを送信（設定確認用）
    */
-  async sendTestEmail(apiKey: string, fromEmail: string, toEmail: string): Promise<EmailResult> {
+  async sendTestEmail(apiKey: string, _fromEmail: string, toEmail: string): Promise<EmailResult> {
     // 一時的にAPIキーを設定
     const originalApiKey = this.apiKey
     
@@ -118,7 +136,7 @@ export class EmailSender {
       this.apiKey = apiKey
       
       const result = await this.send({
-        from: 'onboarding@resend.dev',  // RESEND APIのテスト用送信元アドレス
+        from: 'smart-receipt@dominion525.com',  // 検証済みドメインの送信元アドレス
         to: toEmail,
         subject: 'スマート レシート - テストメール',
         html: `
@@ -152,6 +170,8 @@ export class EmailSender {
    * レシート画像を送信
    */
   async sendReceipt(toEmail: string, imageData: string, comment?: string): Promise<EmailResult> {
+    console.log(`sendReceipt呼び出し: 宛先=${toEmail}`)
+    
     const now = new Date()
     const dateStr = now.toLocaleDateString('ja-JP', {
       year: 'numeric',
@@ -167,7 +187,7 @@ export class EmailSender {
     const base64Data = imageData.split(',')[1] // data:image/jpeg;base64, を除去
     
     return await this.send({
-      from: 'onboarding@resend.dev',  // RESEND APIのテスト用送信元アドレス
+      from: 'smart-receipt@dominion525.com',  // 検証済みドメインの送信元アドレス
       to: toEmail,
       subject: `レシート画像 - ${dateStr} ${timeStr}`,
       html: `
@@ -186,7 +206,7 @@ ${comment ? `\nコメント: ${comment}` : ''}
 スマート レシート for 弥生`,
       attachments: [{
         filename: `receipt_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.jpg`,
-        content: base64Data,
+        content: base64Data || '',
         contentType: 'image/jpeg'
       }]
     })

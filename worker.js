@@ -56,21 +56,33 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url)
     
-    // リクエストボディを取得する関数
-    const getBody = () => request.text()
+    // APIエンドポイントの処理
+    if (url.pathname.startsWith('/api/')) {
+      // リクエストボディを取得する関数
+      const getBody = () => request.text()
+      
+      // 共通ロジックを呼び出し
+      const response = await handleRequest(
+        request.method,
+        url.pathname,
+        getBody,
+        sendEmailWithFetch
+      )
+      
+      // レスポンスを返す
+      return new Response(response.body, {
+        status: response.status,
+        headers: response.headers
+      })
+    }
     
-    // 共通ロジックを呼び出し
-    const response = await handleRequest(
-      request.method,
-      url.pathname,
-      getBody,
-      sendEmailWithFetch
-    )
+    // 静的アセットの処理
+    // env.ASSETSが利用可能な場合はそれを使用
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request)
+    }
     
-    // レスポンスを返す
-    return new Response(response.body, {
-      status: response.status,
-      headers: response.headers
-    })
+    // フォールバック
+    return new Response('Not Found', { status: 404 })
   }
 }

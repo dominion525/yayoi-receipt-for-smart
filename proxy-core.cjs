@@ -60,12 +60,34 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
       })
       
       if (result.error) {
+        console.error('Email send error:', result.error)
+        console.error('Full RESEND response:', result)
+        
+        // エラーメッセージを詳細に
+        let errorMessage = 'メール送信でエラーが発生しました'
+        
+        // エラーオブジェクトの様々なフィールドをチェック
+        if (result.error.message) {
+          errorMessage = result.error.message
+        } else if (typeof result.error === 'string') {
+          errorMessage = result.error
+        } else if (result.message) {
+          errorMessage = result.message
+        } else if (result.error.name === 'validation_error') {
+          errorMessage = 'メールアドレスまたはAPIキーが無効です'
+        } else if (result.error.name === 'invalid_to_address') {
+          errorMessage = '送信先メールアドレスが無効です'
+        }
+        
+        // エラーの詳細情報をログ
+        console.error('Parsed error message:', errorMessage)
+        
         return {
           status: 400,
           headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             success: false,
-            error: result.error.message || 'メール送信でエラーが発生しました',
+            error: errorMessage,
             details: result.error
           })
         }
