@@ -1,3 +1,5 @@
+import { getErrorMessage } from '../utils/error'
+
 export interface EmailOptions {
   apiKey: string
   from: string
@@ -16,7 +18,7 @@ export interface EmailResult {
   success: boolean
   messageId?: string
   error?: string
-  details?: any
+  details?: unknown
 }
 
 /**
@@ -26,8 +28,8 @@ export class EmailSender {
   private apiKey: string = ''
   private proxyUrl: string = (() => {
     // 環境変数が設定されている場合はそれを使用
-    if ((import.meta as any).env?.VITE_PROXY_URL) {
-      return (import.meta as any).env.VITE_PROXY_URL;
+    if (import.meta.env?.VITE_PROXY_URL) {
+      return import.meta.env.VITE_PROXY_URL;
     }
     
     // 本番環境（receipt.dominion525.com）では空文字列
@@ -130,9 +132,10 @@ export class EmailSender {
         messageId: result.data?.id
       }
 
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
       // ネットワークエラーなどの場合
-      if (error.message?.includes('fetch')) {
+      if (errorMessage.includes('fetch')) {
         return {
           success: false,
           error: 'プロキシサーバーに接続できません。proxy-server.jsが起動していることを確認してください。',
@@ -142,7 +145,7 @@ export class EmailSender {
       
       return {
         success: false,
-        error: error.message || '予期しないエラーが発生しました',
+        error: errorMessage,
         details: error
       }
     }

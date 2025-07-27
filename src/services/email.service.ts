@@ -1,5 +1,6 @@
 import { emailSender } from '../lib/mail'
 import { AppSettings } from './settings.service'
+import { getErrorMessage } from '../utils/error'
 
 export interface EmailResult {
   success: number
@@ -73,22 +74,23 @@ export class EmailService {
             }
             
             // RESEND APIのエラー詳細を解析
-            if (result.details) {
-              if (result.details.name === 'validation_error') {
+            if (result.details && typeof result.details === 'object' && 'name' in result.details) {
+              const details = result.details as { name?: string; message?: string }
+              if (details.name === 'validation_error') {
                 errorDetail += '\n（メールアドレスが無効です）'
-              } else if (result.details.name === 'invalid_to_address') {
+              } else if (details.name === 'invalid_to_address') {
                 errorDetail += '\n（送信先アドレスが無効です）'
-              } else if (result.details.message) {
-                errorDetail += `\n（${result.details.message}）`
+              } else if (details.message) {
+                errorDetail += `\n（${details.message}）`
               }
             }
             
             errorMessages.push(errorDetail)
             addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
           }
-        } catch (error: any) {
+        } catch (error) {
           results.failed++
-          const errorMsg = `${recipient}への送信エラー: ${error.message}`
+          const errorMsg = `${recipient}への送信エラー: ${getErrorMessage(error)}`
           errorMessages.push(errorMsg)
           addDebugLog(errorMsg, 'error')
         }
@@ -109,9 +111,10 @@ export class EmailService {
       
       return { success: true, shouldRetake: false }
       
-    } catch (error: any) {
-      addDebugLog(`予期しないエラー: ${error.message}`, 'error')
-      showError(`予期しないエラーが発生しました: ${error.message}`)
+    } catch (error) {
+      const errorMessage = getErrorMessage(error)
+      addDebugLog(`予期しないエラー: ${errorMessage}`, 'error')
+      showError(`予期しないエラーが発生しました: ${errorMessage}`)
       return { success: false, shouldRetake: false }
     }
   }
@@ -190,12 +193,15 @@ export class EmailService {
             // RESEND APIのエラー詳細を解析
             if (result.details) {
               console.error('送信エラー詳細:', result.details)
-              if (result.details.name === 'validation_error') {
-                errorDetail += '\n（メールアドレスが無効です）'
-              } else if (result.details.name === 'invalid_to_address') {
-                errorDetail += '\n（送信先アドレスが無効です）'
-              } else if (result.details.message) {
-                errorDetail += `\n（${result.details.message}）`
+              if (typeof result.details === 'object' && 'name' in result.details) {
+                const details = result.details as { name?: string; message?: string }
+                if (details.name === 'validation_error') {
+                  errorDetail += '\n（メールアドレスが無効です）'
+                } else if (details.name === 'invalid_to_address') {
+                  errorDetail += '\n（送信先アドレスが無効です）'
+                } else if (details.message) {
+                  errorDetail += `\n（${details.message}）`
+                }
               }
             }
             
@@ -210,9 +216,9 @@ export class EmailService {
             addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
             console.log('エラーメッセージ追加:', errorDetail)
           }
-        } catch (error: any) {
+        } catch (error) {
           results.failed++
-          const errorMsg = `${recipient}への送信エラー: ${error.message}`
+          const errorMsg = `${recipient}への送信エラー: ${getErrorMessage(error)}`
           errorMessages.push(errorMsg)
           addDebugLog(errorMsg, 'error')
           console.error(`送信例外 (${recipient}):`, error)
@@ -246,9 +252,10 @@ export class EmailService {
       
       return { success: true, shouldRetake: false }
       
-    } catch (error: any) {
-      addDebugLog(`予期しないエラー: ${error.message}`, 'error')
-      showError(`予期しないエラーが発生しました: ${error.message}`)
+    } catch (error) {
+      const errorMessage = getErrorMessage(error)
+      addDebugLog(`予期しないエラー: ${errorMessage}`, 'error')
+      showError(`予期しないエラーが発生しました: ${errorMessage}`)
       return { success: false, shouldRetake: false }
     }
   }

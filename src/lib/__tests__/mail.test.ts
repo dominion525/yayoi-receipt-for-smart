@@ -308,7 +308,7 @@ describe('EmailSender', () => {
         })
       } as Response)
 
-      const result = await emailSender.send({
+      await emailSender.send({
         from: 'sender@example.com',
         to: '',
         subject: 'Test',
