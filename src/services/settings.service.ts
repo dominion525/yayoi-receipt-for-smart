@@ -52,14 +52,8 @@ export class SettingsService {
     
     console.log('読み込まれた設定:', stored)
     
-    // プリセットが保存されていない場合は自動生成
-    if (!stored.sendPresets || stored.sendPresets.length === 0) {
-      console.log('プリセットが存在しないため、自動生成します')
-      stored.sendPresets = this.generatePresetsFromEmails(stored)
-    } else {
-      // 既存プリセットの整合性チェック
-      this.updatePresetsWithCurrentEmails(stored)
-    }
+    // プリセットとメールアドレスを同期
+    this.syncPresetsWithEmails(stored)
     
     // APIキーと送信元アドレスを設定
     if (stored.apiKey) {
@@ -98,45 +92,55 @@ export class SettingsService {
   }
 
   /**
-   * メールアドレスからプリセットを生成
+   * メールアドレスとプリセットを同期
+   * - プリセットが存在しない場合は新規生成
+   * - 既存プリセットがある場合は更新
    */
-  static generatePresetsFromEmails(settings: AppSettings): SendPreset[] {
-    const presets: SendPreset[] = []
-    
-    // メインアドレス
-    if (settings.email) {
-      presets.push({
-        id: 'main',
-        name: 'メインアドレス',
-        recipients: [settings.email],
-        isActive: true
-      })
+  static syncPresetsWithEmails(settings: AppSettings): void {
+    if (!settings.sendPresets || settings.sendPresets.length === 0) {
+      // プリセットが空の場合は新規生成
+      const presets: SendPreset[] = []
+      
+      // メインアドレス
+      if (settings.email) {
+        presets.push({
+          id: 'main',
+          name: 'メインアドレス',
+          recipients: [settings.email],
+          isActive: true
+        })
+      }
+      
+      // Dropboxアドレス
+      if (settings.dropboxEmail) {
+        presets.push({
+          id: 'dropbox',
+          name: 'バックアップ（Dropbox）',
+          recipients: [settings.dropboxEmail],
+          isActive: true
+        })
+      }
+      
+      // すべてに送信
+      const allRecipients = [settings.email, settings.dropboxEmail].filter((email): email is string => !!email)
+      if (allRecipients.length > 1) {
+        presets.push({
+          id: 'all',
+          name: 'すべてに送信',
+          recipients: allRecipients,
+          isActive: true
+        })
+      }
+      
+      settings.sendPresets = presets
+      console.log('新規生成されたプリセット:', presets)
+    } else {
+      // 既存プリセットを更新
+      this.updatePresetsWithCurrentEmails(settings)
     }
     
-    // Dropboxアドレス
-    if (settings.dropboxEmail) {
-      console.log('Dropboxアドレスを検出:', settings.dropboxEmail)
-      presets.push({
-        id: 'dropbox',
-        name: 'バックアップ（Dropbox）',
-        recipients: [settings.dropboxEmail],
-        isActive: true
-      })
-    }
-    
-    // すべてに送信
-    const allRecipients = [settings.email, settings.dropboxEmail].filter((email): email is string => !!email)
-    if (allRecipients.length > 1) {
-      presets.push({
-        id: 'all',
-        name: 'すべてに送信',
-        recipients: allRecipients,
-        isActive: true
-      })
-    }
-    
-    console.log('生成されたプリセット:', presets)
-    return presets
+    // 設定を保存
+    this.save(settings)
   }
 
   /**
@@ -253,82 +257,5 @@ export class SettingsService {
     console.log(`プリセット更新完了: ${tempSettings.sendPresets.filter(p => p.isActive).length}個のアクティブなプリセット`)
   }
 
-  /**
-   * プリセットを再生成（app.tsから移行）
-   */
-  static regeneratePresets(settings: AppSettings): void {
-    const presets: SendPreset[] = []
-    
-    // メインアドレス
-    if (settings.email) {
-      presets.push({
-        id: 'main',
-        name: 'メインアドレス',
-        recipients: [settings.email],
-        isActive: true
-      })
-    }
-    
-    // Dropboxアドレス
-    if (settings.dropboxEmail) {
-      presets.push({
-        id: 'dropbox',
-        name: 'Dropboxに保存',
-        recipients: [settings.dropboxEmail],
-        isActive: true
-      })
-    }
-    
-    // すべてに送信
-    const allRecipients = [
-      settings.email,
-      settings.dropboxEmail
-    ].filter((email): email is string => !!email)
-    
-    if (allRecipients.length > 1) {
-      presets.push({
-        id: 'all',
-        name: 'すべてに送信',
-        recipients: allRecipients,
-        isActive: true
-      })
-    }
-    
-    settings.sendPresets = presets
-    console.log('再生成されたプリセット:', presets)
-    
-    // 設定を保存
-    this.save(settings)
-  }
 
-  /**
-   * 「すべてに送信」プリセットを更新（app.tsから移行）
-   */
-  static updateAllPresetOnly(settings: AppSettings): void {
-    const allRecipients = [
-      settings.email,
-      settings.dropboxEmail
-    ].filter((email): email is string => !!email)
-    
-    let allPreset = settings.sendPresets.find(p => p.id === 'all')
-    
-    if (allRecipients.length > 1) {
-      if (!allPreset) {
-        // プリセットが存在しない場合は追加
-        settings.sendPresets.push({
-          id: 'all',
-          name: 'すべてに送信',
-          recipients: allRecipients,
-          isActive: true
-        })
-      } else {
-        // 既存のプリセットを更新
-        allPreset.recipients = allRecipients
-        allPreset.isActive = true
-      }
-    } else if (allPreset) {
-      // 複数宛先がない場合は無効化
-      allPreset.isActive = false
-    }
-  }
 }

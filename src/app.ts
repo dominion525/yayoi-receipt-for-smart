@@ -57,7 +57,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       // プリセットが空の場合、または古い形式の場合は再生成
       if (!this.settings.sendPresets || this.settings.sendPresets.length === 0) {
         console.log('初期化時: プリセットが空なので再生成します')
-        this.regeneratePresets()
+        SettingsService.syncPresetsWithEmails(this.settings)
       } else {
         // プリセットの整合性チェックと修正
         let needsUpdate = false
@@ -88,26 +88,16 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         
         if (needsUpdate) {
           console.log('初期化時: プリセットを再生成します')
-          this.regeneratePresets()
+          SettingsService.syncPresetsWithEmails(this.settings)
         } else {
           // 「すべてに送信」プリセットの更新チェック
-          this.updateAllPreset()
+          SettingsService.updateAllPreset(this.settings)
         }
       }
       
       // デバッグ用：現在のプリセット状態を表示
       console.log('初期化完了時のプリセット:', this.settings.sendPresets)
       this.addDebugLog(`プリセット数: ${this.settings.sendPresets.filter(p => p.isActive).length}個がアクティブ`, 'info')
-    },
-    
-    // 「すべてに送信」プリセットを更新
-    updateAllPreset() {
-      SettingsService.updateAllPresetOnly(this.settings)
-    },
-    
-    // プリセットを再生成
-    regeneratePresets() {
-      SettingsService.regeneratePresets(this.settings)
     },
     
     
