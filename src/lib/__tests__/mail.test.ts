@@ -1,21 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { EmailSender } from '../mail'
 
-// モック関数を外部で定義して共有
-const mockSend = vi.fn()
-
-// RESENDモジュールをモック
-vi.mock('resend', () => {
-  return {
-    Resend: vi.fn().mockImplementation(() => {
-      return {
-        emails: {
-          send: mockSend
-        }
-      }
-    })
-  }
-})
+// グローバルfetchをモック
+global.fetch = vi.fn()
 
 describe('EmailSender', () => {
   let emailSender: EmailSender
@@ -23,6 +10,8 @@ describe('EmailSender', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     emailSender = new EmailSender()
+    // デフォルトで本番環境のプロキシURLを使用しないようにする
+    emailSender.setProxyUrl('http://localhost:3001')
   })
 
   afterEach(() => {
@@ -64,11 +53,14 @@ describe('EmailSender', () => {
     })
 
     it('HTMLメールを正常に送信できる', async () => {
-      const mockResponse = {
-        data: { id: 'msg_123456' },
-        error: null
-      }
-      mockSend.mockResolvedValue(mockResponse)
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ 
+          success: true, 
+          data: { id: 'msg_123456' } 
+        })
+      } as Response)
 
       const result = await emailSender.send({
         from: 'sender@example.com',
@@ -81,20 +73,33 @@ describe('EmailSender', () => {
       expect(result.messageId).toBe('msg_123456')
       expect(result.error).toBeUndefined()
       
-      expect(mockSend).toHaveBeenCalledWith({
-        from: 'sender@example.com',
-        to: ['recipient@example.com'],
-        subject: 'Test Email',
-        html: '<p>Test HTML content</p>'
-      })
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/send-email',
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            apiKey: 're_test_123456',
+            from: 'sender@example.com',
+            to: 'recipient@example.com',
+            subject: 'Test Email',
+            html: '<p>Test HTML content</p>'
+          })
+        })
+      )
     })
 
     it('テキストメールを正常に送信できる', async () => {
-      const mockResponse = {
-        data: { id: 'msg_789012' },
-        error: null
-      }
-      mockSend.mockResolvedValue(mockResponse)
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ 
+          success: true, 
+          data: { id: 'msg_789012' } 
+        })
+      } as Response)
 
       const result = await emailSender.send({
         from: 'sender@example.com',
@@ -106,20 +111,24 @@ describe('EmailSender', () => {
       expect(result.success).toBe(true)
       expect(result.messageId).toBe('msg_789012')
       
-      expect(mockSend).toHaveBeenCalledWith({
-        from: 'sender@example.com',
-        to: ['recipient@example.com'],
-        subject: 'Test Email',
-        text: 'Plain text content'
-      })
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/send-email',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"text":"Plain text content"')
+        })
+      )
     })
 
     it('複数の受信者に送信できる', async () => {
-      const mockResponse = {
-        data: { id: 'msg_multi_123' },
-        error: null
-      }
-      mockSend.mockResolvedValue(mockResponse)
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ 
+          success: true, 
+          data: { id: 'msg_multi_123' } 
+        })
+      } as Response)
 
       const recipients = ['user1@example.com', 'user2@example.com', 'user3@example.com']
       
@@ -131,41 +140,55 @@ describe('EmailSender', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(mockSend).toHaveBeenCalledWith({
-        from: 'sender@example.com',
-        to: recipients,
-        subject: 'Multi Recipients',
-        text: 'Test content'
-      })
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/send-email',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining(JSON.stringify(recipients))
+        })
+      )
     })
 
-    it('HTMLもテキストも指定されていない場合はsubjectをテキストとして使用', async () => {
-      const mockResponse = {
-        data: { id: 'msg_default_123' },
-        error: null
-      }
-      mockSend.mockResolvedValue(mockResponse)
+    it('HTMLもテキストも指定されていない場合でも送信できる', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ 
+          success: true, 
+          data: { id: 'msg_default_123' } 
+        })
+      } as Response)
 
-      await emailSender.send({
+      const result = await emailSender.send({
         from: 'sender@example.com',
         to: 'recipient@example.com',
-        subject: 'Subject as content'
+        subject: 'Subject only email'
       })
 
-      expect(mockSend).toHaveBeenCalledWith({
-        from: 'sender@example.com',
-        to: ['recipient@example.com'],
-        subject: 'Subject as content',
-        text: 'Subject as content'
-      })
+      expect(result.success).toBe(true)
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/send-email',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            apiKey: 're_test_123456',
+            from: 'sender@example.com',
+            to: 'recipient@example.com',
+            subject: 'Subject only email'
+          })
+        })
+      )
     })
 
     it('添付ファイル付きメールを送信できる', async () => {
-      const mockResponse = {
-        data: { id: 'msg_attach_123' },
-        error: null
-      }
-      mockSend.mockResolvedValue(mockResponse)
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ 
+          success: true, 
+          data: { id: 'msg_attach_123' } 
+        })
+      } as Response)
 
       const attachments = [{
         filename: 'test.pdf',
@@ -182,24 +205,28 @@ describe('EmailSender', () => {
       })
 
       expect(result.success).toBe(true)
-      expect(mockSend).toHaveBeenCalledWith({
-        from: 'sender@example.com',
-        to: ['recipient@example.com'],
-        subject: 'With Attachment',
-        text: 'See attached',
-        attachments
-      })
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/send-email',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"attachments"')
+        })
+      )
     })
 
     it('APIエラーレスポンスを適切に処理する', async () => {
-      const mockResponse = {
-        data: null,
-        error: {
-          message: 'Invalid API key',
-          name: 'validation_error'
-        }
-      }
-      mockSend.mockResolvedValue(mockResponse)
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ 
+          success: false,
+          error: 'Invalid API key',
+          details: {
+            message: 'Invalid API key',
+            name: 'validation_error'
+          }
+        })
+      } as Response)
 
       const result = await emailSender.send({
         from: 'sender@example.com',
@@ -210,15 +237,21 @@ describe('EmailSender', () => {
 
       expect(result.success).toBe(false)
       expect(result.error).toBe('Invalid API key')
-      expect(result.details).toEqual(mockResponse.error)
+      expect(result.details).toEqual({
+        message: 'Invalid API key',
+        name: 'validation_error'
+      })
     })
 
     it('エラーメッセージがない場合のデフォルトメッセージ', async () => {
-      const mockResponse = {
-        data: null,
-        error: { name: 'unknown_error' }
-      }
-      mockSend.mockResolvedValue(mockResponse)
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ 
+          success: false,
+          details: { name: 'unknown_error' }
+        })
+      } as Response)
 
       const result = await emailSender.send({
         from: 'sender@example.com',
@@ -233,7 +266,7 @@ describe('EmailSender', () => {
 
     it('例外をキャッチしてエラーを返す', async () => {
       const error = new Error('Network error')
-      mockSend.mockRejectedValue(error)
+      vi.mocked(fetch).mockRejectedValueOnce(error)
 
       const result = await emailSender.send({
         from: 'sender@example.com',
@@ -248,7 +281,7 @@ describe('EmailSender', () => {
     })
 
     it('エラーメッセージがない例外の場合', async () => {
-      mockSend.mockRejectedValue(new Error())
+      vi.mocked(fetch).mockRejectedValueOnce(new Error())
 
       const result = await emailSender.send({
         from: 'sender@example.com',
@@ -266,21 +299,27 @@ describe('EmailSender', () => {
   describe('エッジケース', () => {
     it('空文字列の受信者でも配列に変換される', async () => {
       emailSender.setApiKey('re_test_key')
-      mockSend.mockResolvedValue({
-        data: { id: 'test_123' },
-        error: null
-      })
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({ 
+          success: false,
+          error: '必須パラメータが不足しています'
+        })
+      } as Response)
 
-      await emailSender.send({
+      const result = await emailSender.send({
         from: 'sender@example.com',
         to: '',
         subject: 'Test',
         text: 'Test'
       })
 
-      expect(mockSend).toHaveBeenCalledWith(
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/send-email',
         expect.objectContaining({
-          to: ['']
+          method: 'POST',
+          body: expect.stringContaining('"to":""')
         })
       )
     })
