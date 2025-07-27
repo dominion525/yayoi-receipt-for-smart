@@ -25,7 +25,7 @@ export interface EmailResult {
 export class EmailSender {
   private apiKey: string = ''
   private proxyUrl: string = (import.meta as any).env?.VITE_PROXY_URL || 'http://localhost:3001'
-  private fromEmail: string = 'smart-receipt@dominion525.com'
+  private fromEmail: string = ''
 
   /**
    * APIキーを設定
@@ -195,7 +195,7 @@ export class EmailSender {
     const base64Data = imageData.split(',')[1] // data:image/jpeg;base64, を除去
     
     return await this.send({
-      from: 'smart-receipt@dominion525.com',  // 検証済みドメインの送信元アドレス
+      from: this.fromEmail || '',  // 検証済みドメインの送信元アドレス
       to: toEmail,
       subject: `レシート画像 - ${dateStr} ${timeStr}`,
       html: `
