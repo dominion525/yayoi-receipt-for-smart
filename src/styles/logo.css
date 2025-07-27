@@ -1,0 +1,60 @@
+/* ロゴデザイン用のカスタムスタイル */
+
+/* フォントファミリーのユーティリティクラス */
+.font-inter {
+  font-family: 'Inter', sans-serif;
+}
+
+.font-poppins {
+  font-family: 'Poppins', sans-serif;
+}
+
+.font-montserrat {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.font-raleway {
+  font-family: 'Raleway', sans-serif;
+}
+
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
+
+.font-noto-sans-jp {
+  font-family: 'Noto Sans JP', sans-serif;
+}
+
+/* カスタムカラー */
+.bg-navy-900 {
+  background-color: #1a202c;
+}
+
+.text-navy-900 {
+  color: #1a202c;
+}
+
+/* グラデーションテキスト */
+.bg-clip-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.text-transparent {
+  color: transparent;
+}
+
+/* ロゴアニメーション */
+.logo-card {
+  transition: all 0.3s ease;
+}
+
+.logo-card:hover {
+  transform: translateY(-2px);
+}
+
+/* 選択されたロゴのスタイル */
+.logo-selected {
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}

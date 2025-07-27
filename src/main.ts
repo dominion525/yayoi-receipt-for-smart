@@ -1,5 +1,6 @@
 import './style.css'
 import './styles/main.css'
+import './styles/logo.css'
 import Alpine from 'alpinejs'
 import './app'
 import { debugPanelTemplate } from './components/debug-panel'

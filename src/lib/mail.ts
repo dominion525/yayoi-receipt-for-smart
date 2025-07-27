@@ -25,12 +25,20 @@ export interface EmailResult {
 export class EmailSender {
   private apiKey: string = ''
   private proxyUrl: string = (import.meta as any).env?.VITE_PROXY_URL || 'http://localhost:3001'
+  private fromEmail: string = 'smart-receipt@dominion525.com'
 
   /**
    * APIキーを設定
    */
   setApiKey(apiKey: string): void {
     this.apiKey = apiKey
+  }
+
+  /**
+   * 送信元メールアドレスを設定
+   */
+  setFromEmail(fromEmail: string): void {
+    this.fromEmail = fromEmail
   }
 
   /**
@@ -136,7 +144,7 @@ export class EmailSender {
       this.apiKey = apiKey
       
       const result = await this.send({
-        from: 'smart-receipt@dominion525.com',  // 検証済みドメインの送信元アドレス
+        from: this.fromEmail,  // 検証済みドメインの送信元アドレス
         to: toEmail,
         subject: 'スマート レシート - テストメール',
         html: `

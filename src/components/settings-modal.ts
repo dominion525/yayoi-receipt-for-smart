@@ -68,23 +68,6 @@ export const settingsModalTemplate = `
           </p>
         </div>
 
-        <!-- バックアップメールアドレス -->
-        <div>
-          <label for="backupEmail" class="block text-sm font-medium text-gray-700 mb-1">
-            バックアップ用メールアドレス
-          </label>
-          <input
-            id="backupEmail"
-            type="email"
-            x-model="tempSettings.backupEmail"
-            placeholder="backup@example.com"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-          <p class="mt-1 text-xs text-gray-500">
-            追加のバックアップ先（オプション）
-          </p>
-        </div>
-
         <!-- RESEND APIキー -->
         <div>
           <label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">
@@ -100,6 +83,24 @@ export const settingsModalTemplate = `
           >
           <p class="mt-1 text-xs text-gray-500">
             RESENDのAPIキーを入力してください
+          </p>
+        </div>
+
+        <!-- 認証済みメールアドレス -->
+        <div>
+          <label for="fromEmail" class="block text-sm font-medium text-gray-700 mb-1">
+            認証済みメールアドレス（送信元）
+          </label>
+          <input
+            id="fromEmail"
+            type="email"
+            x-model="tempSettings.fromEmail"
+            placeholder="smart-receipt@dominion525.com"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            required
+          >
+          <p class="mt-1 text-xs text-gray-500">
+            RESENDで認証済みのドメインのメールアドレス
           </p>
         </div>
 
@@ -119,13 +120,6 @@ export const settingsModalTemplate = `
           <p class="mt-1 text-xs text-gray-500 text-center">
             設定した内容でテストメールを送信します
           </p>
-        </div>
-
-        <!-- プロキシサーバー情報 -->
-        <div class="bg-green-50 border border-green-200 rounded-md p-3 text-xs text-green-800">
-          <p class="font-semibold mb-1">✅ セキュアなメール送信</p>
-          <p>メール送信はCloudflare Workers経由で安全に処理されます。</p>
-          <p class="text-gray-600 mt-1">本番環境: <a href="https://receipt.dominion525.com" class="underline">receipt.dominion525.com</a></p>
         </div>
 
         <!-- アクションボタン -->

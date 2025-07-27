@@ -19,7 +19,7 @@ export interface AppSettings {
   email: string
   apiKey: string
   dropboxEmail?: string
-  backupEmail?: string
+  fromEmail?: string
   sendPresets: SendPreset[]
 }
 
@@ -48,29 +48,19 @@ function loadSettingsFromStorage(): AppSettings {
           })
         }
         
-        // Dropboxアドレス
+        // Dropboxアドレス（バックアップ）
         if (parsed.dropboxEmail) {
           console.log('Dropboxアドレスを検出:', parsed.dropboxEmail)
           presets.push({
             id: 'dropbox',
-            name: 'Dropboxに保存',
+            name: 'バックアップ（Dropbox）',
             recipients: [parsed.dropboxEmail],
             isActive: true
           })
         }
         
-        // バックアップアドレス
-        if (parsed.backupEmail) {
-          presets.push({
-            id: 'backup',
-            name: 'バックアップ',
-            recipients: [parsed.backupEmail],
-            isActive: true
-          })
-        }
-        
         // すべてに送信
-        const allRecipients = [parsed.email, parsed.dropboxEmail, parsed.backupEmail].filter(email => email)
+        const allRecipients = [parsed.email, parsed.dropboxEmail].filter(email => email)
         if (allRecipients.length > 1) {
           presets.push({
             id: 'all',
@@ -104,7 +94,7 @@ function loadSettingsFromStorage(): AppSettings {
         email: parsed.email || '',
         apiKey: parsed.apiKey || '',
         dropboxEmail: parsed.dropboxEmail || '',
-        backupEmail: parsed.backupEmail || '',
+        fromEmail: parsed.fromEmail || 'smart-receipt@dominion525.com',
         sendPresets: parsed.sendPresets
       }
       console.log('最終的な設定:', result)
@@ -119,7 +109,7 @@ function loadSettingsFromStorage(): AppSettings {
     email: '',
     apiKey: '',
     dropboxEmail: '',
-    backupEmail: '',
+    fromEmail: 'smart-receipt@dominion525.com',
     sendPresets: [
       {
         id: 'main',
@@ -206,7 +196,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       email: '',
       apiKey: '',
       dropboxEmail: '',
-      backupEmail: '',
+      fromEmail: '',
       sendPresets: []
     },
     isSendingTestEmail: false,
@@ -220,9 +210,12 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     
     // 初期化処理
     init() {
-      // 保存されたAPIキーがあれば設定
+      // 保存されたAPIキーと送信元アドレスがあれば設定
       if (this.settings.apiKey) {
         emailSender.setApiKey(this.settings.apiKey)
+      }
+      if (this.settings.fromEmail) {
+        emailSender.setFromEmail(this.settings.fromEmail)
       }
       
       // プリセットが空の場合、または古い形式の場合は再生成
@@ -275,8 +268,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     updateAllPreset() {
       const allRecipients = [
         this.settings.email,
-        this.settings.dropboxEmail,
-        this.settings.backupEmail
+        this.settings.dropboxEmail
       ].filter((email): email is string => !!email)
       
       let allPreset = this.settings.sendPresets.find(p => p.id === 'all')
@@ -325,21 +317,11 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         })
       }
       
-      // バックアップアドレス
-      if (this.settings.backupEmail) {
-        presets.push({
-          id: 'backup',
-          name: 'バックアップ',
-          recipients: [this.settings.backupEmail],
-          isActive: true
-        })
-      }
       
       // すべてに送信
       const allRecipients = [
         this.settings.email,
-        this.settings.dropboxEmail,
-        this.settings.backupEmail
+        this.settings.dropboxEmail
       ].filter((email): email is string => !!email)
       
       if (allRecipients.length > 1) {
@@ -875,7 +857,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         email: this.settings.email,
         apiKey: this.settings.apiKey,
         dropboxEmail: this.settings.dropboxEmail || '',
-        backupEmail: this.settings.backupEmail || '',
+        fromEmail: this.settings.fromEmail || 'smart-receipt@dominion525.com',
         sendPresets: JSON.parse(JSON.stringify(this.settings.sendPresets))
       }
       this.showSettings = true
@@ -888,7 +870,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         email: '',
         apiKey: '',
         dropboxEmail: '',
-        backupEmail: '',
+        fromEmail: '',
         sendPresets: []
       }
     },
@@ -908,7 +890,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         email: this.tempSettings.email.trim(),
         apiKey: this.tempSettings.apiKey.trim(),
         dropboxEmail: this.tempSettings.dropboxEmail?.trim() || '',
-        backupEmail: this.tempSettings.backupEmail?.trim() || '',
+        fromEmail: this.tempSettings.fromEmail?.trim() || 'smart-receipt@dominion525.com',
         sendPresets: this.tempSettings.sendPresets
       }
       
@@ -917,8 +899,11 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         // 保存成功時のみ状態を更新
         this.settings = newSettings
         
-        // EmailSenderにAPIキーを設定
+        // EmailSenderにAPIキーと送信元アドレスを設定
         emailSender.setApiKey(newSettings.apiKey)
+        if (newSettings.fromEmail) {
+          emailSender.setFromEmail(newSettings.fromEmail)
+        }
         
         this.closeSettings()
         this.addDebugLog('設定をlocalStorageに保存しました', 'success')
@@ -1012,7 +997,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         if (!dropboxPreset) {
           dropboxPreset = {
             id: 'dropbox',
-            name: 'Dropboxに保存',
+            name: 'バックアップ（Dropbox）',
             recipients: [],
             isActive: true
           }
@@ -1026,31 +1011,10 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         dropboxPreset.isActive = false
       }
       
-      // バックアッププリセット
-      let backupPreset = this.tempSettings.sendPresets.find(p => p.id === 'backup')
-      if (this.tempSettings.backupEmail?.trim()) {
-        if (!backupPreset) {
-          backupPreset = {
-            id: 'backup',
-            name: 'バックアップ',
-            recipients: [],
-            isActive: true
-          }
-          this.tempSettings.sendPresets.push(backupPreset)
-        }
-        backupPreset.recipients = [this.tempSettings.backupEmail.trim()]
-        backupPreset.isActive = true
-      } else if (backupPreset) {
-        // メールアドレスが空の場合は無効化
-        backupPreset.recipients = []
-        backupPreset.isActive = false
-      }
-      
       // すべてに送信プリセット
       const allRecipients = [
         this.tempSettings.email,
-        this.tempSettings.dropboxEmail,
-        this.tempSettings.backupEmail
+        this.tempSettings.dropboxEmail
       ].filter((email): email is string => !!email?.trim())
       
       let allPreset = this.tempSettings.sendPresets.find(p => p.id === 'all')

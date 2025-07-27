@@ -5,6 +5,11 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>スマート レシート for 弥生</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;700&family=Poppins:wght@400;600&family=Montserrat:wght@400;700&family=Raleway:wght@900&family=Playfair+Display:wght@700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <meta name="description" content="レシートを撮影してメール送信。経理業務を効率化するWebアプリケーション。">
     <meta property="og:title" content="スマート レシート for 弥生">
     <meta property="og:description" content="レシートを撮影してメール送信。経理業務を効率化。">
@@ -15,7 +20,25 @@
     <div id="app" class="min-h-screen bg-gray-50" x-data="receiptApp" x-init="init()">
       <div class="container mx-auto px-4 py-8 max-w-lg">
         <div class="flex items-center justify-between mb-8">
-          <h1 class="text-3xl font-bold text-center flex-1">スマート レシート for 弥生</h1>
+          <!-- メインロゴ -->
+          <div class="flex-1 text-center">
+            <div class="inline-flex items-center gap-2">
+              <span class="text-5xl p-3 bg-gradient-to-r from-gray-800 to-gray-600 text-white rounded">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+              </span>
+              <div class="text-left">
+                <div>
+                  <span class="font-inter font-light text-3xl bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Smart</span>
+                  <span class="font-inter font-light text-3xl bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">Receipt</span>
+                </div>
+                <div class="mt-1">
+                  <span class="text-xs bg-gradient-to-r from-gray-800 to-gray-600 text-white px-2 py-1 rounded">for Yayoi</span>
+                </div>
+              </div>
+            </div>
+          </div>
           <!-- デバッグボタン（常に表示） -->
           <button
             @click="toggleDebug"

@@ -15,7 +15,8 @@
       "WebFetch(domain:developer.apple.com)",
       "Bash(mkdir:*)",
       "Bash(npm test:*)",
-      "Bash(npx wrangler deploy:*)"
+      "Bash(npx wrangler deploy:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": []
   }
