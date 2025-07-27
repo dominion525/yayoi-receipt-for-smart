@@ -18,62 +18,6 @@ export const debugPanelTemplate = `
       </button>
     </div>
     
-    <!-- デバイス情報 -->
-    <div x-show="deviceInfo" class="mb-6">
-      <h4 class="text-sm font-semibold mb-2">デバイス情報</h4>
-      <div class="grid grid-cols-2 gap-2 text-xs">
-        <div class="flex items-center gap-2">
-          <span class="font-mono">Device:</span>
-          <span class="font-mono text-blue-400" x-text="deviceInfo?.isMobile ? 'Mobile' : 'PC'"></span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="font-mono">Camera:</span>
-          <span class="font-mono text-blue-400">
-            <span x-text="deviceInfo?.cameraType === 'rear' ? '背面' : deviceInfo?.cameraType === 'front' ? '前面' : '不明'"></span>
-            <span x-text="'(' + deviceInfo?.cameraType + ')'"></span>
-          </span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="font-mono">Zoom:</span>
-          <span class="font-mono text-green-400">
-            <span x-text="currentZoomLevel.toFixed(1) + 'x'"></span>
-            <span class="text-xs ml-1" x-text="'(' + (currentZoomType === 'optical' ? '光学' : 'デジタル') + ')'"></span>
-          </span>
-        </div>
-        <div class="flex items-center gap-2" x-show="currentCamera">
-          <span class="font-mono">Current:</span>
-          <span class="font-mono text-purple-400 text-xs" x-text="currentCamera?.label || '不明'"></span>
-        </div>
-        <div class="flex items-center gap-2" x-show="currentCamera">
-          <span class="font-mono">ID:</span>
-          <span class="font-mono text-gray-400 text-xs" x-text="currentCamera?.deviceId?.substring(0, 8) + '...' || '不明'"></span>
-        </div>
-      </div>
-    </div>
-    
-    <!-- ズーム情報 -->
-    <div x-show="availableZoomLevels.length > 0" class="mb-6">
-      <h4 class="text-sm font-semibold mb-2">ズーム情報</h4>
-      <div class="text-xs space-y-1">
-        <div class="flex items-center gap-2">
-          <span class="font-mono">利用可能:</span>
-          <span class="font-mono text-yellow-400" x-text="availableZoomLevels.map(l => l + 'x').join(', ')"></span>
-        </div>
-        <div class="flex items-center gap-2" x-show="availableCameras.length > 0">
-          <span class="font-mono">背面物理:</span>
-          <span class="font-mono text-purple-400" x-text="availableCameras.filter(c => !c.label.toLowerCase().includes('front') && !c.label.toLowerCase().includes('user')).map(c => c.zoom + 'x').join(', ')"></span>
-        </div>
-        <div class="flex items-center gap-2" x-show="availableCameras.length > 0">
-          <span class="font-mono">検出カメラ数:</span>
-          <span class="font-mono text-cyan-400" x-text="availableCameras.length + '台'"></span>
-        </div>
-        <div class="flex items-center gap-2" x-show="zoomCapabilities">
-          <span class="font-mono">デジタル:</span>
-          <span class="font-mono text-orange-400" x-text="'1x-' + (zoomCapabilities?.max || 1).toFixed(1) + 'x'"></span>
-        </div>
-      </div>
-    </div>
-    
     <!-- 送信プリセット情報 -->
     <div class="mb-6">
       <h4 class="text-sm font-semibold mb-2 text-yellow-400">送信プリセット</h4>
@@ -92,49 +36,6 @@ export const debugPanelTemplate = `
         <div x-show="settings.sendPresets.length === 0" class="text-gray-500 ml-2">
           プリセットがありません
         </div>
-      </div>
-    </div>
-    
-    <!-- API対応状況 -->
-    <div x-show="apiSupport" class="mb-6">
-      <h4 class="text-sm font-semibold mb-2">API対応状況</h4>
-      <div class="grid grid-cols-2 gap-2 text-xs">
-        <template x-for="[key, supported] in Object.entries(apiSupport || {})" :key="key">
-          <div class="flex items-center gap-2">
-            <span x-text="supported ? '✅' : '❌'"></span>
-            <span x-text="key"></span>
-          </div>
-        </template>
-      </div>
-    </div>
-    
-    <!-- カメラパラメータ -->
-    <div x-show="cameraParams" class="mb-4">
-      <h4 class="text-sm font-semibold mb-2">現在のカメラパラメータ</h4>
-      <div class="grid grid-cols-2 gap-2 text-xs">
-        <template x-for="[key, value] in Object.entries(cameraParams || {})" :key="key">
-          <div class="flex items-center gap-2" x-show="value !== undefined">
-            <span class="font-mono" x-text="key + ':'"></span>
-            <span class="font-mono text-green-400" x-text="value"></span>
-          </div>
-        </template>
-      </div>
-    </div>
-    
-    <!-- 利用可能なカメラ -->
-    <div x-show="availableCameras.length > 0" class="mb-4">
-      <h4 class="text-sm font-semibold mb-2">利用可能なカメラ</h4>
-      <div class="text-xs space-y-1">
-        <template x-for="camera in availableCameras" :key="camera.deviceId">
-          <div class="text-xs">
-            <div class="flex items-center gap-2">
-              <span class="w-2" x-text="currentCamera && currentCamera.deviceId === camera.deviceId ? '▶' : ' '"></span>
-              <span class="flex-1" x-text="camera.label"></span>
-              <span class="text-yellow-400" x-text="camera.zoom + 'x'"></span>
-              <span class="text-xs text-gray-400" x-text="camera.deviceId.substring(0, 6) + '...'"></span>
-            </div>
-          </div>
-        </template>
       </div>
     </div>
     

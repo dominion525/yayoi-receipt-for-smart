@@ -1,4 +1,3 @@
-import { Camera } from './lib/camera'
 import { emailSender } from './lib/mail'
 import Alpine from 'alpinejs'
 
@@ -133,28 +132,10 @@ function saveSettingsToStorage(settings: AppSettings): boolean {
 }
 
 export interface ReceiptAppData {
-  camera: Camera | null
-  cameraActive: boolean
   photo: string | null
   error: string | null
   isLoading: boolean
-  torchOn: boolean
-  torchSupported: boolean
-  availableCameras: any[]
-  currentCamera: any | null
-  availableZooms: number[]
-  availableZoomLevels: number[]
-  currentZoomLevel: number
-  currentZoomType: 'optical' | 'digital'
   showDebug: boolean
-  apiSupport: any | null
-  cameraParams: any | null
-  zoomSupported: boolean
-  zoomCapabilities: any | null
-  currentZoom: number
-  initialPinchDistance: number
-  initialZoom: number
-  deviceInfo: any | null
   debugLogs: DebugLog[]
   showSettings: boolean
   settings: AppSettings
@@ -167,28 +148,10 @@ export interface ReceiptAppData {
 
 export function receiptApp(): ReceiptAppData & Record<string, any> {
   return {
-    camera: null,
-    cameraActive: false,
     photo: null,
     error: null,
     isLoading: false,
-    torchOn: false,
-    torchSupported: false,
-    availableCameras: [],
-    currentCamera: null,
-    availableZooms: [],
-    availableZoomLevels: [],
-    currentZoomLevel: 1,
-    currentZoomType: 'optical' as 'optical' | 'digital',
     showDebug: false,
-    apiSupport: null,
-    cameraParams: null,
-    zoomSupported: false,
-    zoomCapabilities: null,
-    currentZoom: 1,
-    initialPinchDistance: 0,
-    initialZoom: 1,
-    deviceInfo: null,
     debugLogs: [],
     showSettings: false,
     settings: loadSettingsFromStorage(),
@@ -340,158 +303,17 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       saveSettingsToStorage(this.settings)
     },
     
-    async startCamera() {
-      // 既にカメラが起動している場合はスキップ
-      if (this.cameraActive || this.isLoading) {
-        return
-      }
-      
-      this.isLoading = true
-      this.error = null
-      
-      try {
-        // カメラサポートチェック
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('このブラウザはカメラ機能をサポートしていません')
-        }
-        
-        // HTTPS接続チェック（開発環境を除く）
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-          throw new Error('カメラアクセスにはHTTPS接続が必要です')
-        }
-        
-        // Cameraインスタンスを作成
-        this.camera = new Camera({
-          video: this.$refs.video,
-          canvas: this.$refs.canvas,
-          onLog: (message, type) => this.addDebugLog(message, type)
-        })
-        
-        // カメラを開始
-        await this.camera.start()
-        this.cameraActive = true
-        
-        // トーチサポート状態を確認
-        this.torchSupported = this.camera.isTorchSupported()
-        this.torchOn = this.camera.getTorchState()
-        
-        // 利用可能なカメラを取得
-        this.availableCameras = this.camera.getAvailableCameras()
-        this.currentCamera = this.camera.getCurrentCamera()
-        this.availableZooms = [...new Set(this.availableCameras.map(cam => cam.zoom))].sort()
-        
-        // 初回起動時の物理カメラ情報をログ
-        if (this.availableCameras.length > 1) {
-          this.addDebugLog(`物理カメラ ${this.availableCameras.length}台検出: ${this.availableCameras.map(c => c.zoom + 'x').join(', ')}`, 'info')
-        }
-        
-        // 統合ズーム情報を取得
-        this.availableZoomLevels = this.camera.getAvailableZoomLevels()
-        const zoomInfo = this.camera.getCurrentZoomInfo()
-        this.currentZoomLevel = zoomInfo.level
-        this.currentZoomType = zoomInfo.type
-        
-        // デバッグ情報を取得
-        this.updateDebugInfo()
-        
-        // ズームサポートを確認
-        this.zoomSupported = this.camera.isZoomSupported()
-        if (this.zoomSupported) {
-          this.zoomCapabilities = this.camera.getZoomCapabilities()
-          this.currentZoom = this.camera.getCurrentZoom()
-        }
-        
-        // デバイス情報を取得
-        this.deviceInfo = this.camera.getDeviceInfo()
-      } catch (error: any) {
-        // より詳細なエラーメッセージを提供
-        let errorMessage = error.message
-        
-        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-          errorMessage = 'カメラへのアクセスが拒否されました。ブラウザの設定でカメラの使用を許可してください。'
-        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-          errorMessage = 'カメラが見つかりません。カメラが接続されているか確認してください。'
-        } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
-          errorMessage = 'カメラを起動できません。他のアプリケーションがカメラを使用している可能性があります。'
-        } else if (error.name === 'OverconstrainedError' || error.name === 'ConstraintNotSatisfiedError') {
-          errorMessage = 'カメラの設定に問題があります。別のカメラを試してください。'
-        }
-        
-        this.showError(errorMessage)
-        this.addDebugLog(`カメラエラー: ${error.name} - ${error.message}`, 'error')
-        console.error('Camera error:', error)
-      } finally {
-        this.isLoading = false
-      }
-    },
     
-    capture() {
-      if (!this.camera) return
-      
-      try {
-        // キャプチャエフェクトを表示
-        this.showCaptureEffect = true
-        
-        // エフェクトを少し表示してからキャプチャ
-        setTimeout(() => {
-          const imageData = this.camera?.capture()
-          if (imageData) {
-            this.photo = imageData
-            this.stopCamera()
-          }
-          
-          // エフェクトを非表示
-          setTimeout(() => {
-            this.showCaptureEffect = false
-          }, 300)
-        }, 100)
-        
-      } catch (error: any) {
-        this.showCaptureEffect = false
-        this.showError(error.message)
-        console.error('Capture error:', error)
-      }
-    },
     
-    stopCamera() {
-      if (this.camera) {
-        this.camera.stop()
-        this.camera = null
-        this.cameraActive = false
-        this.torchOn = false
-        this.torchSupported = false
-        this.availableCameras = []
-        this.currentCamera = null
-        this.availableZooms = []
-        this.availableZoomLevels = []
-        this.currentZoomLevel = 1
-        this.currentZoomType = 'optical' as 'optical' | 'digital'
-        this.apiSupport = null
-        this.cameraParams = null
-        this.zoomSupported = false
-        this.zoomCapabilities = null
-        this.currentZoom = 1
-        this.deviceInfo = null
-      }
-    },
     
     retake() {
       this.photo = null
       this.error = null
-      // カメラが既に起動している場合のみ再起動
-      if (this.cameraActive) {
-        this.startCamera()
-      }
     },
     
     returnToHome() {
       this.photo = null
       this.error = null
-      this.cameraActive = false
-      if (this.camera) {
-        this.camera.stop()
-        this.camera = null
-      }
     },
     
     // 標準カメラアプリでの撮影処理
@@ -586,143 +408,12 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }
     },
     
-    async toggleTorch() {
-      if (!this.camera) return
-      
-      // トーチサポートを再確認
-      this.torchSupported = this.camera.isTorchSupported()
-      
-      if (!this.torchSupported) {
-        this.showError('このデバイスはトーチ機能をサポートしていません')
-        return
-      }
-      
-      try {
-        this.torchOn = await this.camera.toggleTorch()
-      } catch (error: any) {
-        this.showError(error.message)
-        console.error('Torch error:', error)
-      }
-    },
     
-    async selectZoom(zoom: number) {
-      if (!this.camera) return
-      
-      try {
-        await this.camera.selectCameraByZoom(zoom)
-        this.currentCamera = this.camera.getCurrentCamera()
-        
-        // カメラが変わったのでトーチ状態を再確認
-        this.torchSupported = this.camera.isTorchSupported()
-        this.torchOn = this.camera.getTorchState()
-        
-        // デバッグ情報を更新
-        this.updateDebugInfo()
-        
-        // ズームサポートを再確認
-        this.zoomSupported = this.camera.isZoomSupported()
-        if (this.zoomSupported) {
-          this.zoomCapabilities = this.camera.getZoomCapabilities()
-          this.currentZoom = this.camera.getCurrentZoom()
-        }
-        
-        // デバイス情報を更新
-        this.deviceInfo = this.camera.getDeviceInfo()
-      } catch (error: any) {
-        this.showError(error.message)
-        console.error('Camera switch error:', error)
-      }
-    },
     
-    async selectZoomLevel(level: number) {
-      if (!this.camera) return
-      
-      // 即座にUI状態を更新（レスポンシブなUX）
-      this.currentZoomLevel = level
-      this.addDebugLog(`UI状態を即座に更新: ${level}x`, 'info')
-      
-      try {
-        // カメラ処理を実行
-        await this.camera.setZoomLevel(level)
-        
-        // カメラ処理完了後、実際の状態で同期
-        const zoomInfo = this.camera.getCurrentZoomInfo()
-        this.currentZoomLevel = zoomInfo.level
-        this.currentZoomType = zoomInfo.type
-        
-        this.addDebugLog(`カメラ処理完了後の同期: ${zoomInfo.level}x (${zoomInfo.type})`, 'success')
-        
-        // カメラ情報を更新
-        this.currentCamera = this.camera.getCurrentCamera()
-        
-        // トーチ状態を再確認
-        this.torchSupported = this.camera.isTorchSupported()
-        this.torchOn = this.camera.getTorchState()
-        
-        // デバッグ情報を更新
-        this.updateDebugInfo()
-        
-        // 既存のズーム情報を更新
-        this.zoomSupported = this.camera.isZoomSupported()
-        if (this.zoomSupported) {
-          this.zoomCapabilities = this.camera.getZoomCapabilities()
-          this.currentZoom = this.camera.getCurrentZoom()
-        }
-        
-        // デバイス情報を更新
-        this.deviceInfo = this.camera.getDeviceInfo()
-        
-        // Alpine.jsの次の更新サイクルでUI更新を確実にトリガー
-        this.$nextTick(() => {
-          // 強制的にリアクティブ更新をトリガー
-          const currentZoomLevel = this.currentZoomLevel
-          const currentZoomType = this.currentZoomType
-          this.currentZoomLevel = currentZoomLevel
-          this.currentZoomType = currentZoomType
-        })
-      } catch (error: any) {
-        // エラー時は元の状態に戻す
-        const zoomInfo = this.camera?.getCurrentZoomInfo()
-        if (zoomInfo) {
-          this.currentZoomLevel = zoomInfo.level
-          this.currentZoomType = zoomInfo.type
-        }
-        
-        this.showError(error.message)
-        console.error('Zoom level error:', error)
-      }
-    },
     
-    updateDebugInfo() {
-      if (!this.camera) return
-      
-      this.apiSupport = this.camera.getAPISupport()
-      this.cameraParams = this.camera.getCurrentParameters()
-      
-      // ズーム情報を更新
-      if (this.zoomSupported) {
-        this.currentZoom = this.camera.getCurrentZoom()
-      }
-      
-      // 統合ズーム情報を更新（重要：デバッグパネル表示用）
-      const zoomInfo = this.camera.getCurrentZoomInfo()
-      this.currentZoomLevel = zoomInfo.level
-      this.currentZoomType = zoomInfo.type
-      
-      // デバイス情報を更新
-      this.deviceInfo = this.camera.getDeviceInfo()
-      
-      // パラメータを定期的に更新（コメントアウト - 過剰な更新を防ぐ）
-      // if (this.cameraActive) {
-      //   setTimeout(() => this.updateDebugInfo(), 1000)
-      // }
-    },
     
     toggleDebug() {
       this.showDebug = !this.showDebug
-      if (this.showDebug && this.camera) {
-        this.updateDebugInfo()
-      }
     },
     
     showError(message: string) {
@@ -735,63 +426,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }, 10000)
     },
     
-    async updateZoom(value: string | number) {
-      if (!this.camera || !this.zoomSupported) return
-      
-      try {
-        await this.camera.applyZoom(parseFloat(value.toString()))
-        this.currentZoom = this.camera.getCurrentZoom()
-        
-        // 統合ズーム情報を更新
-        const zoomInfo = this.camera.getCurrentZoomInfo()
-        this.currentZoomLevel = zoomInfo.level
-        this.currentZoomType = zoomInfo.type
-      } catch (error: any) {
-        this.showError(error.message)
-        console.error('Zoom error:', error)
-      }
-    },
     
-    handleTouchStart(event: TouchEvent) {
-      if (event.touches.length === 2) {
-        // ピンチジェスチャー開始
-        const touch1 = event.touches[0]
-        const touch2 = event.touches[1]
-        if (!touch1 || !touch2) return
-        
-        this.initialPinchDistance = Math.hypot(
-          touch2.clientX - touch1.clientX,
-          touch2.clientY - touch1.clientY
-        )
-        this.initialZoom = this.currentZoom
-      }
-    },
-    
-    handleTouchMove(event: TouchEvent) {
-      if (event.touches.length === 2 && this.initialPinchDistance > 0) {
-        event.preventDefault()
-        
-        const touch1 = event.touches[0]
-        const touch2 = event.touches[1]
-        if (!touch1 || !touch2) return
-        
-        const currentDistance = Math.hypot(
-          touch2.clientX - touch1.clientX,
-          touch2.clientY - touch1.clientY
-        )
-        
-        const scale = currentDistance / this.initialPinchDistance
-        const newZoom = this.initialZoom * scale
-        
-        this.updateZoom(newZoom)
-      }
-    },
-    
-    handleTouchEnd(event: TouchEvent) {
-      if (event.touches.length < 2) {
-        this.initialPinchDistance = 0
-      }
-    },
     
     addDebugLog(message: string, type: 'info' | 'success' | 'warning' | 'error' | 'debug' = 'info') {
       const now = new Date()

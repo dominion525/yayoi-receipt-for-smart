@@ -57,105 +57,8 @@
           <p x-html="error ? error.replace(/\n/g, '<br>') : ''" class="whitespace-pre-wrap"></p>
         </div>
         
-        <!-- カメラビュー -->
-        <div x-show="!photo && cameraActive" class="mb-4">
-          <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <!-- ビデオエリア -->
-            <div class="relative bg-black" style="min-height: 400px;">
-              <video 
-                x-ref="video"
-                autoplay
-                playsinline
-                class="w-full"
-                style="display: block;"
-                @touchstart="handleTouchStart"
-                @touchmove="handleTouchMove"
-                @touchend="handleTouchEnd"
-                :class="{ 'shutter-effect': showCaptureEffect }"
-              ></video>
-              <canvas x-ref="canvas" class="hidden"></canvas>
-              
-              <!-- キャプチャエフェクト -->
-              <div
-                x-show="showCaptureEffect"
-                x-transition:enter="transition-opacity duration-200"
-                x-transition:leave="transition-opacity duration-100"
-                class="absolute inset-0 bg-white pointer-events-none camera-flash"
-              ></div>
-            </div>
-            
-            <!-- コントロールエリア -->
-            <div class="bg-gray-100 p-4 space-y-4">
-              <!-- トーチ、デバッグ、ズームコントロール -->
-              <div class="flex items-center justify-between">
-                <!-- 左側: トーチとデバッグボタン -->
-                <div class="flex items-center gap-3">
-                  <!-- トーチボタン -->
-                  <button
-                    @click="toggleTorch"
-                    class="p-3 rounded-full bg-gray-700 text-white hover:bg-gray-800 transition-all"
-                    :class="{ 'bg-yellow-500 hover:bg-yellow-600': torchOn, 'opacity-30': !torchSupported }"
-                    :title="torchSupported ? 'トーチ' : 'トーチはサポートされていません'"
-                  >
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
-                  </button>
-                  
-                  <!-- デバッグボタン -->
-                  <button
-                    @click="toggleDebug"
-                    class="p-2 rounded-full bg-gray-600 text-white hover:bg-gray-700 transition-all opacity-60 hover:opacity-100"
-                    :class="{ 'bg-blue-600 hover:bg-blue-700 opacity-100': showDebug }"
-                    title="デバッグ"
-                  >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
-                    </svg>
-                  </button>
-                </div>
-                
-                <!-- 右側: ズームボタン -->
-                <div class="flex gap-2" :class="{ 'opacity-30': availableZoomLevels.length <= 1 }">
-                  <template x-for="level in availableZoomLevels" :key="level">
-                    <button
-                      @click="selectZoomLevel(level)"
-                      :disabled="availableZoomLevels.length <= 1"
-                      class="px-3 py-1 rounded-full text-sm font-medium transition-all disabled:cursor-not-allowed"
-                      :class="Math.abs(currentZoomLevel - level) < 0.01 ? 
-                        'bg-yellow-500 text-black' : 
-                        'bg-gray-700 text-white hover:bg-gray-800 disabled:hover:bg-gray-700'"
-                      x-text="level + 'x'"
-                    >
-                    </button>
-                  </template>
-                </div>
-              </div>
-              
-            </div>
-            
-            <!-- 撮影/キャンセルボタン -->
-            <div class="p-4 space-y-2 border-t border-gray-200">
-              <button
-                @click="capture"
-                :disabled="isLoading"
-                class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                撮影
-              </button>
-              <button
-                @click="stopCamera"
-                :disabled="isLoading"
-                class="w-full bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                キャンセル
-              </button>
-            </div>
-          </div>
-        </div>
-        
         <!-- カメラ起動ボタン -->
-        <div x-show="!photo && !cameraActive" class="mb-4">
+        <div x-show="!photo" class="mb-4">
           <div class="bg-white rounded-lg shadow-md p-6">
             <p class="text-center text-gray-600 mb-4">レシートを撮影してください</p>
             
@@ -187,17 +90,6 @@
               </svg>
               <span>標準カメラで撮影</span>
               <span class="text-xs bg-blue-600 px-2 py-1 rounded">推奨</span>
-            </button>
-            
-            <div class="text-center text-xs text-gray-500 mb-3">または</div>
-            
-            <button
-              @click="startCamera"
-              :disabled="isLoading || !checkSettingsComplete()"
-              class="w-full bg-green-500 hover:bg-green-700 text-white font-bold py-3 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed mb-3"
-            >
-              <span x-show="!isLoading">アプリ内カメラを起動</span>
-              <span x-show="isLoading">起動中...</span>
             </button>
             
             <!-- 設定ボタン -->
