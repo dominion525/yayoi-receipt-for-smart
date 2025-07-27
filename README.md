@@ -8,13 +8,13 @@ iPhoneで動作するレシート撮影・送信Webアプリケーション
 
 ## 主な機能
 
-- レシート写真撮影
-- 物理カメラの自動切り替え（1x、2x、3x - iOS対応）
-- トーチ（フラッシュライト）機能
+- 標準カメラアプリを使用したレシート撮影
 - 撮影画像のプレビュー
+- 複数宛先への一括送信（プリセット機能）
 - メール添付形式での送信（RESEND API使用）
 - 設定情報のローカル保存
-- デバッグパネル（開発用）
+- デバッグパネル（ログ記録・コピー機能）
+- アクセシビリティ対応（ARIA属性）
 
 ## 技術スタック
 
@@ -38,26 +38,41 @@ iPhoneで動作するレシート撮影・送信Webアプリケーション
 
 ```
 src/
-├── index.html       # メインHTML（Alpine.jsで拡張）
-├── main.ts         # エントリーポイント
-├── styles.css      # TailwindCSS
-├── lib/
-│   ├── camera.ts   # カメラ制御ロジック
-│   ├── storage.ts  # ローカルストレージ管理
-│   └── mail.ts     # メール送信機能
-└── types/          # TypeScript型定義
+├── index.html              # メインHTML（Alpine.jsで拡張）
+├── main.ts                 # エントリーポイント
+├── app.ts                  # メインアプリケーションロジック
+├── styles.css              # TailwindCSS
+├── components/             # UIコンポーネント
+│   └── settings-modal.ts   # 設定モーダル
+├── services/               # ビジネスロジック
+│   ├── settings.service.ts # 設定管理
+│   ├── debug.service.ts    # デバッグログ管理
+│   └── email.service.ts    # メール送信サービス
+├── lib/                    # ユーティリティライブラリ
+│   ├── storage.ts          # ローカルストレージ管理
+│   └── mail.ts             # RESEND API通信
+├── utils/                  # 汎用ユーティリティ
+│   └── error.ts            # エラーハンドリング
+└── types/                  # TypeScript型定義
+    ├── env.d.ts            # 環境変数型定義
+    ├── error.d.ts          # エラー型定義
+    └── alpine.d.ts         # Alpine.js型拡張
 ```
 
 ## 使い方
 
 1. アプリケーションを起動後、ブラウザで http://localhost:5173 を開く
 2. 設定ボタンをクリックして、以下を入力：
-   - 送信先メールアドレス
+   - メイン送信先メールアドレス
+   - Dropbox送信用メールアドレス（オプション）
    - RESEND APIキー
-3. 「テストメール送信」で動作確認
-4. カメラを起動
-5. レシートを撮影
-6. 「メール送信」ボタンでメール送信
+   - 送信元メールアドレス
+3. 「写真を撮る」ボタンをタップして標準カメラアプリで撮影
+4. 撮影した画像をプレビューで確認
+5. 送信方法を選択：
+   - 「メイン送信先へ送信」：設定したメインアドレスに送信
+   - 「Dropboxへ送信」：Dropboxアドレスに送信（設定時のみ表示）
+   - 「すべてに送信」：全ての設定済みアドレスに一括送信
 
 ## プロキシサーバーについて
 
@@ -165,13 +180,15 @@ npm run test:coverage
 
 ## セキュリティについて
 
-- APIキーや認証情報はWeb Crypto APIで暗号化してIndexedDBに保存
+- 設定情報（APIキー含む）はlocalStorageに保存
 - HTTPSでの通信は必須（Cloudflareで自動対応）
 - ローカルデバイスにのみデータを保存
+- 個人情報や画像データは一時的にのみメモリに保持
 
 ## iOS Safari対応
 
-- getUserMedia APIの制限を考慮した実装
+- 標準カメラアプリとの連携による撮影機能
+- FileReader APIによる画像読み込み処理
 - PWAとしてホーム画面への追加を推奨
 - viewport設定によるiOS特有の問題への対処
 
