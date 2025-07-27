@@ -83,11 +83,6 @@ export class EmailSender {
         ? `${this.proxyUrl}/send-email` 
         : `${this.proxyUrl}/api/send-email`
       
-      console.log('メール送信リクエスト:', {
-        endpoint: endpoint,
-        to: options.to,
-        subject: options.subject
-      })
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -102,24 +97,8 @@ export class EmailSender {
 
       const result = await response.json()
       
-      console.log('プロキシサーバーレスポンス:', {
-        status: response.status,
-        ok: response.ok,
-        success: result.success,
-        error: result.error,
-        message: result.message,
-        details: result.details,
-        fullResult: result
-      })
 
       if (!response.ok || !result.success) {
-        console.error('Email send error:', {
-          status: response.status,
-          error: result.error,
-          message: result.message,
-          details: result.details,
-          fullResult: result
-        })
         return {
           success: false,
           error: result.error || result.message || 'メール送信でエラーが発生しました',
@@ -156,7 +135,6 @@ export class EmailSender {
    * レシート画像を送信
    */
   async sendReceipt(toEmail: string, imageData: string, comment?: string): Promise<EmailResult> {
-    console.log(`sendReceipt呼び出し: 宛先=${toEmail}`)
     
     const now = new Date()
     const dateStr = now.toLocaleDateString('ja-JP', {

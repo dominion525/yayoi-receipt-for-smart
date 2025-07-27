@@ -130,14 +130,11 @@ export class EmailService {
     addDebugLog: DebugLogger,
     showError: ErrorDisplayer
   ): Promise<{ success: boolean; shouldRetake: boolean }> {
-    console.log(`sendMailToPreset呼び出し: presetId=${presetId}`)
-    console.log('利用可能なプリセット:', settings.sendPresets)
     
     // デバッグ用：実際にこの関数が呼ばれているか確認
     addDebugLog(`sendMailToPreset開始: presetId=${presetId}`, 'info')
     
     const preset = settings.sendPresets.find(p => p.id === presetId)
-    console.log('選択されたプリセット:', preset)
     
     if (!preset || !preset.isActive) {
       showError('送信先が見つかりません')
@@ -157,20 +154,17 @@ export class EmailService {
     try {
       for (const recipient of preset.recipients) {
         addDebugLog(`${recipient}に送信中...`, 'info')
-        console.log(`送信処理: ${recipient}`)
         
         // APIキーの存在確認
         if (!settings.apiKey) {
           addDebugLog('エラー: APIキーが設定されていません', 'error')
           errorMessages.push('APIキーが設定されていません')
           results.failed++
-          console.error('APIキーが設定されていません')
           continue
         }
         
         try {
           const result = await emailSender.sendReceipt(recipient, photo)
-          console.log(`送信結果 (${recipient}):`, result)
           
           if (result.success) {
             results.success++
@@ -184,15 +178,9 @@ export class EmailService {
             }
             
             // デバッグ用に完全な結果をログ出力
-            console.error(`送信失敗 (${recipient}):`, {
-              error: result.error,
-              details: result.details,
-              fullResult: result
-            })
             
             // RESEND APIのエラー詳細を解析
             if (result.details) {
-              console.error('送信エラー詳細:', result.details)
               if (typeof result.details === 'object' && 'name' in result.details) {
                 const details = result.details as { name?: string; message?: string }
                 if (details.name === 'validation_error') {
@@ -214,20 +202,16 @@ export class EmailService {
             
             errorMessages.push(errorDetail)
             addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
-            console.log('エラーメッセージ追加:', errorDetail)
           }
         } catch (error) {
           results.failed++
           const errorMsg = `${recipient}への送信エラー: ${getErrorMessage(error)}`
           errorMessages.push(errorMsg)
           addDebugLog(errorMsg, 'error')
-          console.error(`送信例外 (${recipient}):`, error)
         }
       }
       
       // デバッグ用：収集したエラーメッセージを出力
-      console.log('収集したエラーメッセージ:', errorMessages)
-      console.log('エラーメッセージ数:', errorMessages.length)
       
       // 結果を表示
       if (results.success > 0 && results.failed === 0) {
@@ -238,14 +222,12 @@ export class EmailService {
         // エラーメッセージが空の場合の処理
         if (errorMessages.length === 0) {
           errorMessages.push('エラーの詳細情報を取得できませんでした')
-          console.warn('エラーメッセージが空でした')
         }
         
         // エラーメッセージをまとめて表示
         const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
         const fullError = summary + '\n\n' + errorMessages.join('\n\n')
         
-        console.log('最終的なエラーメッセージ:', fullError)
         showError(fullError)
         return { success: false, shouldRetake: false }
       }

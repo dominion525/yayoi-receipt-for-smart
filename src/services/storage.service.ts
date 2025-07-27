@@ -15,7 +15,7 @@ export class StorageService {
       localStorage.setItem(key, serialized)
       return true
     } catch (error) {
-      console.error(`Failed to save to localStorage (key: ${key}):`, error)
+      // Failed to save to localStorage
       return false
     }
   }
@@ -34,7 +34,7 @@ export class StorageService {
       }
       return JSON.parse(item) as T
     } catch (error) {
-      console.error(`Failed to get from localStorage (key: ${key}):`, error)
+      // Failed to get from localStorage
       return defaultValue
     }
   }
@@ -49,7 +49,7 @@ export class StorageService {
       localStorage.removeItem(key)
       return true
     } catch (error) {
-      console.error(`Failed to remove from localStorage (key: ${key}):`, error)
+      // Failed to remove from localStorage
       return false
     }
   }
@@ -63,7 +63,7 @@ export class StorageService {
     try {
       return localStorage.getItem(key) !== null
     } catch (error) {
-      console.error(`Failed to check localStorage (key: ${key}):`, error)
+      // Failed to check localStorage
       return false
     }
   }
@@ -77,7 +77,7 @@ export class StorageService {
       localStorage.clear()
       return true
     } catch (error) {
-      console.error('Failed to clear localStorage:', error)
+      // Failed to clear localStorage
       return false
     }
   }
@@ -92,7 +92,7 @@ export class StorageService {
         const estimate = await navigator.storage.estimate()
         return (estimate.quota || 0) - (estimate.usage || 0)
       } catch (error) {
-        console.error('Failed to estimate storage:', error)
+        // Failed to estimate storage
         return -1
       }
     }

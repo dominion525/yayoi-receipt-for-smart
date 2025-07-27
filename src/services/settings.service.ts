@@ -50,7 +50,6 @@ export class SettingsService {
     const defaultSettings = this.getDefaultSettings()
     const stored = StorageService.get<AppSettings>(STORAGE_KEY, defaultSettings)
     
-    console.log('読み込まれた設定:', stored)
     
     // プリセットとメールアドレスを同期
     this.syncPresetsWithEmails(stored)
@@ -63,7 +62,6 @@ export class SettingsService {
       emailSender.setFromEmail(stored.fromEmail)
     }
     
-    console.log('最終的な設定:', stored)
     return stored
   }
 
@@ -71,7 +69,6 @@ export class SettingsService {
    * 設定を保存する
    */
   static save(settings: AppSettings): boolean {
-    console.log('保存する設定:', settings)
     
     // EmailSenderにAPIキーと送信元アドレスを設定
     if (settings.apiKey) {
@@ -133,7 +130,6 @@ export class SettingsService {
       }
       
       settings.sendPresets = presets
-      console.log('新規生成されたプリセット:', presets)
     } else {
       // 既存プリセットを更新
       this.updatePresetsWithCurrentEmails(settings)
@@ -155,7 +151,6 @@ export class SettingsService {
     const dropboxPreset = settings.sendPresets.find(p => p.id === 'dropbox')
     if (settings.dropboxEmail) {
       if (!dropboxPreset) {
-        console.log('Dropboxアドレスはあるがプリセットがないので追加します')
         settings.sendPresets.push({
           id: 'dropbox',
           name: 'バックアップ（Dropbox）',
@@ -163,7 +158,6 @@ export class SettingsService {
           isActive: true
         })
       } else if (!dropboxPreset.isActive || dropboxPreset.recipients.length === 0) {
-        console.log('Dropboxプリセットが無効または空なので修正します')
         dropboxPreset.isActive = true
         dropboxPreset.recipients = [settings.dropboxEmail]
       }
@@ -173,7 +167,6 @@ export class SettingsService {
     const mainPreset = settings.sendPresets.find(p => p.id === 'main')
     if (settings.email && mainPreset) {
       if (mainPreset.recipients[0] !== settings.email) {
-        console.log('メインアドレスが更新されているので修正します')
         mainPreset.recipients = [settings.email]
       }
     }
@@ -254,7 +247,6 @@ export class SettingsService {
     // すべてに送信プリセット
     this.updateAllPreset(tempSettings)
     
-    console.log(`プリセット更新完了: ${tempSettings.sendPresets.filter(p => p.isActive).length}個のアクティブなプリセット`)
   }
 
 

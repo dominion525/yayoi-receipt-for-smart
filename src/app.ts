@@ -56,7 +56,6 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       
       // プリセットが空の場合、または古い形式の場合は再生成
       if (!this.settings.sendPresets || this.settings.sendPresets.length === 0) {
-        console.log('初期化時: プリセットが空なので再生成します')
         SettingsService.syncPresetsWithEmails(this.settings)
       } else {
         // プリセットの整合性チェックと修正
@@ -66,10 +65,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         const dropboxPreset = this.settings.sendPresets.find(p => p.id === 'dropbox')
         if (this.settings.dropboxEmail) {
           if (!dropboxPreset) {
-            console.log('初期化時: Dropboxアドレスはあるがプリセットがないので再生成します')
             needsUpdate = true
           } else if (!dropboxPreset.isActive || dropboxPreset.recipients.length === 0) {
-            console.log('初期化時: Dropboxプリセットが無効または空なので修正します')
             dropboxPreset.isActive = true
             dropboxPreset.recipients = [this.settings.dropboxEmail]
             needsUpdate = true
@@ -80,14 +77,12 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         const mainPreset = this.settings.sendPresets.find(p => p.id === 'main')
         if (this.settings.email && mainPreset) {
           if (mainPreset.recipients[0] !== this.settings.email) {
-            console.log('初期化時: メインアドレスが更新されているので修正します')
             mainPreset.recipients = [this.settings.email]
             needsUpdate = true
           }
         }
         
         if (needsUpdate) {
-          console.log('初期化時: プリセットを再生成します')
           SettingsService.syncPresetsWithEmails(this.settings)
         } else {
           // 「すべてに送信」プリセットの更新チェック
@@ -96,7 +91,6 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }
       
       // デバッグ用：現在のプリセット状態を表示
-      console.log('初期化完了時のプリセット:', this.settings.sendPresets)
       this.addDebugLog(`プリセット数: ${this.settings.sendPresets.filter(p => p.isActive).length}個がアクティブ`, 'info')
     },
     

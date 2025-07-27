@@ -73,7 +73,7 @@ export class DebugService {
       }
     } catch (error) {
       this.add('ログのコピーに失敗しました', 'error')
-      console.error('Copy failed:', error)
+      // Copy failed
       return false
     }
   }
@@ -99,7 +99,7 @@ export class DebugService {
       return successful
     } catch (error) {
       this.add('ログのコピーに失敗しました', 'error')
-      console.error('Copy failed:', error)
+      // Copy failed
       return false
     } finally {
       document.body.removeChild(textarea)
