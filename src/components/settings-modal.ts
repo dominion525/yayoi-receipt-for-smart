@@ -10,6 +10,9 @@ export const settingsModalTemplate = `
     x-transition:leave-end="opacity-0"
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
     @click.self="closeSettings"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="settings-title"
   >
     <div
       x-transition:enter="transition ease-out duration-300"
@@ -22,13 +25,14 @@ export const settingsModalTemplate = `
     >
       <!-- ヘッダー -->
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-xl font-bold text-gray-900">設定</h2>
+        <h2 id="settings-title" class="text-xl font-bold text-gray-900">設定</h2>
         <button
           @click="closeSettings"
           class="p-1 rounded-full hover:bg-gray-100 transition-colors"
           title="閉じる"
+          aria-label="設定を閉じる"
         >
-          <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
           </svg>
         </button>
