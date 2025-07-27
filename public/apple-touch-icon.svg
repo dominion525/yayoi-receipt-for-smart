@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180" fill="none">
+  <defs>
+    <linearGradient id="receiptGradientApple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#374151;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6B7280;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect width="180" height="180" rx="36" fill="url(#receiptGradientApple)"/>
+  <path stroke="white" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" 
+        fill="none" 
+        d="M60 72h45m-45 20h45m13 28H50a10 10 0 01-10-10V50a10 10 0 0110-10h30.86a5 5 0 013.536 1.464l29.14 29.14A5 5 0 01125 74.14V110a10 10 0 01-10 10z"/>
+  <!-- レシートの横線を追加して分かりやすく -->
+  <path stroke="white" stroke-width="6" stroke-linecap="round" 
+        fill="none" 
+        d="M60 92h30m-30 8h20"/>
+</svg>
