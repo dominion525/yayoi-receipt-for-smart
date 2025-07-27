@@ -369,20 +369,71 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }
       
       this.isSendingMail = true
-      this.addDebugLog('レシート画像をメール送信中...', 'info')
+      
+      // 送信先を収集（アクティブなプリセットの全宛先）
+      const recipients: string[] = []
+      for (const preset of this.settings.sendPresets) {
+        if (preset.isActive && preset.recipients.length > 0) {
+          recipients.push(...preset.recipients)
+        }
+      }
+      
+      // 重複を除去
+      const uniqueRecipients = [...new Set(recipients)]
+      
+      if (uniqueRecipients.length === 0) {
+        this.showError('送信先が設定されていません')
+        this.isSendingMail = false
+        return
+      }
+      
+      this.addDebugLog(`レシート画像を${uniqueRecipients.length}件の宛先に送信中...`, 'info')
+      
+      const results = { success: 0, failed: 0 }
+      const errorMessages: string[] = []
       
       try {
-        // レシート画像を送信
-        const result = await emailSender.sendReceipt(
-          this.settings.email,
-          this.photo!
-        )
-        
-        if (result.success) {
-          this.addDebugLog(`レシート画像を送信しました: messageId=${result.messageId}`, 'success')
+        for (const recipient of uniqueRecipients) {
+          this.addDebugLog(`${recipient}に送信中...`, 'info')
           
-          // 成功メッセージを表示
-          const successMessage = 'レシート画像をメール送信しました'
+          try {
+            const result = await emailSender.sendReceipt(recipient, this.photo!)
+            
+            if (result.success) {
+              results.success++
+              this.addDebugLog(`${recipient}への送信成功: ID=${result.messageId}`, 'success')
+            } else {
+              results.failed++
+              let errorDetail = `${recipient}への送信失敗`
+              if (result.error) {
+                errorDetail += `: ${result.error}`
+              }
+              
+              // RESEND APIのエラー詳細を解析
+              if (result.details) {
+                if (result.details.name === 'validation_error') {
+                  errorDetail += '\n（メールアドレスが無効です）'
+                } else if (result.details.name === 'invalid_to_address') {
+                  errorDetail += '\n（送信先アドレスが無効です）'
+                } else if (result.details.message) {
+                  errorDetail += `\n（${result.details.message}）`
+                }
+              }
+              
+              errorMessages.push(errorDetail)
+              this.addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
+            }
+          } catch (error: any) {
+            results.failed++
+            const errorMsg = `${recipient}への送信エラー: ${error.message}`
+            errorMessages.push(errorMsg)
+            this.addDebugLog(errorMsg, 'error')
+          }
+        }
+        
+        // 結果を表示
+        if (results.success > 0 && results.failed === 0) {
+          const successMessage = `${results.success}件の送信が完了しました`
           this.error = '✅ ' + successMessage
           setTimeout(() => {
             if (this.error === '✅ ' + successMessage) {
@@ -392,16 +443,12 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           
           // 写真をクリアしてカメラに戻る
           this.retake()
-          
-        } else {
-          this.addDebugLog(`メール送信失敗: ${result.error}`, 'error')
-          this.showError(`メール送信に失敗しました: ${result.error}`)
+        } else if (results.failed > 0) {
+          // エラーメッセージをまとめて表示
+          const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
+          const fullError = summary + '\n\n' + errorMessages.join('\n\n')
+          this.showError(fullError)
         }
-        
-      } catch (error: any) {
-        this.addDebugLog(`メール送信エラー: ${error.message}`, 'error')
-        this.showError(`予期しないエラーが発生しました: ${error.message}`)
-        console.error('Send mail error:', error)
         
       } finally {
         this.isSendingMail = false

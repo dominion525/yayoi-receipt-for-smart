@@ -149,7 +149,7 @@ export class EmailSender {
         subject: 'スマート レシート - テストメール',
         html: `
           <h2>テストメール送信成功</h2>
-          <p>このメールは「スマート レシート for 弥生」アプリからのテスト送信です。</p>
+          <p>このメールは「スマート レシート」アプリからのテスト送信です。</p>
           <p><strong>送信時刻:</strong> ${new Date().toLocaleString('ja-JP')}</p>
           <p>設定が正常に完了しました。レシート撮影機能をご利用いただけます。</p>
           <hr>
@@ -157,7 +157,7 @@ export class EmailSender {
         `,
         text: `テストメール送信成功
 
-このメールは「スマート レシート for 弥生」アプリからのテスト送信です。
+このメールは「スマート レシート」アプリからのテスト送信です。
 
 送信時刻: ${new Date().toLocaleString('ja-JP')}
 
@@ -203,7 +203,7 @@ export class EmailSender {
         <p>撮影日時: ${dateStr} ${timeStr}</p>
         ${comment ? `<p>コメント: ${comment}</p>` : ''}
         <hr>
-        <p><small>スマート レシート for 弥生</small></p>
+        <p><small>スマート レシート</small></p>
       `,
       text: `レシート画像を送信します。
 
@@ -211,7 +211,7 @@ export class EmailSender {
 ${comment ? `\nコメント: ${comment}` : ''}
 
 ----
-スマート レシート for 弥生`,
+スマート レシート`,
       attachments: [{
         filename: `receipt_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.jpg`,
         content: base64Data || '',

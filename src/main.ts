@@ -5,6 +5,7 @@ import Alpine from 'alpinejs'
 import './app'
 import { debugPanelTemplate } from './components/debug-panel'
 import { settingsModalTemplate } from './components/settings-modal'
+import { footerTemplate } from './components/footer'
 
 // Alpine.jsをwindowに登録
 window.Alpine = Alpine
@@ -27,6 +28,12 @@ function init() {
   const settingsModalContainer = document.getElementById('settings-modal')
   if (settingsModalContainer) {
     settingsModalContainer.innerHTML = settingsModalTemplate
+  }
+  
+  // フッターを挿入
+  const footerContainer = document.getElementById('footer')
+  if (footerContainer) {
+    footerContainer.innerHTML = footerTemplate
   }
   
   // Alpine.jsを初期化
