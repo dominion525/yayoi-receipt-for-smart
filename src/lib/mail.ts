@@ -24,7 +24,22 @@ export interface EmailResult {
  */
 export class EmailSender {
   private apiKey: string = ''
-  private proxyUrl: string = (import.meta as any).env?.VITE_PROXY_URL || 'http://localhost:3001'
+  private proxyUrl: string = (() => {
+    // 環境変数が設定されている場合はそれを使用
+    if ((import.meta as any).env?.VITE_PROXY_URL) {
+      return (import.meta as any).env.VITE_PROXY_URL;
+    }
+    
+    // 本番環境（receipt.dominion525.com）では空文字列
+    if (typeof window !== 'undefined' && 
+        (window.location.hostname === 'receipt.dominion525.com' || 
+         window.location.hostname !== 'localhost')) {
+      return '';
+    }
+    
+    // 開発環境
+    return 'http://localhost:3001';
+  })()
   private fromEmail: string = ''
 
   /**
@@ -133,46 +148,6 @@ export class EmailSender {
     }
   }
 
-  /**
-   * テストメールを送信（設定確認用）
-   */
-  async sendTestEmail(apiKey: string, _fromEmail: string, toEmail: string): Promise<EmailResult> {
-    // 一時的にAPIキーを設定
-    const originalApiKey = this.apiKey
-    
-    try {
-      this.apiKey = apiKey
-      
-      const result = await this.send({
-        from: this.fromEmail,  // 検証済みドメインの送信元アドレス
-        to: toEmail,
-        subject: 'スマート レシート - テストメール',
-        html: `
-          <h2>テストメール送信成功</h2>
-          <p>このメールは「スマート レシート」アプリからのテスト送信です。</p>
-          <p><strong>送信時刻:</strong> ${new Date().toLocaleString('ja-JP')}</p>
-          <p>設定が正常に完了しました。レシート撮影機能をご利用いただけます。</p>
-          <hr>
-          <p><small>このメールはテスト用です。</small></p>
-        `,
-        text: `テストメール送信成功
-
-このメールは「スマート レシート」アプリからのテスト送信です。
-
-送信時刻: ${new Date().toLocaleString('ja-JP')}
-
-設定が正常に完了しました。レシート撮影機能をご利用いただけます。
-
-このメールはテスト用です。`
-      })
-      
-      return result
-      
-    } finally {
-      // 元のAPIキー設定を復元
-      this.apiKey = originalApiKey
-    }
-  }
 
   /**
    * レシート画像を送信

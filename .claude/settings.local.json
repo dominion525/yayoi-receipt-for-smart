@@ -16,7 +16,19 @@
       "Bash(mkdir:*)",
       "Bash(npm test:*)",
       "Bash(npx wrangler deploy:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(if grep -q \"エラー\" /tmp/ngrok-url.txt)",
+      "Bash(then )",
+      "Bash(cat:*)",
+      "Bash(exit 1)",
+      "Bash(fi)",
+      "Bash(npm run deploy:*)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(gh repo view:*)"
     ],
     "deny": []
   }

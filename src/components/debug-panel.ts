@@ -60,9 +60,14 @@ export const debugPanelTemplate = `
       <div class="mt-2 flex gap-2">
         <button
           @click="copyDebugLogs"
-          class="px-3 py-1 bg-blue-700 text-white text-xs rounded hover:bg-blue-600"
+          :disabled="isCopyingLogs"
+          class="px-3 py-1 text-white text-xs rounded transition-all duration-300"
+          :class="isCopyingLogs ? 'bg-green-600' : 'bg-blue-700 hover:bg-blue-600'"
         >
-          ログをコピー
+          <span x-show="!isCopyingLogs">ログをコピー</span>
+          <span x-show="isCopyingLogs" class="flex items-center">
+            ✅ コピー完了！
+          </span>
         </button>
         <button
           @click="clearDebugLogs"

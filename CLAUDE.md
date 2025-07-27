@@ -46,5 +46,32 @@ QRコード生成：
 - TypeScriptの型定義を厳密に
 - テストはVitestで記述
 
+### デプロイメント
+
+**重要**: このプロジェクトはCloudflare **Worker**として構成されています（Pagesではありません）
+
+#### 本番環境デプロイ
+```bash
+# ビルド
+npm run build
+
+# Cloudflare Workerとしてデプロイ
+npx wrangler deploy --env production
+```
+
+**絶対にやってはいけない**:
+- `npx wrangler pages deploy` は使用しない（これはPages用）
+- `--project-name yayoi-receipt-for-smart` オプションは不要
+
+#### 構成詳細
+- **Worker**: `worker.js` - API処理 + 静的ファイル配信
+- **Assets**: `dist/` - ビルドされた静的ファイル  
+- **Domain**: `receipt.dominion525.com`
+- **Config**: `wrangler.toml` (Worker用設定)
+
+#### デプロイ確認
+- URL: https://receipt.dominion525.com
+- Version IDで確認可能
+
 ### プロジェクト固有のスラッシュコマンド
 - `/qr` - ngrokのQRコードを生成・表示

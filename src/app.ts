@@ -1,7 +1,8 @@
 import { emailSender } from './lib/mail'
 import Alpine from 'alpinejs'
-import { SettingsService, AppSettings, SendPreset } from './services/settings.service'
+import { SettingsService, AppSettings } from './services/settings.service'
 import { DebugService, DebugLog } from './services/debug.service'
+import { EmailService } from './services/email.service'
 
 export interface ReceiptAppData {
   photo: string | null
@@ -13,9 +14,9 @@ export interface ReceiptAppData {
   settings: AppSettings
   tempSettings: AppSettings
   isSettingsComplete: boolean
-  isSendingTestEmail: boolean
   showCaptureEffect: boolean
   isSendingMail: boolean
+  isCopyingLogs: boolean
 }
 
 export function receiptApp(): ReceiptAppData & Record<string, any> {
@@ -34,9 +35,9 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       fromEmail: '',
       sendPresets: []
     },
-    isSendingTestEmail: false,
     showCaptureEffect: false,
     isSendingMail: false,
+    isCopyingLogs: false,
     
     // 初期化時に設定完了状態をチェック
     get isSettingsComplete() {
@@ -101,78 +102,12 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     
     // 「すべてに送信」プリセットを更新
     updateAllPreset() {
-      const allRecipients = [
-        this.settings.email,
-        this.settings.dropboxEmail
-      ].filter((email): email is string => !!email)
-      
-      let allPreset = this.settings.sendPresets.find(p => p.id === 'all')
-      
-      if (allRecipients.length > 1) {
-        if (!allPreset) {
-          // プリセットが存在しない場合は追加
-          this.settings.sendPresets.push({
-            id: 'all',
-            name: 'すべてに送信',
-            recipients: allRecipients,
-            isActive: true
-          })
-        } else {
-          // 既存のプリセットを更新
-          allPreset.recipients = allRecipients
-          allPreset.isActive = true
-        }
-      } else if (allPreset) {
-        // 複数宛先がない場合は無効化
-        allPreset.isActive = false
-      }
+      SettingsService.updateAllPresetOnly(this.settings)
     },
     
     // プリセットを再生成
     regeneratePresets() {
-      const presets: SendPreset[] = []
-      
-      // メインアドレス
-      if (this.settings.email) {
-        presets.push({
-          id: 'main',
-          name: 'メインアドレス',
-          recipients: [this.settings.email],
-          isActive: true
-        })
-      }
-      
-      // Dropboxアドレス
-      if (this.settings.dropboxEmail) {
-        presets.push({
-          id: 'dropbox',
-          name: 'Dropboxに保存',
-          recipients: [this.settings.dropboxEmail],
-          isActive: true
-        })
-      }
-      
-      
-      // すべてに送信
-      const allRecipients = [
-        this.settings.email,
-        this.settings.dropboxEmail
-      ].filter((email): email is string => !!email)
-      
-      if (allRecipients.length > 1) {
-        presets.push({
-          id: 'all',
-          name: 'すべてに送信',
-          recipients: allRecipients,
-          isActive: true
-        })
-      }
-      
-      this.settings.sendPresets = presets
-      console.log('再生成されたプリセット:', presets)
-      
-      // 設定を保存
-      SettingsService.save(this.settings)
+      SettingsService.regeneratePresets(this.settings)
     },
     
     
@@ -228,11 +163,6 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     },
     
     async sendMail() {
-      if (!this.photo) {
-        this.showError('写真が撮影されていません')
-        return
-      }
-      
       // 設定が完了しているか確認
       if (!SettingsService.isComplete(this.settings)) {
         this.showError('メール設定が完了していません。設定を行ってください。')
@@ -242,84 +172,26 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       
       this.isSendingMail = true
       
-      // 送信先を収集（アクティブなプリセットの全宛先）
-      const recipients: string[] = []
-      for (const preset of this.settings.sendPresets) {
-        if (preset.isActive && preset.recipients.length > 0) {
-          recipients.push(...preset.recipients)
-        }
-      }
-      
-      // 重複を除去
-      const uniqueRecipients = [...new Set(recipients)]
-      
-      if (uniqueRecipients.length === 0) {
-        this.showError('送信先が設定されていません')
-        this.isSendingMail = false
-        return
-      }
-      
-      this.addDebugLog(`レシート画像を${uniqueRecipients.length}件の宛先に送信中...`, 'info')
-      
-      const results = { success: 0, failed: 0 }
-      const errorMessages: string[] = []
-      
       try {
-        for (const recipient of uniqueRecipients) {
-          this.addDebugLog(`${recipient}に送信中...`, 'info')
-          
-          try {
-            const result = await emailSender.sendReceipt(recipient, this.photo!)
-            
-            if (result.success) {
-              results.success++
-              this.addDebugLog(`${recipient}への送信成功: ID=${result.messageId}`, 'success')
-            } else {
-              results.failed++
-              let errorDetail = `${recipient}への送信失敗`
-              if (result.error) {
-                errorDetail += `: ${result.error}`
-              }
-              
-              // RESEND APIのエラー詳細を解析
-              if (result.details) {
-                if (result.details.name === 'validation_error') {
-                  errorDetail += '\n（メールアドレスが無効です）'
-                } else if (result.details.name === 'invalid_to_address') {
-                  errorDetail += '\n（送信先アドレスが無効です）'
-                } else if (result.details.message) {
-                  errorDetail += `\n（${result.details.message}）`
+        const result = await EmailService.sendMail(
+          this.photo!,
+          this.settings,
+          this.addDebugLog.bind(this),
+          (message: string) => {
+            this.error = message
+            // 成功メッセージの場合は3秒後に自動クリア
+            if (message.startsWith('✅')) {
+              setTimeout(() => {
+                if (this.error === message) {
+                  this.error = null
                 }
-              }
-              
-              errorMessages.push(errorDetail)
-              this.addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
+              }, 3000)
             }
-          } catch (error: any) {
-            results.failed++
-            const errorMsg = `${recipient}への送信エラー: ${error.message}`
-            errorMessages.push(errorMsg)
-            this.addDebugLog(errorMsg, 'error')
           }
-        }
+        )
         
-        // 結果を表示
-        if (results.success > 0 && results.failed === 0) {
-          const successMessage = `${results.success}件の送信が完了しました`
-          this.error = '✅ ' + successMessage
-          setTimeout(() => {
-            if (this.error === '✅ ' + successMessage) {
-              this.error = null
-            }
-          }, 3000)
-          
-          // 写真をクリアしてカメラに戻る
+        if (result.shouldRetake) {
           this.retake()
-        } else if (results.failed > 0) {
-          // エラーメッセージをまとめて表示
-          const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
-          const fullError = summary + '\n\n' + errorMessages.join('\n\n')
-          this.showError(fullError)
         }
         
       } finally {
@@ -374,8 +246,14 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       DebugService.clear()
     },
     
-    copyDebugLogs() {
-      DebugService.copyToClipboard()
+    async copyDebugLogs() {
+      this.isCopyingLogs = true
+      await DebugService.copyToClipboard()
+      
+      // 成功/失敗に関わらず、視覚的フィードバックのために一定時間待つ
+      setTimeout(() => {
+        this.isCopyingLogs = false
+      }, 2000)
     },
     
     // 設定関連メソッド
@@ -403,13 +281,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }
     },
     
-    saveSettings() {
-      // 簡単なバリデーション
-      if (!this.tempSettings.email.trim() || !this.tempSettings.apiKey.trim()) {
-        this.showError('メールアドレスとAPIキーを入力してください')
-        return
-      }
-      
+    async saveSettings() {
       // プリセットを更新
       SettingsService.updatePresetsFromTempSettings(this.tempSettings)
       
@@ -436,187 +308,31 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }
     },
     
-    
-    // テストメール送信
-    async sendTestEmail() {
-      // バリデーション
-      if (!this.tempSettings.email.trim() || !this.tempSettings.apiKey.trim()) {
-        this.showError('メールアドレスとAPIキーを入力してください')
-        return
-      }
-      
-      this.isSendingTestEmail = true
-      this.addDebugLog('テストメール送信を開始...', 'info')
-      
-      try {
-        // テストメール送信
-        const result = await emailSender.sendTestEmail(
-          this.tempSettings.apiKey.trim(),
-          this.tempSettings.email.trim(),
-          this.tempSettings.email.trim()
-        )
-        
-        if (result.success) {
-          this.addDebugLog(`テストメール送信成功: messageId=${result.messageId}`, 'success')
-          this.showError('') // エラーメッセージをクリア
-          
-          // 成功メッセージを表示
-          const successMessage = 'テストメールを送信しました。指定したメールアドレスを確認してください。'
-          this.addDebugLog(successMessage, 'success')
-          
-          // 一時的に成功メッセージを表示（3秒後に消える）
-          const originalError = this.error
-          this.error = '✅ ' + successMessage
-          setTimeout(() => {
-            if (this.error === '✅ ' + successMessage) {
-              this.error = originalError
-            }
-          }, 5000)
-          
-        } else {
-          this.addDebugLog(`テストメール送信失敗: ${result.error}`, 'error')
-          this.showError(`テストメール送信に失敗しました: ${result.error}`)
-          
-          // 詳細なエラー情報をデバッグログに記録
-          if (result.details) {
-            this.addDebugLog(`エラー詳細: ${JSON.stringify(result.details)}`, 'debug')
-          }
-        }
-        
-      } catch (error: any) {
-        this.addDebugLog(`テストメール送信エラー: ${error.message}`, 'error')
-        this.showError(`予期しないエラーが発生しました: ${error.message}`)
-        console.error('Test email error:', error)
-        
-      } finally {
-        this.isSendingTestEmail = false
-      }
-    },
-    
     // 複数宛先への送信
     async sendMailToPreset(presetId: string) {
-      console.log(`sendMailToPreset呼び出し: presetId=${presetId}`)
-      console.log('利用可能なプリセット:', this.settings.sendPresets)
-      
-      // デバッグ用：実際にこの関数が呼ばれているか確認
-      this.addDebugLog(`sendMailToPreset開始: presetId=${presetId}`, 'info')
-      
-      const preset = this.settings.sendPresets.find(p => p.id === presetId)
-      console.log('選択されたプリセット:', preset)
-      
-      if (!preset || !preset.isActive) {
-        this.showError('送信先が見つかりません')
-        this.addDebugLog(`プリセットが見つかりません: presetId=${presetId}`, 'error')
-        return
-      }
-      
-      // 送信先を明示的に表示
-      this.addDebugLog(`送信先: ${preset.name} (${preset.recipients.length}件)`, 'info')
-      preset.recipients.forEach(r => {
-        this.addDebugLog(`  - ${r}`, 'debug')
-      })
-      
       this.isSendingMail = true
-      const results = { success: 0, failed: 0 }
-      const errorMessages: string[] = []
       
       try {
-        for (const recipient of preset.recipients) {
-          this.addDebugLog(`${recipient}に送信中...`, 'info')
-          console.log(`送信処理: ${recipient}`)
-          
-          // APIキーの存在確認
-          if (!this.settings.apiKey) {
-            this.addDebugLog('エラー: APIキーが設定されていません', 'error')
-            errorMessages.push('APIキーが設定されていません')
-            results.failed++
-            console.error('APIキーが設定されていません')
-            continue
-          }
-          
-          try {
-            const result = await emailSender.sendReceipt(recipient, this.photo!)
-            console.log(`送信結果 (${recipient}):`, result)
-            
-            if (result.success) {
-              results.success++
-              this.addDebugLog(`${recipient}への送信成功: ID=${result.messageId}`, 'success')
-            } else {
-              results.failed++
-              // エラーメッセージを構築
-              let errorDetail = `${recipient}への送信失敗`
-              if (result.error) {
-                errorDetail += `: ${result.error}`
-              }
-              
-              // デバッグ用に完全な結果をログ出力
-              console.error(`送信失敗 (${recipient}):`, {
-                error: result.error,
-                details: result.details,
-                fullResult: result
-              })
-              
-              // RESEND APIのエラー詳細を解析
-              if (result.details) {
-                console.error('送信エラー詳細:', result.details)
-                if (result.details.name === 'validation_error') {
-                  errorDetail += '\n（メールアドレスが無効です）'
-                } else if (result.details.name === 'invalid_to_address') {
-                  errorDetail += '\n（送信先アドレスが無効です）'
-                } else if (result.details.message) {
-                  errorDetail += `\n（${result.details.message}）`
+        const result = await EmailService.sendMailToPreset(
+          presetId,
+          this.photo!,
+          this.settings,
+          this.addDebugLog.bind(this),
+          (message: string) => {
+            this.error = message
+            // 成功メッセージの場合は3秒後に自動クリア
+            if (message.startsWith('✅')) {
+              setTimeout(() => {
+                if (this.error === message) {
+                  this.error = null
                 }
-              }
-              
-              // Dropboxのメールアドレス形式を確認
-              if (presetId === 'dropbox' && recipient.includes('@')) {
-                if (!recipient.endsWith('@getdropbox.com') && !recipient.endsWith('@addtodropbox.com')) {
-                  errorDetail += '\n\n⚠️ ヒント: Dropboxのメールアドレスは通常 @getdropbox.com または @addtodropbox.com で終わります'
-                }
-              }
-              
-              errorMessages.push(errorDetail)
-              this.addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
-              console.log('エラーメッセージ追加:', errorDetail)
+              }, 3000)
             }
-          } catch (error: any) {
-            results.failed++
-            const errorMsg = `${recipient}への送信エラー: ${error.message}`
-            errorMessages.push(errorMsg)
-            this.addDebugLog(errorMsg, 'error')
-            console.error(`送信例外 (${recipient}):`, error)
           }
-        }
+        )
         
-        // デバッグ用：収集したエラーメッセージを出力
-        console.log('収集したエラーメッセージ:', errorMessages)
-        console.log('エラーメッセージ数:', errorMessages.length)
-        
-        // 結果を表示
-        if (results.success > 0 && results.failed === 0) {
-          const successMessage = `${results.success}件の送信が完了しました`
-          this.error = '✅ ' + successMessage
-          setTimeout(() => {
-            if (this.error === '✅ ' + successMessage) {
-              this.error = null
-            }
-          }, 3000)
-          
-          // 写真をクリアしてカメラに戻る
+        if (result.shouldRetake) {
           this.retake()
-        } else if (results.failed > 0) {
-          // エラーメッセージが空の場合の処理
-          if (errorMessages.length === 0) {
-            errorMessages.push('エラーの詳細情報を取得できませんでした')
-            console.warn('エラーメッセージが空でした')
-          }
-          
-          // エラーメッセージをまとめて表示
-          const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
-          const fullError = summary + '\n\n' + errorMessages.join('\n\n')
-          
-          console.log('最終的なエラーメッセージ:', fullError)
-          this.showError(fullError)
         }
         
       } finally {
