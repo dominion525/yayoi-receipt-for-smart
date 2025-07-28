@@ -5,7 +5,19 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
     coverage: {
-      reporter: ['text', 'json', 'html']
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/types/**',
+        '**/*.d.ts',
+        'src/main.ts',
+        'src/styles/**',
+        'vite.config.ts',
+        'vitest.config.ts',
+        'postcss.config.js',
+        '**/*.config.*'
+      ]
     }
   }
 })

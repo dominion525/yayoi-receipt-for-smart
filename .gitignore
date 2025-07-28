@@ -31,3 +31,6 @@ dist-ssr
 # ngrok
 ngrok-qr.png
 qr.png
+
+# Test coverage
+coverage/
