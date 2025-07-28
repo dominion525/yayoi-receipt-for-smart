@@ -16,7 +16,13 @@ export default defineConfig({
         'vite.config.ts',
         'vitest.config.ts',
         'postcss.config.js',
-        '**/*.config.*'
+        '**/*.config.*',
+        'src/components/**',
+        'dist/**',
+        '*.cjs',
+        '*.mjs',
+        'proxy-*.js',
+        'worker.js'
       ]
     }
   }

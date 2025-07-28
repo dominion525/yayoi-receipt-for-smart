@@ -42,10 +42,9 @@ export class EmailSender {
       return import.meta.env.VITE_PROXY_URL;
     }
     
-    // 本番環境（receipt.dominion525.com）では空文字列
+    // 本番環境（receipt.dominion525.com）や他の環境では空文字列
     if (typeof window !== 'undefined' && 
-        (window.location.hostname === 'receipt.dominion525.com' || 
-         window.location.hostname !== 'localhost')) {
+        window.location.hostname !== 'localhost') {
       return '';
     }
     

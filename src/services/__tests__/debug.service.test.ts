@@ -62,14 +62,14 @@ describe('DebugService', () => {
       DebugService.add('デフォルトメッセージ')
       
       const logs = DebugService.getAll()
-      expect(logs[0].type).toBe('info')
+      expect(logs[0]?.type).toBe('info')
     })
 
     it('時刻フォーマットが正しい', () => {
       DebugService.add('時刻テスト')
       
       const logs = DebugService.getAll()
-      expect(logs[0].time).toBe('21:30:45.123') // JST (UTC+9)
+      expect(logs[0]?.time).toBe('21:30:45.123') // JST (UTC+9)
     })
 
     it('異なるログタイプを正常に処理する', () => {
@@ -82,8 +82,8 @@ describe('DebugService', () => {
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(5)
       types.forEach((type, index) => {
-        expect(logs[index].type).toBe(type)
-        expect(logs[index].message).toBe(`${type}メッセージ`)
+        expect(logs[index]?.type).toBe(type)
+        expect(logs[index]?.message).toBe(`${type}メッセージ`)
       })
     })
 
@@ -98,9 +98,9 @@ describe('DebugService', () => {
       
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(3)
-      expect(logs[0].message).toBe('ログ3')
-      expect(logs[1].message).toBe('ログ4')
-      expect(logs[2].message).toBe('ログ5')
+      expect(logs[0]?.message).toBe('ログ3')
+      expect(logs[1]?.message).toBe('ログ4')
+      expect(logs[2]?.message).toBe('ログ5')
     })
   })
 
@@ -116,8 +116,8 @@ describe('DebugService', () => {
       
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
-      expect(logs[0].message).toBe('ログ1')
-      expect(logs[1].message).toBe('ログ2')
+      expect(logs[0]?.message).toBe('ログ1')
+      expect(logs[1]?.message).toBe('ログ2')
     })
 
     it('配列のコピーを返す（元の配列を変更しても影響されない）', () => {
@@ -132,7 +132,7 @@ describe('DebugService', () => {
       
       const newLogs = DebugService.getAll()
       expect(newLogs).toHaveLength(1)
-      expect(newLogs[0].message).toBe('元のログ')
+      expect(newLogs[0]?.message).toBe('元のログ')
     })
   })
 
@@ -190,8 +190,8 @@ describe('DebugService', () => {
       // 成功メッセージがログに追加されることを確認
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
-      expect(logs[1].message).toBe('ログをクリップボードにコピーしました')
-      expect(logs[1].type).toBe('success')
+      expect(logs[1]?.message).toBe('ログをクリップボードにコピーしました')
+      expect(logs[1]?.type).toBe('success')
     })
 
     it('navigator.clipboardが失敗した場合はfalseを返す', async () => {
@@ -205,8 +205,8 @@ describe('DebugService', () => {
       // エラーメッセージがログに追加されることを確認
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
-      expect(logs[1].message).toBe('ログのコピーに失敗しました')
-      expect(logs[1].type).toBe('error')
+      expect(logs[1]?.message).toBe('ログのコピーに失敗しました')
+      expect(logs[1]?.type).toBe('error')
     })
 
     it('navigator.clipboardが利用できない場合はフォールバックを使用する', async () => {
@@ -269,8 +269,8 @@ describe('DebugService', () => {
       // エラーメッセージがログに追加されることを確認
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
-      expect(logs[1].message).toBe('ログのコピーに失敗しました')
-      expect(logs[1].type).toBe('error')
+      expect(logs[1]?.message).toBe('ログのコピーに失敗しました')
+      expect(logs[1]?.type).toBe('error')
       
       // 元に戻す
       Object.defineProperty(global, 'navigator', {
@@ -373,8 +373,8 @@ describe('DebugService', () => {
       
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
-      expect(logs[0].message).toBe('ログ2')
-      expect(logs[1].message).toBe('ログ3')
+      expect(logs[0]?.message).toBe('ログ2')
+      expect(logs[1]?.message).toBe('ログ3')
     })
 
     it('既存のログが最大数を超えている場合は削除される', () => {
@@ -388,8 +388,8 @@ describe('DebugService', () => {
       
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
-      expect(logs[0].message).toBe('既存ログ4')
-      expect(logs[1].message).toBe('既存ログ5')
+      expect(logs[0]?.message).toBe('既存ログ4')
+      expect(logs[1]?.message).toBe('既存ログ5')
     })
   })
 
@@ -398,40 +398,40 @@ describe('DebugService', () => {
       DebugService.info('情報メッセージ')
       
       const logs = DebugService.getAll()
-      expect(logs[0].type).toBe('info')
-      expect(logs[0].message).toBe('情報メッセージ')
+      expect(logs[0]?.type).toBe('info')
+      expect(logs[0]?.message).toBe('情報メッセージ')
     })
 
     it('success()メソッドが正常に動作する', () => {
       DebugService.success('成功メッセージ')
       
       const logs = DebugService.getAll()
-      expect(logs[0].type).toBe('success')
-      expect(logs[0].message).toBe('成功メッセージ')
+      expect(logs[0]?.type).toBe('success')
+      expect(logs[0]?.message).toBe('成功メッセージ')
     })
 
     it('warning()メソッドが正常に動作する', () => {
       DebugService.warning('警告メッセージ')
       
       const logs = DebugService.getAll()
-      expect(logs[0].type).toBe('warning')
-      expect(logs[0].message).toBe('警告メッセージ')
+      expect(logs[0]?.type).toBe('warning')
+      expect(logs[0]?.message).toBe('警告メッセージ')
     })
 
     it('error()メソッドが正常に動作する', () => {
       DebugService.error('エラーメッセージ')
       
       const logs = DebugService.getAll()
-      expect(logs[0].type).toBe('error')
-      expect(logs[0].message).toBe('エラーメッセージ')
+      expect(logs[0]?.type).toBe('error')
+      expect(logs[0]?.message).toBe('エラーメッセージ')
     })
 
     it('debug()メソッドが正常に動作する', () => {
       DebugService.debug('デバッグメッセージ')
       
       const logs = DebugService.getAll()
-      expect(logs[0].type).toBe('debug')
-      expect(logs[0].message).toBe('デバッグメッセージ')
+      expect(logs[0]?.type).toBe('debug')
+      expect(logs[0]?.message).toBe('デバッグメッセージ')
     })
   })
 

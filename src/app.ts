@@ -91,7 +91,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }
       
       // デバッグ用：現在のプリセット状態を表示
-      this.addDebugLog(`プリセット数: ${this.settings.sendPresets.filter(p => p.isActive).length}個がアクティブ`, 'info')
+      const activeCount = this.settings.sendPresets?.filter(p => p.isActive).length || 0
+      this.addDebugLog(`プリセット数: ${activeCount}個がアクティブ`, 'info')
     },
     
     

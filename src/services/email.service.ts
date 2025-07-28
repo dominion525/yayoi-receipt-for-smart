@@ -109,8 +109,9 @@ export class EmailService {
         return { success: false, shouldRetake: false }
       }
       
-      // 注意: この行は通常到達しない（uniqueRecipients.length > 0なら必ず何らかの結果がカウントされる）
-      // 削除されたデッドコード: return { success: true, shouldRetake: false }
+      // 理論上到達しないケースだが、TypeScriptコンパイラのため明示的にreturn
+      // （uniqueRecipients.length > 0 なら必ず成功または失敗がカウントされる）
+      return { success: false, shouldRetake: false }
       
     } catch (error) {
       const errorMessage = getErrorMessage(error)

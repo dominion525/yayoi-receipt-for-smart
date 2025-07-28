@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { SettingsService, AppSettings, SendPreset } from '../settings.service'
+import { SettingsService, AppSettings } from '../settings.service'
 
 // StorageServiceをモック
 vi.mock('../storage.service', () => ({
