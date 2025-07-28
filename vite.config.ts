@@ -7,7 +7,8 @@ export default defineConfig({
     host: true,
     port: 5173,
     hmr: {
-      clientPort: 443
+      // HTTPS環境（ngrok等）では443、それ以外はデフォルト
+      clientPort: process.env.NODE_ENV === 'production' || process.env.HTTPS ? 443 : undefined
     },
     // ngrok経由のアクセスを許可
     allowedHosts: [

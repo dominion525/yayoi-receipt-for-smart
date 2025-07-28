@@ -27,7 +27,8 @@ async function sendEmailWithFetch({ apiKey, from, to, subject, text, html, attac
       }))
     }
     
-    console.log('Sending to RESEND API:', JSON.stringify(emailData, null, 2))
+    // 開発環境のみログ出力
+    // console.log('Sending to RESEND API:', JSON.stringify(emailData, null, 2))
     
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -41,13 +42,15 @@ async function sendEmailWithFetch({ apiKey, from, to, subject, text, html, attac
     const data = await response.json()
     
     if (!response.ok) {
-      console.error('RESEND API error:', response.status, data)
+      // 本番環境でも重要なエラーはログに残す（簡潔に）
+      console.error('RESEND API error:', response.status)
       return { error: data }
     }
     
     return { data }
   } catch (error) {
-    console.error('Send email error:', error)
+    // 本番環境でも重要なエラーはログに残す（簡潔に）
+    console.error('Send email error:', error.message || error)
     return { error }
   }
 }
