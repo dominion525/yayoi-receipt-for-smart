@@ -720,39 +720,59 @@ describe('EmailSender', () => {
     })
 
     it('本番環境（receipt.dominion525.com）では空文字列を返す', () => {
-      // 注意: テスト環境では実際の環境変数 VITE_PROXY_URL が設定されている
+      // 環境変数をクリアして本番環境をテスト
+      vi.stubEnv('VITE_PROXY_URL', undefined)
+      vi.stubGlobal('window', { location: { hostname: 'receipt.dominion525.com' } })
+      
       const testSender = new EmailSender()
       const proxyUrl = testSender['determineProxyUrl']()
       
-      // 環境変数が優先されるため、実際の値を確認
-      expect(proxyUrl).toBe('https://receipt.dominion525.com/api')
+      expect(proxyUrl).toBe('')
+      
+      vi.unstubAllEnvs()
+      vi.unstubAllGlobals()
     })
 
     it('localhost以外のホスト名では空文字列を返す', () => {
-      // 注意: テスト環境では実際の環境変数 VITE_PROXY_URL が設定されている
+      // 環境変数をクリアして他のホスト名をテスト
+      vi.stubEnv('VITE_PROXY_URL', undefined)
+      vi.stubGlobal('window', { location: { hostname: 'example.com' } })
+      
       const testSender = new EmailSender()
       const proxyUrl = testSender['determineProxyUrl']()
       
-      // 環境変数が優先されるため、実際の値を確認
-      expect(proxyUrl).toBe('https://receipt.dominion525.com/api')
+      expect(proxyUrl).toBe('')
+      
+      vi.unstubAllEnvs()
+      vi.unstubAllGlobals()
     })
 
     it('Node.js環境（windowがundefined）では開発環境URLを返す', () => {
-      // 注意: テスト環境では実際の環境変数 VITE_PROXY_URL が設定されている
+      // 環境変数をクリアしてNode.js環境をテスト
+      vi.stubEnv('VITE_PROXY_URL', undefined)
+      vi.stubGlobal('window', undefined)
+      
       const testSender = new EmailSender()
       const proxyUrl = testSender['determineProxyUrl']()
       
-      // 環境変数が優先されるため、実際の値を確認
-      expect(proxyUrl).toBe('https://receipt.dominion525.com/api')
+      expect(proxyUrl).toBe('http://localhost:3001')
+      
+      vi.unstubAllEnvs()
+      vi.unstubAllGlobals()
     })
 
     it('開発環境（localhost）では開発環境URLを返す', () => {
-      // 注意: テスト環境では実際の環境変数 VITE_PROXY_URL が設定されている
+      // 環境変数をクリアしてlocalhost環境をテスト
+      vi.stubEnv('VITE_PROXY_URL', undefined)
+      vi.stubGlobal('window', { location: { hostname: 'localhost' } })
+      
       const testSender = new EmailSender()
       const proxyUrl = testSender['determineProxyUrl']()
       
-      // 環境変数が優先されるため、実際の値を確認
-      expect(proxyUrl).toBe('https://receipt.dominion525.com/api')
+      expect(proxyUrl).toBe('http://localhost:3001')
+      
+      vi.unstubAllEnvs()
+      vi.unstubAllGlobals()
     })
   })
 })

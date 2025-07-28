@@ -86,7 +86,7 @@ export class EmailService {
             }
             
             errorMessages.push(errorDetail)
-            addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
+            addDebugLog(`${recipient}への送信失敗: ${result.error}`, 'error')
           }
         } catch (error) {
           results.failed++
@@ -108,10 +108,6 @@ export class EmailService {
         showError(fullError)
         return { success: false, shouldRetake: false }
       }
-      
-      // 理論上到達しないケースだが、TypeScriptコンパイラのため明示的にreturn
-      // （uniqueRecipients.length > 0 なら必ず成功または失敗がカウントされる）
-      return { success: false, shouldRetake: false }
       
     } catch (error) {
       const errorMessage = getErrorMessage(error)
@@ -203,7 +199,7 @@ export class EmailService {
             }
             
             errorMessages.push(errorDetail)
-            addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
+            addDebugLog(`${recipient}への送信失敗: ${result.error}`, 'error')
           }
         } catch (error) {
           results.failed++

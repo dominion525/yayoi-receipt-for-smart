@@ -29,7 +29,9 @@
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(gh repo view:*)",
-      "Bash(npm run test:*)"
+      "Bash(npm run test:*)",
+      "Bash(npx vitest:*)",
+      "Bash(rm:*)"
     ],
     "deny": []
   }

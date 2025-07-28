@@ -265,6 +265,7 @@ describe('DebugService', () => {
       const result = await DebugService.copyToClipboard()
       
       expect(result).toBe(false)
+      expect(documentMock.body.removeChild).toHaveBeenCalledWith(textareaMock)
       
       // エラーメッセージがログに追加されることを確認
       const logs = DebugService.getAll()
@@ -309,6 +310,24 @@ describe('DebugService', () => {
         writable: true
       })
     })
+
+    it('navigator.clipboardでawait時に例外が発生した場合（74-78行目catchブロック）', async () => {
+      DebugService.add('clipboard例外テスト')
+      
+      // navigator.clipboardは存在するが、writeTextで例外を投げる
+      clipboardMock.writeText.mockRejectedValueOnce(new Error('Clipboard permission denied'))
+      
+      const result = await DebugService.copyToClipboard()
+      
+      expect(result).toBe(false)
+      
+      // エラーメッセージがログに追加されることを確認
+      const logs = DebugService.getAll()
+      expect(logs).toHaveLength(2)
+      expect(logs[1]?.message).toBe('ログのコピーに失敗しました')
+      expect(logs[1]?.type).toBe('error')
+    })
+
   })
 
   describe('リスナー機能', () => {

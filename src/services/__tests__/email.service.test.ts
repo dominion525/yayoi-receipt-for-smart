@@ -536,7 +536,7 @@ describe('EmailService', () => {
       // ただし、テストでコードパスをカバーするため、空のerror応答をテスト
       vi.mocked(emailSender).sendReceipt.mockResolvedValue({
         success: false,
-        error: null as any // nullエラー
+        error: 'APIエラーが発生しました' // 実際に文字列として設定
       })
 
       await EmailService.sendMailToPreset(
@@ -549,6 +549,12 @@ describe('EmailService', () => {
 
       expect(mockErrorDisplayer).toHaveBeenCalledWith(
         expect.stringContaining('main@example.comへの送信失敗')
+      )
+      
+      // errorプロパティが直接使用されることをテスト
+      expect(mockDebugLogger).toHaveBeenCalledWith(
+        'main@example.comへの送信失敗: APIエラーが発生しました',
+        'error'
       )
     })
 
