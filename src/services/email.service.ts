@@ -109,7 +109,8 @@ export class EmailService {
         return { success: false, shouldRetake: false }
       }
       
-      return { success: true, shouldRetake: false }
+      // 注意: この行は通常到達しない（uniqueRecipients.length > 0なら必ず何らかの結果がカウントされる）
+      // 削除されたデッドコード: return { success: true, shouldRetake: false }
       
     } catch (error) {
       const errorMessage = getErrorMessage(error)
@@ -219,12 +220,9 @@ export class EmailService {
         showError('✅ ' + successMessage)
         return { success: true, shouldRetake: true }
       } else if (results.failed > 0) {
-        // エラーメッセージが空の場合の処理
-        if (errorMessages.length === 0) {
-          errorMessages.push('エラーの詳細情報を取得できませんでした')
-        }
-        
         // エラーメッセージをまとめて表示
+        // 削除された不要な防御コード: failed++される際は必ずerrorMessages.push()も実行されるため、
+        // errorMessages.length === 0 の条件は成立しない
         const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
         const fullError = summary + '\n\n' + errorMessages.join('\n\n')
         

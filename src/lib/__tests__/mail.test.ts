@@ -324,4 +324,439 @@ describe('EmailSender', () => {
       )
     })
   })
+
+  describe('エンドポイントURL正規化', () => {
+    beforeEach(() => {
+      emailSender.setApiKey('re_test_123456')
+    })
+
+    it('プロキシURLが/apiで終わる場合は/send-emailを追加', async () => {
+      emailSender.setProxyUrl('http://example.com/api')
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ 
+          success: true, 
+          data: { id: 'endpoint_test_123' } 
+        })
+      } as Response)
+
+      await emailSender.send({
+        from: 'test@example.com',
+        to: 'recipient@example.com',
+        subject: 'Test',
+        text: 'Test'
+      })
+
+      expect(fetch).toHaveBeenCalledWith(
+        'http://example.com/api/send-email',
+        expect.any(Object)
+      )
+    })
+
+    it('プロキシURLが/apiで終わらない場合は/api/send-emailを追加', async () => {
+      emailSender.setProxyUrl('http://example.com')
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ 
+          success: true, 
+          data: { id: 'endpoint_test_456' } 
+        })
+      } as Response)
+
+      await emailSender.send({
+        from: 'test@example.com',
+        to: 'recipient@example.com',
+        subject: 'Test',
+        text: 'Test'
+      })
+
+      expect(fetch).toHaveBeenCalledWith(
+        'http://example.com/api/send-email',
+        expect.any(Object)
+      )
+    })
+  })
+
+  describe('fetchエラー詳細処理', () => {
+    beforeEach(() => {
+      emailSender.setApiKey('re_test_123456')
+    })
+
+    it('fetchエラーメッセージに"fetch"が含まれる場合（118-123行目カバー）', async () => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Network error: fetch request failed'))
+
+      const result = await emailSender.send({
+        from: 'test@example.com',
+        to: 'recipient@example.com',
+        subject: 'Test',
+        text: 'Test email'
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.error).toBe('プロキシサーバーに接続できません。proxy-server.jsが起動していることを確認してください。')
+      expect(result.details).toBeInstanceOf(Error)
+    })
+
+    it('fetchを含まないエラーの場合は通常のエラーメッセージを返す', async () => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Connection timeout'))
+
+      const result = await emailSender.send({
+        from: 'test@example.com',
+        to: 'recipient@example.com',
+        subject: 'Test',
+        text: 'Test email'
+      })
+
+      expect(result.success).toBe(false)
+      expect(result.error).toBe('Connection timeout')
+      expect(result.details).toBeInstanceOf(Error)
+    })
+
+    it('大文字小文字混在でfetchが含まれる場合の処理', async () => {
+      vi.mocked(fetch).mockRejectedValueOnce(new Error('Failed to FETCH resource'))
+
+      const result = await emailSender.send({
+        from: 'test@example.com',
+        to: 'recipient@example.com',
+        subject: 'Test',
+        text: 'Test email'
+      })
+
+      expect(result.success).toBe(false)
+      // 大文字の"FETCH"は小文字の"fetch"にマッチしないため、通常のエラーメッセージになる
+      expect(result.error).toBe('Failed to FETCH resource')
+    })
+  })
+
+  describe('sendReceipt()メソッド', () => {
+    beforeEach(() => {
+      emailSender.setApiKey('re_test_123456')
+      // 時刻を固定するためのモック
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2024-01-15T14:30:45.123Z'))
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('レシート画像を正常に送信できる', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { id: 'receipt_msg_123' }
+        })
+      } as Response)
+
+      const imageData = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD'
+      const result = await emailSender.sendReceipt('receipt@example.com', imageData)
+
+      expect(result.success).toBe(true)
+      expect(result.messageId).toBe('receipt_msg_123')
+
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/send-email',
+        expect.objectContaining({
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: expect.stringContaining('"subject":"レシート画像 - 2024/01/15 23:30"')
+        })
+      )
+    })
+
+    it('HTMLメール内容が正しく生成される', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { id: 'html_test_123' }
+        })
+      } as Response)
+
+      const imageData = 'data:image/jpeg;base64,testbase64data'
+      await emailSender.sendReceipt('test@example.com', imageData)
+
+      const callArgs = vi.mocked(fetch).mock.calls[0][1]
+      const requestBody = JSON.parse(callArgs?.body as string)
+
+      expect(requestBody.html).toContain('<h2>レシート画像</h2>')
+      expect(requestBody.html).toContain('<p>撮影日時: 2024/01/15 23:30</p>')
+      expect(requestBody.html).toContain('<p><small>スマート レシート</small></p>')
+    })
+
+    it('テキストメール内容が正しく生成される', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { id: 'text_test_123' }
+        })
+      } as Response)
+
+      const imageData = 'data:image/jpeg;base64,testbase64data'
+      await emailSender.sendReceipt('test@example.com', imageData)
+
+      const callArgs = vi.mocked(fetch).mock.calls[0][1]
+      const requestBody = JSON.parse(callArgs?.body as string)
+
+      expect(requestBody.text).toContain('レシート画像を送信します。')
+      expect(requestBody.text).toContain('撮影日時: 2024/01/15 23:30')
+      expect(requestBody.text).toContain('スマート レシート')
+    })
+
+    it('コメント付きでレシート画像を送信できる', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { id: 'comment_test_123' }
+        })
+      } as Response)
+
+      const imageData = 'data:image/jpeg;base64,testbase64data'
+      const comment = 'ランチ代の領収書'
+      await emailSender.sendReceipt('test@example.com', imageData, comment)
+
+      const callArgs = vi.mocked(fetch).mock.calls[0][1]
+      const requestBody = JSON.parse(callArgs?.body as string)
+
+      expect(requestBody.html).toContain(`<p>コメント: ${comment}</p>`)
+      expect(requestBody.text).toContain(`コメント: ${comment}`)
+    })
+
+    it('添付ファイルが正しく設定される', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { id: 'attachment_test_123' }
+        })
+      } as Response)
+
+      const imageData = 'data:image/jpeg;base64,testbase64content'
+      await emailSender.sendReceipt('test@example.com', imageData)
+
+      const callArgs = vi.mocked(fetch).mock.calls[0][1]
+      const requestBody = JSON.parse(callArgs?.body as string)
+
+      expect(requestBody.attachments).toHaveLength(1)
+      expect(requestBody.attachments[0]).toEqual({
+        filename: 'receipt_2024-01-15_23-30.jpg',
+        content: 'testbase64content',
+        contentType: 'image/jpeg'
+      })
+    })
+
+    it('Base64データからヘッダーを正しく除去する', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { id: 'base64_test_123' }
+        })
+      } as Response)
+
+      const imageData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+      await emailSender.sendReceipt('test@example.com', imageData)
+
+      const callArgs = vi.mocked(fetch).mock.calls[0][1]
+      const requestBody = JSON.parse(callArgs?.body as string)
+
+      expect(requestBody.attachments[0].content).toBe('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==')
+      expect(requestBody.attachments[0].content).not.toContain('data:image')
+    })
+
+    it('送信元メールアドレスが設定される', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { id: 'from_test_123' }
+        })
+      } as Response)
+
+      emailSender.setFromEmail('sender@example.com')
+      const imageData = 'data:image/jpeg;base64,testdata'
+      await emailSender.sendReceipt('recipient@example.com', imageData)
+
+      const callArgs = vi.mocked(fetch).mock.calls[0][1]
+      const requestBody = JSON.parse(callArgs?.body as string)
+
+      expect(requestBody.from).toBe('sender@example.com')
+    })
+
+    it('送信元メールアドレスが未設定の場合は空文字列', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { id: 'no_from_test_123' }
+        })
+      } as Response)
+
+      const imageData = 'data:image/jpeg;base64,testdata'
+      await emailSender.sendReceipt('recipient@example.com', imageData)
+
+      const callArgs = vi.mocked(fetch).mock.calls[0][1]
+      const requestBody = JSON.parse(callArgs?.body as string)
+
+      expect(requestBody.from).toBe('')
+    })
+
+    it('空のBase64データでも処理できる', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { id: 'empty_data_test_123' }
+        })
+      } as Response)
+
+      const imageData = 'data:image/jpeg;base64,'
+      await emailSender.sendReceipt('test@example.com', imageData)
+
+      const callArgs = vi.mocked(fetch).mock.calls[0][1]
+      const requestBody = JSON.parse(callArgs?.body as string)
+
+      expect(requestBody.attachments[0].content).toBe('')
+    })
+
+    it('日時フォーマットが正しく動作する（異なる時刻）', async () => {
+      vi.setSystemTime(new Date('2024-12-25T09:15:30.456Z'))
+      
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: { id: 'time_format_test_123' }
+        })
+      } as Response)
+
+      const imageData = 'data:image/jpeg;base64,testdata'
+      await emailSender.sendReceipt('test@example.com', imageData)
+
+      const callArgs = vi.mocked(fetch).mock.calls[0][1]
+      const requestBody = JSON.parse(callArgs?.body as string)
+
+      expect(requestBody.subject).toBe('レシート画像 - 2024/12/25 18:15')
+      expect(requestBody.attachments[0].filename).toBe('receipt_2024-12-25_18-15.jpg')
+    })
+
+    it('送信エラーの場合は適切にエラーを返す', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 400,
+        json: async () => ({
+          success: false,
+          error: 'Invalid recipient address',
+          details: {
+            name: 'validation_error',
+            message: 'Email validation failed'
+          }
+        })
+      } as Response)
+
+      const imageData = 'data:image/jpeg;base64,testdata'
+      const result = await emailSender.sendReceipt('invalid@example.com', imageData)
+
+      expect(result.success).toBe(false)
+      expect(result.error).toBe('Invalid recipient address')
+      expect(result.details).toEqual({
+        name: 'validation_error',
+        message: 'Email validation failed'
+      })
+    })
+  })
+
+  describe('determineProxyUrl()メソッド（設計改善後）', () => {
+    const originalEnv = import.meta.env
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+      // 環境変数を元に戻す
+      Object.assign(import.meta.env, originalEnv)
+      vi.clearAllMocks()
+    })
+
+    it('環境変数VITE_PROXY_URLが設定されている場合はそれを使用', () => {
+      // 環境変数を直接設定
+      import.meta.env.VITE_PROXY_URL = 'https://custom-proxy.example.com'
+      
+      const testSender = new EmailSender()
+      const proxyUrl = testSender['determineProxyUrl']()
+      
+      expect(proxyUrl).toBe('https://custom-proxy.example.com')
+    })
+
+    it('本番環境（receipt.dominion525.com）では空文字列を返す', () => {
+      // 環境変数をクリア
+      delete import.meta.env.VITE_PROXY_URL
+      // windowオブジェクトをモック
+      vi.stubGlobal('window', {
+        location: { hostname: 'receipt.dominion525.com' }
+      })
+      
+      const testSender = new EmailSender()
+      const proxyUrl = testSender['determineProxyUrl']()
+      
+      expect(proxyUrl).toBe('')
+    })
+
+    it('localhost以外のホスト名では空文字列を返す', () => {
+      // 環境変数をクリア
+      delete import.meta.env.VITE_PROXY_URL
+      // windowオブジェクトをモック（localhost以外）
+      vi.stubGlobal('window', {
+        location: { hostname: 'example.com' }
+      })
+      
+      const testSender = new EmailSender()
+      const proxyUrl = testSender['determineProxyUrl']()
+      
+      expect(proxyUrl).toBe('')
+    })
+
+    it('Node.js環境（windowがundefined）では開発環境URLを返す', () => {
+      // 環境変数をクリア
+      delete import.meta.env.VITE_PROXY_URL
+      // windowをundefinedにする
+      vi.stubGlobal('window', undefined)
+      
+      const testSender = new EmailSender()
+      const proxyUrl = testSender['determineProxyUrl']()
+      
+      expect(proxyUrl).toBe('http://localhost:3001')
+    })
+
+    it('開発環境（localhost）では開発環境URLを返す', () => {
+      // 環境変数をクリア
+      delete import.meta.env.VITE_PROXY_URL
+      // windowオブジェクトをモック（localhost）
+      vi.stubGlobal('window', {
+        location: { hostname: 'localhost' }
+      })
+      
+      const testSender = new EmailSender()
+      const proxyUrl = testSender['determineProxyUrl']()
+      
+      expect(proxyUrl).toBe('http://localhost:3001')
+    })
+  })
 })

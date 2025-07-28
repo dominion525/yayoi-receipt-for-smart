@@ -26,7 +26,17 @@ export interface EmailResult {
  */
 export class EmailSender {
   private apiKey: string = ''
-  private proxyUrl: string = (() => {
+  private proxyUrl: string
+  private fromEmail: string = ''
+
+  constructor() {
+    this.proxyUrl = this.determineProxyUrl()
+  }
+
+  /**
+   * プロキシURLを決定する（テスト可能なメソッド）
+   */
+  private determineProxyUrl(): string {
     // 環境変数が設定されている場合はそれを使用
     if (import.meta.env?.VITE_PROXY_URL) {
       return import.meta.env.VITE_PROXY_URL;
@@ -41,8 +51,7 @@ export class EmailSender {
     
     // 開発環境
     return 'http://localhost:3001';
-  })()
-  private fromEmail: string = ''
+  }
 
   /**
    * APIキーを設定
