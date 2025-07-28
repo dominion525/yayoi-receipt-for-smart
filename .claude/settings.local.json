@@ -31,7 +31,8 @@
       "Bash(gh repo view:*)",
       "Bash(npm run test:*)",
       "Bash(npx vitest:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   }
