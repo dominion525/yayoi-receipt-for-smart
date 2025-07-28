@@ -36,9 +36,8 @@ QRコード生成：
 ```
 
 ### 技術的な注意事項
-- iOS SafariのgetUserMedia制限を考慮
+- 標準カメラアプリ使用のためgetUserMedia不要
 - レスポンシブデザイン（モバイルファースト）
-- リアカメラ優先設定（facingMode: "environment"）
 - ngrok使用時はvite.config.tsのallowedHostsに`.ngrok-free.app`を設定済み
 
 ### コーディング規約

@@ -41,7 +41,7 @@ src/
 ├── index.html              # メインHTML（Alpine.jsで拡張）
 ├── main.ts                 # エントリーポイント
 ├── app.ts                  # メインアプリケーションロジック
-├── styles.css              # TailwindCSS
+├── style.css               # TailwindCSS
 ├── components/             # UIコンポーネント
 │   └── settings-modal.ts   # 設定モーダル
 ├── services/               # ビジネスロジック
@@ -104,12 +104,7 @@ RESEND APIはブラウザから直接呼び出すことができないため（C
    wrangler deploy
    ```
 
-5. デプロイされたWorkerのURLを`.env`ファイルに設定:
-   ```
-   VITE_PROXY_URL=https://yayoi-receipt-for-smart.dominion525.workers.dev
-   ```
-
-6. フロントエンドをビルドしてデプロイ:
+5. フロントエンドをビルドしてデプロイ:
    ```bash
    npm run build
    # distフォルダをホスティングサービスにアップロード
@@ -122,7 +117,7 @@ RESEND APIはブラウザから直接呼び出すことができないため（C
 ### セキュリティ上の注意
 
 - APIキーはHTTPS環境で送信されますが、より安全な方法を検討することを推奨します
-- 本番環境では、特定のオリジンのみを許可するようCORS設定を調整してください
+- CORS設定は本番環境用に既に最適化済み（receipt.dominion525.comのみ許可）
 
 ## セットアップ
 

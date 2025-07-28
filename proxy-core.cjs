@@ -1,9 +1,29 @@
-// 共通のCORSヘッダー
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type'
+// 環境に応じたCORSヘッダー
+function getCorsHeaders() {
+  // 本番環境（Cloudflare Workers）では特定ドメインのみ許可
+  const isProduction = typeof globalThis === 'undefined' || 
+                      (typeof globalThis.ENVIRONMENT === 'undefined' && 
+                       typeof window === 'undefined' && 
+                       typeof process === 'undefined')
+  
+  if (isProduction) {
+    return {
+      'Access-Control-Allow-Origin': 'https://receipt.dominion525.com',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
+  }
+  
+  // 開発環境では全て許可
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  }
 }
+
+// 共通のCORSヘッダー
+const CORS_HEADERS = getCorsHeaders()
 
 // ルーティング処理
 async function handleRequest(method, pathname, getBody, sendEmailFunc) {
@@ -60,8 +80,8 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
       })
       
       if (result.error) {
+        // 本番環境でも重要なエラーはログに残す（簡潔に）
         console.error('Email send error:', result.error)
-        console.error('Full RESEND response:', result)
         
         // エラーメッセージを詳細に
         let errorMessage = 'メール送信でエラーが発生しました'
@@ -79,8 +99,8 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
           errorMessage = '送信先メールアドレスが無効です'
         }
         
-        // エラーの詳細情報をログ
-        console.error('Parsed error message:', errorMessage)
+        // 開発環境のみ詳細ログ
+        // console.error('Parsed error message:', errorMessage)
         
         return {
           status: 400,
@@ -103,7 +123,8 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
       }
       
     } catch (error) {
-      console.error('Email send error:', error)
+      // 本番環境でも重要なエラーはログに残す（簡潔に）
+      console.error('Email send error:', error.message || error)
       return {
         status: 500,
         headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
