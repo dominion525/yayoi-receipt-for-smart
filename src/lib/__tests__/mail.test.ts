@@ -710,13 +710,13 @@ describe('EmailSender', () => {
     })
 
     it('環境変数VITE_PROXY_URLが設定されている場合はそれを使用', () => {
-      // 注意: テスト環境では実際の環境変数 VITE_PROXY_URL が設定されている
-      // そのため、実際の値をテストする
+      // 環境変数を明示的に設定してテスト
+      vi.stubEnv('VITE_PROXY_URL', 'https://api.example.com')
+      
       const testSender = new EmailSender()
       const proxyUrl = testSender['determineProxyUrl']()
       
-      // テスト環境で実際に設定されている値を確認
-      expect(proxyUrl).toBe('https://receipt.dominion525.com/api')
+      expect(proxyUrl).toBe('https://api.example.com')
     })
 
     it('本番環境（receipt.dominion525.com）では空文字列を返す', () => {
