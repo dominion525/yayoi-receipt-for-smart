@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__get-library-docs",
+      "Bash(curl:*)",
+      "Bash(echo -e \"QRコードを生成する場合:\\nbrew install qrencode\\nqrencode -o qr.png https://671379d109e1.ngrok-free.app\")",
+      "Bash(qrencode:*)",
+      "Bash(open:*)",
+      "Bash(brew install:*)",
+      "Bash(git add:*)",
+      "Bash(gemini:*)",
+      "WebFetch(domain:developer.mozilla.org)",
+      "WebFetch(domain:w3c.github.io)",
+      "WebFetch(domain:developer.apple.com)",
+      "Bash(mkdir:*)",
+      "Bash(npm test:*)",
+      "Bash(npx wrangler deploy:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(if grep -q \"エラー\" /tmp/ngrok-url.txt)",
+      "Bash(then )",
+      "Bash(cat:*)",
+      "Bash(exit 1)",
+      "Bash(fi)",
+      "Bash(npm run deploy:*)",
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(gh repo view:*)",
+      "Bash(npm run test:*)"
+    ],
+    "deny": []
+  }
+}

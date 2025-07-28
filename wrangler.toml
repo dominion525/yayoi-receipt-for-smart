@@ -1,0 +1,23 @@
+name = "yayoi-receipt-for-smart"
+main = "worker.js"
+compatibility_date = "2025-01-23"
+
+# ビルドコマンド（GitHub環境用）
+[build]
+command = "npm run build"
+
+# カスタムドメインでのルーティング
+routes = [
+  { pattern = "receipt.dominion525.com/*", zone_name = "dominion525.com" }
+]
+
+# 静的アセットの設定
+[assets]
+directory = "./dist"
+
+[env.production]
+workers_dev = false
+
+# 環境変数（必要に応じて）
+# [env.production.vars]
+# SOME_VAR = "value"

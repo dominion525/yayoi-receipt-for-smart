@@ -1,0 +1,12 @@
+name = "yayoi-receipt-proxy"
+main = "proxy-worker.js"
+compatibility_date = "2025-01-23"
+
+# Workers設定
+workers_dev = true
+
+[env.production]
+workers_dev = false
+
+# カスタムドメインでのルーティング
+# Workers.devドメインを使用（カスタムドメインは不要）
