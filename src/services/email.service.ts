@@ -86,7 +86,7 @@ export class EmailService {
             }
             
             errorMessages.push(errorDetail)
-            addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
+            addDebugLog(`${recipient}への送信失敗: ${result.error}`, 'error')
           }
         } catch (error) {
           results.failed++
@@ -97,21 +97,18 @@ export class EmailService {
       }
       
       // 結果を表示
-      if (results.success > 0 && results.failed === 0) {
-        const successMessage = `${results.success}件の送信が完了しました`
-        showError('✅ ' + successMessage)
-        return { success: true, shouldRetake: true }
-      } else if (results.failed > 0) {
+      if (results.failed > 0) {
         // エラーメッセージをまとめて表示
         const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
         const fullError = summary + '\n\n' + errorMessages.join('\n\n')
         showError(fullError)
         return { success: false, shouldRetake: false }
+      } else {
+        // 全成功の場合（results.success > 0 && results.failed === 0）
+        const successMessage = `${results.success}件の送信が完了しました`
+        showError('✅ ' + successMessage)
+        return { success: true, shouldRetake: true }
       }
-      
-      // 理論上到達しないケースだが、TypeScriptコンパイラのため明示的にreturn
-      // （uniqueRecipients.length > 0 なら必ず成功または失敗がカウントされる）
-      return { success: false, shouldRetake: false }
       
     } catch (error) {
       const errorMessage = getErrorMessage(error)
@@ -203,7 +200,7 @@ export class EmailService {
             }
             
             errorMessages.push(errorDetail)
-            addDebugLog(`${recipient}への送信失敗: ${result.error || 'エラー内容不明'}`, 'error')
+            addDebugLog(`${recipient}への送信失敗: ${result.error}`, 'error')
           }
         } catch (error) {
           results.failed++

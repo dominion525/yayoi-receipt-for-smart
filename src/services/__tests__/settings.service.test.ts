@@ -717,5 +717,63 @@ describe('SettingsService', () => {
       expect(SettingsService.isComplete(incompleteSettings)).toBe(false)
       expect(SettingsService.isComplete(completeSettings)).toBe(true)
     })
+
+    it('dropboxPresetがisActive=falseの場合の修正処理（160行目分岐テスト）', () => {
+      const settings: AppSettings = {
+        email: 'main@example.com',
+        apiKey: 'test-key',
+        dropboxEmail: 'dropbox@example.com',
+        fromEmail: '',
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['main@example.com'],
+            isActive: true
+          },
+          {
+            id: 'dropbox',
+            name: 'Dropbox',
+            recipients: ['dropbox@example.com'],
+            isActive: false // isActive = false の場合
+          }
+        ]
+      }
+
+      SettingsService.syncPresetsWithEmails(settings)
+
+      const dropboxPreset = settings.sendPresets.find(p => p.id === 'dropbox')
+      expect(dropboxPreset?.isActive).toBe(true) // 修正されることを確認
+      expect(dropboxPreset?.recipients).toEqual(['dropbox@example.com'])
+    })
+
+    it('dropboxPresetのrecipientsが空の場合の修正処理（160行目分岐テスト）', () => {
+      const settings: AppSettings = {
+        email: 'main@example.com',
+        apiKey: 'test-key',
+        dropboxEmail: 'dropbox@example.com',
+        fromEmail: '',
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['main@example.com'],
+            isActive: true
+          },
+          {
+            id: 'dropbox',
+            name: 'Dropbox',
+            recipients: [], // 空の受信者配列
+            isActive: true
+          }
+        ]
+      }
+
+      SettingsService.syncPresetsWithEmails(settings)
+
+      const dropboxPreset = settings.sendPresets.find(p => p.id === 'dropbox')
+      expect(dropboxPreset?.recipients).toEqual(['dropbox@example.com']) // 修正されることを確認
+      expect(dropboxPreset?.isActive).toBe(true)
+    })
   })
 })

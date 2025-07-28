@@ -88,22 +88,24 @@ export class DebugService {
     textarea.style.left = '-999999px'
     document.body.appendChild(textarea)
     
+    let successful = false
+    
     try {
       textarea.select()
-      const successful = document.execCommand('copy')
+      successful = document.execCommand('copy')
       if (successful) {
         this.add('ログをクリップボードにコピーしました', 'success')
       } else {
         this.add('ログのコピーに失敗しました', 'error')
       }
-      return successful
     } catch (error) {
       this.add('ログのコピーに失敗しました', 'error')
-      // Copy failed
-      return false
-    } finally {
-      document.body.removeChild(textarea)
     }
+    
+    // DOM要素を削除
+    document.body.removeChild(textarea)
+    
+    return successful
   }
 
   /**
