@@ -17,6 +17,12 @@ export interface ReceiptAppData {
   showCaptureEffect: boolean
   isSendingMail: boolean
   isCopyingLogs: boolean
+  isPWAMode: boolean
+  userAgent: string
+  screenInfo: string
+  serviceWorkerStatus: string
+  buildRevision: string
+  buildTime: string
 }
 
 export function receiptApp(): ReceiptAppData & Record<string, any> {
@@ -38,6 +44,13 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     showCaptureEffect: false,
     isSendingMail: false,
     isCopyingLogs: false,
+    isPWAMode: false,
+    userAgent: '',
+    screenInfo: '',
+    serviceWorkerStatus: 'checking...',
+    buildRevision: '',
+    buildTime: '',
+    _initialized: false,
     
     // 初期化時に設定完了状態をチェック
     get isSettingsComplete() {
@@ -46,6 +59,62 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     
     // 初期化処理
     init() {
+      // 重複実行を防ぐ
+      if (this._initialized) {
+        return
+      }
+      this._initialized = true
+      
+      // ビルド情報を取得
+      try {
+        this.buildRevision = __BUILD_REVISION__
+        this.buildTime = __BUILD_TIME__
+      } catch (error) {
+        this.buildRevision = 'dev'
+        this.buildTime = 'development'
+      }
+      
+      // PWAモード検出
+      this.detectPWAMode()
+      
+      // 動作環境情報を取得
+      this.userAgent = navigator.userAgent
+      this.screenInfo = `${window.innerWidth} x ${window.innerHeight} (${window.devicePixelRatio}x)`
+      
+      // Service Worker状態チェック
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.ready.then(() => {
+          this.serviceWorkerStatus = '✅ 有効'
+          this.addDebugLog('Service Worker: 有効', 'success')
+          
+          // 明示的に更新をチェック（PWA起動時に最新版を確認）
+          navigator.serviceWorker.getRegistration().then((registration) => {
+            if (registration) {
+              registration.update()
+              this.addDebugLog('最新版をチェック中...', 'info')
+            }
+          })
+          
+          // Service Workerからのメッセージを受信
+          navigator.serviceWorker.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'SW_ACTIVATED') {
+              this.addDebugLog('🔄 Service Worker更新完了', 'success')
+              // 必要に応じてページをリロード
+              setTimeout(() => {
+                if (confirm('新しいバージョンが利用可能です。ページをリロードしますか？')) {
+                  window.location.reload()
+                }
+              }, 1000)
+            }
+          })
+        }).catch(() => {
+          this.serviceWorkerStatus = '❌ エラー'
+          this.addDebugLog('Service Worker: エラー', 'error')
+        })
+      } else {
+        this.serviceWorkerStatus = '❌ 未対応'
+      }
+      
       // 保存されたAPIキーと送信元アドレスがあれば設定
       if (this.settings.apiKey) {
         emailSender.setApiKey(this.settings.apiKey)
@@ -95,8 +164,33 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       this.addDebugLog(`プリセット数: ${activeCount}個がアクティブ`, 'info')
     },
     
-    
-    
+    // PWAモード検出
+    detectPWAMode() {
+      // 方法1: display-mode メディアクエリ
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        this.isPWAMode = true
+        this.addDebugLog('🎯 PWAモードで起動しました', 'success')
+        return
+      }
+      
+      // 方法2: iOS Safari の standalone プロパティ
+      if ((window.navigator as any).standalone === true) {
+        this.isPWAMode = true
+        this.addDebugLog('🎯 PWAモード（iOS）で起動しました', 'success')
+        return
+      }
+      
+      // 方法3: URLパラメータによる検出（一部のブラウザ）
+      if (window.location.search.includes('mode=standalone')) {
+        this.isPWAMode = true
+        this.addDebugLog('🎯 PWAモード（URLパラメータ）で起動しました', 'success')
+        return
+      }
+      
+      // ブラウザモード
+      this.isPWAMode = false
+      this.addDebugLog('🌐 ブラウザモードで起動しました', 'info')
+    },
     
     retake() {
       this.photo = null

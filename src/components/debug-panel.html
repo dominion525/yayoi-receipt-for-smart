@@ -17,6 +17,38 @@
     </button>
   </div>
   
+  <!-- 動作環境情報 -->
+  <div class="mb-6">
+    <h4 class="text-sm font-semibold mb-2 text-blue-400">動作環境</h4>
+    <div class="text-xs space-y-1">
+      <div class="ml-2">
+        <span class="text-gray-400">動作モード:</span>
+        <span x-text="isPWAMode ? '🎯 PWAモード' : '🌐 ブラウザモード'" 
+              :class="isPWAMode ? 'text-green-400 font-bold' : 'text-yellow-400'"></span>
+      </div>
+      <div class="ml-2">
+        <span class="text-gray-400">リビジョン:</span>
+        <span x-text="buildRevision" class="text-cyan-400 font-mono"></span>
+      </div>
+      <div class="ml-2">
+        <span class="text-gray-400">ビルド日時:</span>
+        <span x-text="buildTime" class="text-gray-300"></span>
+      </div>
+      <div class="ml-2">
+        <span class="text-gray-400">Service Worker:</span>
+        <span x-text="serviceWorkerStatus" class="text-gray-300"></span>
+      </div>
+      <div class="ml-2">
+        <span class="text-gray-400">画面サイズ:</span>
+        <span x-text="screenInfo" class="text-gray-300"></span>
+      </div>
+      <div class="ml-2">
+        <span class="text-gray-400">User Agent:</span>
+        <div class="text-gray-300 text-xs break-all mt-1" x-text="userAgent"></div>
+      </div>
+    </div>
+  </div>
+  
   <!-- 送信プリセット情報 -->
   <div class="mb-6">
     <h4 class="text-sm font-semibold mb-2 text-yellow-400">送信プリセット</h4>
