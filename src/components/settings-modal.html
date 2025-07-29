@@ -7,7 +7,7 @@
   x-transition:leave="transition ease-in duration-200"
   x-transition:leave-start="opacity-100"
   x-transition:leave-end="opacity-0"
-  class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+  class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 pt-10 pb-10 overflow-y-auto"
   @click.self="closeSettings"
   role="dialog"
   aria-modal="true"
@@ -20,7 +20,8 @@
     x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="opacity-100 scale-100"
     x-transition:leave-end="opacity-0 scale-95"
-    class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
+    class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 max-h-[90vh] overflow-y-auto"
+    @click.stop
   >
     <!-- ヘッダー -->
     <div class="flex items-center justify-between mb-6">
@@ -49,7 +50,8 @@
           type="email"
           x-model="tempSettings.email"
           placeholder="example@example.com"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+          style="touch-action: manipulation; -webkit-appearance: none;"
           required
         >
       </div>
@@ -64,7 +66,8 @@
           type="email"
           x-model="tempSettings.dropboxEmail"
           placeholder="xxxx@getdropbox.com"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+          style="touch-action: manipulation; -webkit-appearance: none;"
         >
         <p class="mt-1 text-xs text-gray-500">
           Dropboxの専用メールアドレス（オプション）
@@ -81,7 +84,8 @@
           type="password"
           x-model="tempSettings.apiKey"
           placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+          style="touch-action: manipulation; -webkit-appearance: none;"
           required
         >
         <p class="mt-1 text-xs text-gray-500">
@@ -99,7 +103,8 @@
           type="email"
           x-model="tempSettings.fromEmail"
           placeholder="your-email@yourdomain.com"
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+          style="touch-action: manipulation; -webkit-appearance: none;"
           required
         >
         <p class="mt-1 text-xs text-gray-500">
@@ -112,13 +117,15 @@
         <button
           type="button"
           @click="closeSettings"
-          class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+          class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-base font-medium"
+          style="touch-action: manipulation;"
         >
           キャンセル
         </button>
         <button
           type="submit"
-          class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          class="flex-1 px-4 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-base font-medium"
+          style="touch-action: manipulation;"
         >
           保存
         </button>

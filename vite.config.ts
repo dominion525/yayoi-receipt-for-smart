@@ -1,8 +1,35 @@
 import { defineConfig } from 'vite'
 import { copyFileSync } from 'fs'
 import { resolve } from 'path'
+import { execSync } from 'child_process'
+
+// Git リビジョンとビルド時刻を取得
+function getBuildInfo() {
+  try {
+    const revision = execSync('git rev-parse --short HEAD').toString().trim()
+    const buildTime = new Date().toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+    return { revision, buildTime }
+  } catch (error) {
+    console.warn('Git revision not available:', error)
+    return { revision: 'unknown', buildTime: new Date().toISOString() }
+  }
+}
+
+const buildInfo = getBuildInfo()
 
 export default defineConfig({
+  define: {
+    '__BUILD_REVISION__': JSON.stringify(buildInfo.revision),
+    '__BUILD_TIME__': JSON.stringify(buildInfo.buildTime),
+  },
   server: {
     host: true,
     port: 5173,
