@@ -22,7 +22,9 @@ export default defineConfig({
         '*.cjs',
         '*.mjs',
         'proxy-*.js',
-        'worker.js'
+        'worker.js',
+        'public/sw.js',
+        'public/**/*.js'
       ]
     }
   }

@@ -180,13 +180,6 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         return
       }
       
-      // 方法3: URLパラメータによる検出（一部のブラウザ）
-      if (window.location.search.includes('mode=standalone')) {
-        this.isPWAMode = true
-        this.addDebugLog('🎯 PWAモード（URLパラメータ）で起動しました', 'success')
-        return
-      }
-      
       // ブラウザモード
       this.isPWAMode = false
       this.addDebugLog('🌐 ブラウザモードで起動しました', 'info')

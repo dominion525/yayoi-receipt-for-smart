@@ -2,14 +2,14 @@ name = "yayoi-receipt-for-smart"
 main = "worker.js"
 compatibility_date = "2025-01-23"
 
-# ビルドコマンド（GitHub環境用）
-[build]
-command = "npm run build"
-
 # カスタムドメインでのルーティング
 routes = [
   { pattern = "receipt.dominion525.com/*", zone_name = "dominion525.com" }
 ]
+
+# ビルドコマンド（GitHub環境用）
+[build]
+command = "npm run build"
 
 # 静的アセットの設定
 [assets]

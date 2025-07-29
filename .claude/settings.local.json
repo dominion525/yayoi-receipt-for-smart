@@ -32,7 +32,8 @@
       "Bash(npm run test:*)",
       "Bash(npx vitest:*)",
       "Bash(rm:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(node:*)"
     ],
     "deny": []
   }
