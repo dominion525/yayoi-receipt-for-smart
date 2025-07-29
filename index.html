@@ -29,7 +29,7 @@
   </head>
   <body>
     <div id="app" class="min-h-screen bg-gray-50 flex flex-col" x-data="receiptApp" x-init="init()">
-      <div class="container mx-auto px-4 py-8 max-w-lg flex-grow pb-24">
+      <div class="container mx-auto px-4 pt-[calc(2rem+env(safe-area-inset-top))] pb-8 max-w-lg flex-grow pb-24">
         <div class="flex items-center justify-between" :class="photo ? 'mb-4' : 'mb-8'">
           <!-- メインロゴ -->
           <div class="flex-1 text-center">

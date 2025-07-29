@@ -5,11 +5,6 @@ import { DebugService } from '../services/debug.service'
 import { EmailService } from '../services/email.service'
 import { emailSender } from '../lib/mail'
 
-// グローバル変数の型定義
-declare global {
-  var __BUILD_REVISION__: string
-  var __BUILD_TIME__: string
-}
 
 // モック設定
 vi.mock('../lib/mail', () => ({
@@ -1293,7 +1288,7 @@ describe('receiptApp', () => {
         expect(mockServiceWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function))
 
         // メッセージイベントをシミュレート
-        const messageHandler = mockServiceWorker.addEventListener.mock.calls[0][1]
+        const messageHandler = mockServiceWorker.addEventListener.mock.calls[0]?.[1]
         const mockEvent = {
           data: {
             type: 'SW_ACTIVATED',
