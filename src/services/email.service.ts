@@ -185,10 +185,6 @@ export class EmailService {
         return { success: false, shouldRetake: false }
       } else {
         // 全成功の場合（results.success > 0 && results.failed === 0）
-        const successMessage = results.success === 1 
-          ? 'レシートを送信しました' 
-          : `${results.success}件のレシートを送信しました`
-        showError('✅ ' + successMessage)
         return { success: true, shouldRetake: true }
       }
       
@@ -378,10 +374,6 @@ export class EmailService {
         return { success: false, shouldRetake: false }
       } else if (results.success > 0) {
         // 全成功の場合
-        const successMessage = results.success === 1 
-          ? 'レシートを送信しました' 
-          : `${results.success}件のレシートを送信しました`
-        showError('✅ ' + successMessage)
         return { success: true, shouldRetake: true }
       } else {
         // 送信件数が0件の場合（空の受信者リスト等）

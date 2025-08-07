@@ -205,7 +205,8 @@ describe('EmailService', () => {
 
       // 2つのユニークな宛先に送信
       expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledTimes(2)
-      expect(mockErrorDisplayer).toHaveBeenCalledWith('✅ 2件のレシートを送信しました')
+      // 成功メッセージは表示されない（app.tsで処理）
+      expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
     })
 
     it('一部の送信が失敗した場合', async () => {
@@ -429,7 +430,8 @@ describe('EmailService', () => {
         shouldRetake: true
       })
 
-      expect(mockErrorDisplayer).toHaveBeenCalledWith('✅ レシートを送信しました')
+      // 成功メッセージは表示されない（app.tsで処理）
+      expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
       expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledWith(
         'main@example.com',
         'data:image/jpeg;base64,test-photo'
@@ -876,17 +878,23 @@ describe('EmailService', () => {
 
     describe('sendMail() - 外側catch部分', () => {
       it('結果表示処理で例外が発生した場合（114-119行目カバー）', async () => {
-        // showErrorをモックして例外を投げる（結果表示時）
+        // showErrorをモックして例外を投げる（エラーメッセージ表示時）
         const errorThrowingDisplayer = vi.fn().mockImplementation((message: string) => {
-          if (message.includes('✅') && message.includes('レシートを送信しました')) {
+          if (message.includes('送信結果:')) {
             throw new Error('Error displayer error')
           }
         })
 
-        vi.mocked(emailSender).sendReceipt.mockResolvedValue({
-          success: true,
-          messageId: 'msg-123'
-        })
+        // 一部送信失敗でエラー表示が呼ばれるケース
+        vi.mocked(emailSender).sendReceipt
+          .mockResolvedValueOnce({
+            success: true,
+            messageId: 'msg-123'
+          })
+          .mockResolvedValueOnce({
+            success: false,
+            error: 'Failed to send'
+          })
 
         // EmailService.sendMailは例外を内部でキャッチして適切に処理する
         const result = await EmailService.sendMail(
@@ -948,8 +956,8 @@ describe('EmailService', () => {
         expect(result.success).toBe(true)
         expect(result.shouldRetake).toBe(true)
 
-        // 複数件成功メッセージを確認
-        expect(mockErrorDisplayer).toHaveBeenCalledWith('✅ 3件のレシートを送信しました')
+        // 成功メッセージは表示されない（app.tsで処理）
+        expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
       })
 
       it('進捗コールバックが提供された場合、初期状態を通知する', async () => {
@@ -1149,7 +1157,8 @@ describe('EmailService', () => {
 
         expect(result.success).toBe(true)
         // 単数形メッセージを確認
-        expect(mockErrorDisplayer).toHaveBeenCalledWith('✅ レシートを送信しました')
+        // 成功メッセージは表示されない（app.tsで処理）
+      expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
       })
 
       it('送信対象0件の稀なケース（理論的エッジケース）', async () => {
@@ -1293,7 +1302,8 @@ describe('EmailService', () => {
         )
         
         expect(result).toEqual({ success: true, shouldRetake: true })
-        expect(showError).toHaveBeenCalledWith('✅ 3件のレシートを送信しました')
+        // 成功メッセージは表示されない（app.tsで処理）
+        expect(showError).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
       })
 
       it('sendMail: 最終進捗通知のテスト（169行目カバー）', async () => {

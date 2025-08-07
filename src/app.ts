@@ -70,6 +70,7 @@ export function receiptApp(): CompleteAppData {
     isLoading: false,
     isSendingMail: false,
     sendProgress: null,
+    completionMessage: null,
     
     // バージョン情報
     appVersion: shortVersion,
@@ -96,8 +97,23 @@ export function receiptApp(): CompleteAppData {
         )
         
         if (result.shouldRetake) {
-          // 成功時は撮影画面に戻る
-          this.retake()
+          // 完了メッセージを3秒間表示してから撮影画面に戻る
+          this.completionMessage = '送信が完了しました'
+          setTimeout(() => {
+            this.completionMessage = null
+            this.retake()
+            // DOM更新後に成功メッセージを表示
+            if (this.$nextTick) {
+              this.$nextTick(() => {
+                this.showSuccess('レシートを送信しました')
+              })
+            } else {
+              // $nextTickが使えない場合は少し遅延させて表示
+              setTimeout(() => {
+                this.showSuccess('レシートを送信しました')
+              }, 100)
+            }
+          }, 3000)
         }
         
       } finally {
@@ -139,8 +155,23 @@ export function receiptApp(): CompleteAppData {
         )
         
         if (result.shouldRetake) {
-          // 成功時は撮影画面に戻る
-          this.retake()
+          // 完了メッセージを3秒間表示してから撮影画面に戻る
+          this.completionMessage = '送信が完了しました'
+          setTimeout(() => {
+            this.completionMessage = null
+            this.retake()
+            // DOM更新後に成功メッセージを表示
+            if (this.$nextTick) {
+              this.$nextTick(() => {
+                this.showSuccess('レシートを送信しました')
+              })
+            } else {
+              // $nextTickが使えない場合は少し遅延させて表示
+              setTimeout(() => {
+                this.showSuccess('レシートを送信しました')
+              }, 100)
+            }
+          }, 3000)
         }
         
       } finally {

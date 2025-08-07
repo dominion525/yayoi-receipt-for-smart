@@ -49,8 +49,8 @@ export function useMessage(): MessageComposable {
     handleEmailMessage(message: string) {
       // 成功メッセージとエラーメッセージを分けて処理
       if (message.startsWith('✅')) {
-        // 成功メッセージは専用エリアに表示
-        this.showSuccess(message.replace('✅ ', ''))
+        // 成功メッセージは無視（app.tsのcompletionMessageで処理）
+        return
       } else {
         // エラーメッセージは従来通り
         this.showError(message)
