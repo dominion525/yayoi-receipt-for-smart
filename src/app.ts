@@ -5,6 +5,7 @@ import { SettingsService, AppSettings } from './services/settings.service'
 import { useDebugPanel } from './composables/useDebugPanel'
 import { useSettings } from './composables/useSettings'
 import { usePWADetection } from './composables/usePWADetection'
+import { usePhotoCapture } from './composables/usePhotoCapture'
 import { EmailService } from './services/email.service'
 import { SendProgress } from './types/progress.types'
 
@@ -36,6 +37,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
   const settingsComposable = useSettings()
   // PWA検出機能を統合
   const pwaDetection = usePWADetection()
+  // 写真撮影機能を統合
+  const photoCapture = usePhotoCapture()
   
   return {
     // デバッグ機能を展開
@@ -44,13 +47,13 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     ...settingsComposable,
     // PWA検出機能を展開
     ...pwaDetection,
+    // 写真撮影機能を展開
+    ...photoCapture,
     
     // アプリケーション状態
-    photo: null,
     error: null,
     successMessage: null,
     isLoading: false,
-    showCaptureEffect: false,
     isSendingMail: false,
     sendProgress: null,
     _initialized: false,
@@ -118,55 +121,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     },
     
 
-    retake() {
-      this.photo = null
-      this.error = null
-      // successMessageは保持（撮影画面に戻っても表示を続ける）
-    },
-    
-    returnToHome() {
-      this.photo = null
-      this.error = null
-    },
-    
-    // 標準カメラアプリでの撮影処理
-    handleNativeCamera(event: Event) {
-      const input = event.target as HTMLInputElement
-      const file = input.files?.[0]
-      
-      if (file) {
-        this.addDebugLog('標準カメラで撮影された画像を処理中...', 'info')
-        
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          const result = e.target?.result
-          if (result && typeof result === 'string') {
-            // キャプチャエフェクトを表示
-            this.showCaptureEffect = true
-            
-            // 画像を設定
-            this.photo = result
-            
-            // エフェクトを非表示
-            setTimeout(() => {
-              this.showCaptureEffect = false
-            }, 300)
-            
-            this.addDebugLog('標準カメラで撮影完了', 'success')
-          }
-        }
-        
-        reader.onerror = () => {
-          this.showError('画像の読み込みに失敗しました')
-          this.addDebugLog('画像読み込みエラー', 'error')
-        }
-        
-        reader.readAsDataURL(file)
-      }
-      
-      // inputをリセット（同じファイルを再選択できるように）
-      input.value = ''
-    },
+
     
     async sendMail() {
       // 設定が完了しているか確認
