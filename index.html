@@ -75,7 +75,7 @@
         </div>
         
         <!-- カメラ起動ボタン -->
-        <div x-show="!photo" class="mb-4">
+        <div x-show="!photo && !isCameraActive" class="mb-4">
           <div class="bg-white rounded-lg shadow-md p-6">
             <p class="text-center text-gray-600 mb-4">レシートを撮影してください</p>
             
@@ -88,6 +88,7 @@
             
             <!-- 標準カメラで撮影ボタン（モバイル推奨） -->
             <input 
+              id="camera-input"
               x-ref="fileInput"
               type="file" 
               accept="image/*" 
@@ -97,7 +98,7 @@
             />
             
             <button
-              @click="$refs.fileInput.click()"
+              @click="handleCameraClick()"
               :disabled="!isSettingsComplete"
               class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-4 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed mb-2 flex items-center justify-center gap-2 text-lg"
             >
@@ -124,10 +125,35 @@
         </div>
         
         <!-- 写真プレビュー -->
-        <div x-show="photo" class="mb-2">
+        <div x-show="photo || isCameraActive" class="mb-2">
           <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="relative max-w-md mx-auto">
-              <img :src="photo" alt="撮影したレシート" class="w-full h-auto max-h-96 object-contain bg-gray-50">
+            <div class="relative max-w-md mx-auto h-96">
+              <!-- プレースホルダー表示 -->
+              <div x-show="isCameraActive" 
+                   x-transition:enter="transition-opacity ease-in duration-300"
+                   x-transition:enter-start="opacity-0"
+                   x-transition:enter-end="opacity-100"
+                   x-transition:leave="transition-opacity ease-out duration-500"
+                   x-transition:leave-start="opacity-100"
+                   x-transition:leave-end="opacity-0"
+                   class="absolute inset-0 w-full h-full bg-gray-100 flex items-center justify-center">
+                <div class="text-center">
+                  <svg class="w-12 h-12 mx-auto mb-2 text-gray-400 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  </svg>
+                  <p class="text-gray-500">撮影準備中...</p>
+                </div>
+              </div>
+              <!-- 実際の画像 -->
+              <img x-show="photo && !isCameraActive && photo !== 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'"
+                   x-transition:enter="transition-opacity ease-in duration-700"
+                   x-transition:enter-start="opacity-0"
+                   x-transition:enter-end="opacity-100"
+                   x-transition:leave="transition-opacity ease-out duration-300"
+                   x-transition:leave-start="opacity-100"
+                   x-transition:leave-end="opacity-0"
+                   :src="photo" alt="撮影したレシート" class="absolute inset-0 w-full h-full object-contain bg-gray-50">
             </div>
             <div class="p-4 space-y-2">
               <button
