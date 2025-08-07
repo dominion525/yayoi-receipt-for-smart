@@ -1,4 +1,5 @@
 import { getErrorMessage } from '../utils/error'
+import { API } from '../constants/api'
 
 export interface EmailOptions {
   apiKey: string
@@ -49,7 +50,7 @@ export class EmailSender {
     }
     
     // 開発環境
-    return 'http://localhost:3001';
+    return API.DEFAULT_PROXY_URL;
   }
 
   /**
@@ -67,7 +68,7 @@ export class EmailSender {
   }
 
   /**
-   * プロキシサーバーのURLを設定（デフォルト: http://localhost:3001）
+   * プロキシサーバーのURLを設定（デフォルト: ${API.DEFAULT_PROXY_URL}）
    */
   setProxyUrl(url: string): void {
     this.proxyUrl = url
@@ -89,11 +90,11 @@ export class EmailSender {
       // プロキシサーバーにリクエスト（URLを正規化）
       const endpoint = this.proxyUrl.endsWith('/api') 
         ? `${this.proxyUrl}/send-email` 
-        : `${this.proxyUrl}/api/send-email`
+        : `${this.proxyUrl}${API.ENDPOINTS.SEND_EMAIL}`
       
       
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: API.METHOD.POST,
         headers: {
           'Content-Type': 'application/json',
         },

@@ -1,3 +1,5 @@
+import { TIMEOUTS } from '../constants/timeouts'
+
 export interface PhotoCaptureComposable {
   photo: string | null
   showCaptureEffect: boolean
@@ -36,7 +38,7 @@ export function usePhotoCapture(): PhotoCaptureComposable {
             // エフェクトを非表示
             setTimeout(() => {
               this.showCaptureEffect = false
-            }, 300)
+            }, TIMEOUTS.CAPTURE_EFFECT)
             
             if ((this as any).addDebugLog) {
               (this as any).addDebugLog('標準カメラで撮影完了', 'success')

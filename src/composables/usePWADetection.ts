@@ -1,3 +1,6 @@
+import { TIMEOUTS } from '../constants/timeouts'
+import { SERVICE_WORKER } from '../constants/service-worker'
+
 declare global {
   interface Window {
     __BUILD_REVISION__: string
@@ -97,7 +100,7 @@ export function usePWADetection(): PWADetectionComposable {
           
           // Service Workerからのメッセージを受信
           navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event.data && event.data.type === 'SW_ACTIVATED') {
+            if (event.data && event.data.type === SERVICE_WORKER.MESSAGES.ACTIVATED) {
               if ((this as any).addDebugLog) {
                 (this as any).addDebugLog('🔄 Service Worker更新完了', 'success')
               }
@@ -106,7 +109,7 @@ export function usePWADetection(): PWADetectionComposable {
                 if (confirm('新しいバージョンが利用可能です。ページをリロードしますか？')) {
                   window.location.reload()
                 }
-              }, 1000)
+              }, TIMEOUTS.PWA_UPDATE_DIALOG)
             }
           })
         }).catch(() => {

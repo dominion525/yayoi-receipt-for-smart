@@ -1,4 +1,5 @@
 import { DebugService, DebugLog } from '../services/debug.service'
+import { TIMEOUTS } from '../constants/timeouts'
 
 export interface DebugPanelData {
   showDebug: boolean
@@ -64,7 +65,7 @@ export function useDebugPanel(): DebugPanelData {
       // 成功/失敗に関わらず、視覚的フィードバックのために一定時間待つ
       setTimeout(() => {
         this.isCopyingLogs = false
-      }, 2000)
+      }, TIMEOUTS.COPY_FEEDBACK)
     }
   }
 }

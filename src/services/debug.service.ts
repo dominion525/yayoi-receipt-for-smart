@@ -1,3 +1,5 @@
+import { UI } from '../constants/ui'
+
 export interface DebugLog {
   time: string
   type: 'info' | 'success' | 'warning' | 'error' | 'debug'
@@ -85,7 +87,7 @@ export class DebugService {
     const textarea = document.createElement('textarea')
     textarea.value = text
     textarea.style.position = 'absolute'
-    textarea.style.left = '-999999px'
+    textarea.style.left = UI.OFFSCREEN_POSITION
     document.body.appendChild(textarea)
     
     let successful = false

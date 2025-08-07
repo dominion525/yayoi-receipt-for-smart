@@ -8,6 +8,7 @@ import { usePWADetection } from './composables/usePWADetection'
 import { usePhotoCapture } from './composables/usePhotoCapture'
 import { EmailService } from './services/email.service'
 import { SendProgress } from './types/progress.types'
+import { TIMEOUTS } from './constants/timeouts'
 
 export interface ReceiptAppData {
   photo: string | null
@@ -168,7 +169,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           if (this.successMessage === message.replace('✅ ', '')) {
             this.successMessage = null
           }
-        }, 5000)
+        }, TIMEOUTS.SUCCESS_MESSAGE)
       } else {
         // エラーメッセージは従来通り
         this.error = message
@@ -182,7 +183,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       if (progress.status === 'completed' || progress.status === 'error') {
         setTimeout(() => {
           this.sendProgress = null
-        }, 3000)
+        }, TIMEOUTS.PROGRESS_CLEAR)
       }
     },
     
@@ -195,7 +196,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         if (this.error === message) {
           this.error = null
         }
-      }, 10000)
+      }, TIMEOUTS.ERROR_MESSAGE)
     },
     
     showSuccess(message: string) {
@@ -205,7 +206,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
         if (this.successMessage === message) {
           this.successMessage = null
         }
-      }, 5000)
+      }, TIMEOUTS.SUCCESS_MESSAGE)
     },
     
 
