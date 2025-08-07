@@ -1,4 +1,5 @@
 import { TIMEOUTS } from '../constants/timeouts'
+import { CompleteAppData } from '../types/app'
 
 export interface PhotoCaptureComposable {
   photo: string | null
@@ -21,8 +22,9 @@ export function usePhotoCapture(): PhotoCaptureComposable {
       
       if (file) {
         // デバッグログ（Alpine.jsコンテキストで参照）
-        if ((this as any).addDebugLog) {
-          (this as any).addDebugLog('標準カメラで撮影された画像を処理中...', 'info')
+        const app = this as CompleteAppData
+        if (app.addDebugLog) {
+          app.addDebugLog('標準カメラで撮影された画像を処理中...', 'info')
         }
         
         const reader = new FileReader()
@@ -40,18 +42,18 @@ export function usePhotoCapture(): PhotoCaptureComposable {
               this.showCaptureEffect = false
             }, TIMEOUTS.CAPTURE_EFFECT)
             
-            if ((this as any).addDebugLog) {
-              (this as any).addDebugLog('標準カメラで撮影完了', 'success')
+            if (app.addDebugLog) {
+              app.addDebugLog('標準カメラで撮影完了', 'success')
             }
           }
         }
         
         reader.onerror = () => {
-          if ((this as any).showError) {
-            (this as any).showError('画像の読み込みに失敗しました')
+          if (app.showError) {
+            app.showError('画像の読み込みに失敗しました')
           }
-          if ((this as any).addDebugLog) {
-            (this as any).addDebugLog('画像読み込みエラー', 'error')
+          if (app.addDebugLog) {
+            app.addDebugLog('画像読み込みエラー', 'error')
           }
         }
         
@@ -64,10 +66,13 @@ export function usePhotoCapture(): PhotoCaptureComposable {
     
     // 再撮影
     retake() {
-      this.photo = null
-      // エラーメッセージをクリア（成功メッセージは保持）
-      if ((this as any).error) {
-        (this as any).error = null
+      const app = this as CompleteAppData
+      app.photo = null
+      app.showCaptureEffect = false
+      
+      // エラーメッセージをクリア
+      if (app.error) {
+        app.error = null
       }
     },
     
@@ -75,8 +80,9 @@ export function usePhotoCapture(): PhotoCaptureComposable {
     returnToHome() {
       this.photo = null
       // すべてのメッセージをクリア
-      if ((this as any).clearMessages) {
-        (this as any).clearMessages()
+      const app = this as CompleteAppData
+      if (app.clearMessages) {
+        app.clearMessages()
       }
     }
   }

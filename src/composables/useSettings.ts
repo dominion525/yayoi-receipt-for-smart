@@ -1,5 +1,6 @@
 import { SettingsService, AppSettings } from '../services/settings.service'
 import { emailSender } from '../lib/mail'
+import { CompleteAppData } from '../types/app'
 
 export interface SettingsComposable {
   showSettings: boolean
@@ -69,6 +70,9 @@ export function useSettings(): SettingsComposable {
         sendPresets: this.tempSettings.sendPresets
       }
       
+      // Alpine.jsコンテキストへの参照を取得
+      const app = this as CompleteAppData
+      
       // localStorageに保存
       if (SettingsService.save(newSettings)) {
         // 保存成功時のみ状態を更新
@@ -85,18 +89,18 @@ export function useSettings(): SettingsComposable {
         this.closeSettings()
         
         // デバッグログ記録（Alpine.jsコンテキストで呼び出される）
-        if ((this as any).addDebugLog) {
-          (this as any).addDebugLog('設定をlocalStorageに保存しました', 'success')
+        if (app.addDebugLog) {
+          app.addDebugLog('設定をlocalStorageに保存しました', 'success')
         }
         
         return true
       } else {
         // 保存失敗時のエラー処理
-        if ((this as any).showError) {
-          (this as any).showError('設定の保存に失敗しました。ブラウザの設定を確認してください。')
+        if (app.showError) {
+          app.showError('設定の保存に失敗しました。ブラウザの設定を確認してください。')
         }
-        if ((this as any).addDebugLog) {
-          (this as any).addDebugLog('localStorage保存エラー', 'error')
+        if (app.addDebugLog) {
+          app.addDebugLog('localStorage保存エラー', 'error')
         }
         
         return false

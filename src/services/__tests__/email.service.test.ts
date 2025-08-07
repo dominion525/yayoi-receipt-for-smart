@@ -1391,7 +1391,7 @@ describe('EmailService', () => {
         
         // Promise.allSettledのmockを使って、特定の結果をrejectedにする
         const originalAllSettled = Promise.allSettled
-        Promise.allSettled = vi.fn().mockImplementation((promises) => {
+        Promise.allSettled = vi.fn().mockImplementation(() => {
           return Promise.resolve([
             { status: 'rejected', reason: new Error('Test rejection') }
           ])
@@ -1429,7 +1429,7 @@ describe('EmailService', () => {
         
         // Promise.allSettledのmockを使って、特定の結果をrejectedにする
         const originalAllSettled = Promise.allSettled
-        Promise.allSettled = vi.fn().mockImplementation((promises) => {
+        Promise.allSettled = vi.fn().mockImplementation(() => {
           return Promise.resolve([
             { status: 'rejected', reason: new Error('Test rejection') }
           ])

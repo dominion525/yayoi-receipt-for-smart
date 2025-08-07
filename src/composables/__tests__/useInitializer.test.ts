@@ -1,7 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useInitializer } from '../useInitializer'
-import { SettingsService } from '../../services/settings.service'
-import { emailSender } from '../../lib/mail'
 
 // モック設定
 vi.mock('../../services/settings.service')

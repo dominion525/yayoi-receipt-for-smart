@@ -1,5 +1,6 @@
 import { TIMEOUTS } from '../constants/timeouts'
 import { SERVICE_WORKER } from '../constants/service-worker'
+import { CompleteAppData } from '../types/app'
 
 declare global {
   interface Window {
@@ -35,8 +36,9 @@ export function usePWADetection(): PWADetectionComposable {
       // 方法1: display-mode メディアクエリ
       if (window.matchMedia('(display-mode: standalone)').matches) {
         this.isPWAMode = true
-        if ((this as any).addDebugLog) {
-          (this as any).addDebugLog('🎯 PWAモードで起動しました', 'success')
+        const app = this as CompleteAppData
+        if (app.addDebugLog) {
+          app.addDebugLog('🎯 PWAモードで起動しました', 'success')
         }
         return
       }
@@ -44,16 +46,18 @@ export function usePWADetection(): PWADetectionComposable {
       // 方法2: iOS Safari の standalone プロパティ
       if ((window.navigator as any).standalone === true) {
         this.isPWAMode = true
-        if ((this as any).addDebugLog) {
-          (this as any).addDebugLog('🎯 PWAモード（iOS）で起動しました', 'success')
+        const app = this as CompleteAppData
+        if (app.addDebugLog) {
+          app.addDebugLog('🎯 PWAモード（iOS）で起動しました', 'success')
         }
         return
       }
       
       // ブラウザモード
       this.isPWAMode = false
-      if ((this as any).addDebugLog) {
-        (this as any).addDebugLog('🌐 ブラウザモードで起動しました', 'info')
+      const app = this as CompleteAppData
+      if (app.addDebugLog) {
+        app.addDebugLog('🌐 ブラウザモードで起動しました', 'info')
       }
     },
     
@@ -84,16 +88,17 @@ export function usePWADetection(): PWADetectionComposable {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.ready.then(() => {
           this.serviceWorkerStatus = '✅ 有効'
-          if ((this as any).addDebugLog) {
-            (this as any).addDebugLog('Service Worker: 有効', 'success')
+          const app = this as CompleteAppData
+          if (app.addDebugLog) {
+            app.addDebugLog('Service Worker: 有効', 'success')
           }
           
           // 明示的に更新をチェック（PWA起動時に最新版を確認）
           navigator.serviceWorker.getRegistration().then((registration) => {
             if (registration) {
               registration.update()
-              if ((this as any).addDebugLog) {
-                (this as any).addDebugLog('最新版をチェック中...', 'info')
+              if (app.addDebugLog) {
+                app.addDebugLog('最新版をチェック中...', 'info')
               }
             }
           })
@@ -101,8 +106,8 @@ export function usePWADetection(): PWADetectionComposable {
           // Service Workerからのメッセージを受信
           navigator.serviceWorker.addEventListener('message', (event) => {
             if (event.data && event.data.type === SERVICE_WORKER.MESSAGES.ACTIVATED) {
-              if ((this as any).addDebugLog) {
-                (this as any).addDebugLog('🔄 Service Worker更新完了', 'success')
+              if (app.addDebugLog) {
+                app.addDebugLog('🔄 Service Worker更新完了', 'success')
               }
               // 必要に応じてページをリロード
               setTimeout(() => {
@@ -114,8 +119,9 @@ export function usePWADetection(): PWADetectionComposable {
           })
         }).catch(() => {
           this.serviceWorkerStatus = '❌ エラー'
-          if ((this as any).addDebugLog) {
-            (this as any).addDebugLog('Service Worker: エラー', 'error')
+          const app = this as CompleteAppData
+          if (app.addDebugLog) {
+            app.addDebugLog('Service Worker: エラー', 'error')
           }
         })
       } else {

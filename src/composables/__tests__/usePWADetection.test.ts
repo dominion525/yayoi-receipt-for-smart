@@ -101,7 +101,7 @@ describe('usePWADetection', () => {
       
       // addEventListenerに渡されたメッセージハンドラーを取得
       expect(mockServiceWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function))
-      const messageHandler = mockServiceWorker.addEventListener.mock.calls[0][1]
+      const messageHandler = mockServiceWorker.addEventListener.mock.calls[0]?.[1]
       
       // SW_ACTIVATEDメッセージをシミュレート
       const mockEvent = {
@@ -159,7 +159,7 @@ describe('usePWADetection', () => {
       
       await mockServiceWorker.ready
       
-      const messageHandler = mockServiceWorker.addEventListener.mock.calls[0][1]
+      const messageHandler = mockServiceWorker.addEventListener.mock.calls[0]?.[1]
       const mockEvent = {
         data: {
           type: 'SW_ACTIVATED',

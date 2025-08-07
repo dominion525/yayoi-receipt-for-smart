@@ -1,5 +1,6 @@
 import { DebugService, DebugLog } from '../services/debug.service'
 import { TIMEOUTS } from '../constants/timeouts'
+import { CompleteAppData } from '../types/app'
 
 export interface DebugPanelData {
   showDebug: boolean
@@ -41,8 +42,9 @@ export function useDebugPanel(): DebugPanelData {
       
       // 最新のログが見えるようにスクロール
       // Alpine.jsのコンテキストで$nextTickを使用
-      if ((this as any).$nextTick) {
-        (this as any).$nextTick(() => {
+      const app = this as CompleteAppData
+      if (app.$nextTick) {
+        app.$nextTick(() => {
           const logContainer = document.querySelector('#debug-panel .bg-black')
           if (logContainer) {
             logContainer.scrollTop = logContainer.scrollHeight

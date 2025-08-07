@@ -1,5 +1,6 @@
 import { emailSender } from '../lib/mail'
-import { SettingsService, AppSettings } from '../services/settings.service'
+import { SettingsService } from '../services/settings.service'
+import { CompleteAppData } from '../types/app'
 
 export interface InitializerComposable {
   _initialized: boolean
@@ -35,15 +36,17 @@ export function useInitializer(): InitializerComposable {
     // PWA関連の初期化
     initializePWA() {
       // Alpine.jsコンテキストで呼び出される
-      if ((this as any).initPWADetection) {
-        (this as any).initPWADetection()
+      const app = this as CompleteAppData
+      if (app.initPWADetection) {
+        app.initPWADetection()
       }
     },
     
     // メール設定の初期化
     initializeEmailSettings() {
       // Alpine.jsコンテキストから設定を取得
-      const settings = (this as any).settings as AppSettings
+      const app = this as CompleteAppData
+      const settings = app.settings
       
       // APIキーの設定
       if (settings.apiKey) {
@@ -58,7 +61,8 @@ export function useInitializer(): InitializerComposable {
     
     // プリセットの初期化
     initializePresets() {
-      const settings = (this as any).settings as AppSettings
+      const app = this as CompleteAppData
+      const settings = app.settings
       
       // プリセットが空の場合は新規生成
       if (!settings.sendPresets || settings.sendPresets.length === 0) {
@@ -92,7 +96,8 @@ export function useInitializer(): InitializerComposable {
     
     // Dropboxプリセットのチェック
     checkDropboxPreset(): boolean {
-      const settings = (this as any).settings as AppSettings
+      const app = this as CompleteAppData
+      const settings = app.settings
       
       // Dropboxメールが設定されていない場合はチェック不要
       if (!settings.dropboxEmail) {
@@ -119,7 +124,8 @@ export function useInitializer(): InitializerComposable {
     
     // メインプリセットのチェック
     checkMainPreset(): boolean {
-      const settings = (this as any).settings as AppSettings
+      const app = this as CompleteAppData
+      const settings = app.settings
       
       // メインメールが設定されていない場合はチェック不要
       if (!settings.email) {
@@ -139,12 +145,13 @@ export function useInitializer(): InitializerComposable {
     
     // 初期化状態のログ出力
     logInitializationStatus() {
-      const settings = (this as any).settings as AppSettings
+      const app = this as CompleteAppData
+      const settings = app.settings
       const activeCount = settings.sendPresets?.filter(p => p.isActive).length || 0
       
       // Alpine.jsコンテキストでデバッグログを記録
-      if ((this as any).addDebugLog) {
-        (this as any).addDebugLog(`プリセット数: ${activeCount}個がアクティブ`, 'info')
+      if (app.addDebugLog) {
+        app.addDebugLog(`プリセット数: ${activeCount}個がアクティブ`, 'info')
       }
     }
   }

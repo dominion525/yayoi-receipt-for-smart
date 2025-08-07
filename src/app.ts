@@ -10,6 +10,7 @@ import { useInitializer } from './composables/useInitializer'
 import { EmailService } from './services/email.service'
 import { SendProgress } from './types/progress.types'
 import { TIMEOUTS } from './constants/timeouts'
+import { CompleteAppData } from './types/app'
 
 export interface ReceiptAppData {
   photo: string | null
@@ -32,7 +33,7 @@ export interface ReceiptAppData {
   sendProgress: SendProgress | null
 }
 
-export function receiptApp(): ReceiptAppData & Record<string, any> {
+export function receiptApp(): CompleteAppData {
   // デバッグパネル機能を統合
   const debug = useDebugPanel()
   // 設定管理機能を統合

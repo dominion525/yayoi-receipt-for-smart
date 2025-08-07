@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { receiptApp, ReceiptAppData } from '../app'
+import { receiptApp } from '../app'
+import { CompleteAppData } from '../types/app'
 import { SettingsService } from '../services/settings.service'
 import { DebugService } from '../services/debug.service'
 import { EmailService } from '../services/email.service'
@@ -41,7 +42,7 @@ vi.mock('../services/email.service', () => ({
 }))
 
 describe('receiptApp', () => {
-  let app: ReceiptAppData & Record<string, any>
+  let app: CompleteAppData
   
   // デフォルト設定
   const mockSettings = {
