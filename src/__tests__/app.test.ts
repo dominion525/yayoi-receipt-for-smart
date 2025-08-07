@@ -104,7 +104,6 @@ describe('receiptApp', () => {
       expect(app.showDebug).toBe(false)
       expect(app.debugLogs).toEqual([])
       expect(app.showSettings).toBe(false)
-      expect(app.showCaptureEffect).toBe(false)
       expect(app.isSendingMail).toBe(false)
       expect(app.isCopyingLogs).toBe(false)
     })
@@ -569,12 +568,7 @@ describe('receiptApp', () => {
       // FileReader の onload を実行
       mockFileReader.onload({ target: { result: 'data:image/jpeg;base64,testImageData' } })
 
-      expect(app.showCaptureEffect).toBe(true)
       expect(app.photo).toBe('data:image/jpeg;base64,testImageData')
-
-      // 300ms経過でエフェクト終了
-      vi.advanceTimersByTime(300)
-      expect(app.showCaptureEffect).toBe(false)
     })
 
     it('ファイルが選択されていない場合は何もしない', () => {
@@ -660,6 +654,7 @@ describe('receiptApp', () => {
       })
 
       const retakeSpy = vi.spyOn(app, 'retake')
+      const showSuccessSpy = vi.spyOn(app, 'showSuccess')
       
       await app.sendMail()
       
@@ -671,7 +666,26 @@ describe('receiptApp', () => {
         expect.any(Function),
         expect.any(Function)
       )
+      
+      // 完了メッセージが設定される
+      expect(app.completionMessage).toBe('送信が完了しました')
+      
+      // まだretakeは呼ばれていない
+      expect(retakeSpy).not.toHaveBeenCalled()
+      
+      // 3秒後にretakeが呼ばれ、その後成功メッセージが表示される
+      vi.advanceTimersByTime(3000)
+      expect(app.completionMessage).toBe(null)
       expect(retakeSpy).toHaveBeenCalledOnce()
+      
+      // $nextTickの処理を待つ
+      if (app.$nextTick) {
+        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
+      } else {
+        vi.advanceTimersByTime(100)
+      }
+      
+      expect(showSuccessSpy).toHaveBeenCalledWith('レシートを送信しました')
     })
 
     it('メール送信が失敗した場合はretakeしない', async () => {
@@ -692,21 +706,20 @@ describe('receiptApp', () => {
         success: true,
         shouldRetake: true
       })
-
-      // sendMailの実行中にエラー表示関数をテスト
-      let errorDisplayFunction: (message: string) => void = () => {}
-      
-      vi.mocked(EmailService.sendMail).mockImplementation(async (_photo, _settings, _debugLog, showError, _progress) => {
-        errorDisplayFunction = showError
-        return { success: true, shouldRetake: true }
-      })
       
       await app.sendMail()
       
-      // 成功メッセージを表示
-      errorDisplayFunction('✅ 送信完了!')
-      expect(app.successMessage).toBe('送信完了!')  // ✅が除去される
-      expect(app.error).toBe(null)
+      // 3秒経過して、メイン画面に戻った後の成功メッセージ
+      vi.advanceTimersByTime(3000)
+      
+      // $nextTickの処理を待つ
+      if (app.$nextTick) {
+        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
+      } else {
+        vi.advanceTimersByTime(100)
+      }
+      
+      expect(app.successMessage).toBe('レシートを送信しました')
       
       // 5秒経過
       vi.advanceTimersByTime(5000)
@@ -755,6 +768,7 @@ describe('receiptApp', () => {
       })
 
       const retakeSpy = vi.spyOn(app, 'retake')
+      const showSuccessSpy = vi.spyOn(app, 'showSuccess')
       
       await app.sendMailToPreset('main')
       
@@ -766,7 +780,26 @@ describe('receiptApp', () => {
         expect.any(Function),
         expect.any(Function)
       )
+      
+      // 完了メッセージが設定される
+      expect(app.completionMessage).toBe('送信が完了しました')
+      
+      // まだretakeは呼ばれていない
+      expect(retakeSpy).not.toHaveBeenCalled()
+      
+      // 3秒後にretakeが呼ばれ、その後成功メッセージが表示される
+      vi.advanceTimersByTime(3000)
+      expect(app.completionMessage).toBe(null)
       expect(retakeSpy).toHaveBeenCalledOnce()
+      
+      // $nextTickの処理を待つ
+      if (app.$nextTick) {
+        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
+      } else {
+        vi.advanceTimersByTime(100)
+      }
+      
+      expect(showSuccessSpy).toHaveBeenCalledWith('レシートを送信しました')
     })
 
     it('送信状態が正しく管理される', async () => {
@@ -979,20 +1012,25 @@ describe('receiptApp', () => {
     })
 
     it('sendMail内での成功メッセージ自動クリア', async () => {
-      // エラー表示関数をキャプチャするためのテスト
-      let errorDisplayFunction: (message: string) => void = () => {}
-      
-      vi.mocked(EmailService.sendMail).mockImplementation(async (_photo, _settings, _debugLog, showError, _progress) => {
-        errorDisplayFunction = showError
-        return { success: true, shouldRetake: true }
+      vi.mocked(EmailService.sendMail).mockResolvedValue({
+        success: true,
+        shouldRetake: true
       })
       
       app.photo = 'data:image/jpeg;base64,test'
       await app.sendMail()
       
-      // 成功メッセージを表示
-      errorDisplayFunction('✅ 成功メッセージ')
-      expect(app.successMessage).toBe('成功メッセージ')
+      // 3秒経過して、メイン画面に戻った後
+      vi.advanceTimersByTime(3000)
+      
+      // $nextTickの処理を待つ
+      if (app.$nextTick) {
+        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
+      } else {
+        vi.advanceTimersByTime(100)
+      }
+      
+      expect(app.successMessage).toBe('レシートを送信しました')
       expect(app.error).toBe(null)
       
       // 5秒経過
@@ -1001,15 +1039,25 @@ describe('receiptApp', () => {
     })
 
     it('sendMailToPreset内での成功メッセージ自動クリア', async () => {
-      vi.mocked(EmailService.sendMailToPreset).mockImplementation(async (_presetId, _photo, _settings, _debugLog, showError, _progress) => {
-        showError('✅ プリセット送信成功')
-        return { success: true, shouldRetake: false }
+      vi.mocked(EmailService.sendMailToPreset).mockResolvedValue({
+        success: true,
+        shouldRetake: true
       })
       
       app.photo = 'data:image/jpeg;base64,test'
       await app.sendMailToPreset('main')
       
-      expect(app.successMessage).toBe('プリセット送信成功')
+      // 3秒経過して、メイン画面に戻った後
+      vi.advanceTimersByTime(3000)
+      
+      // $nextTickの処理を待つ
+      if (app.$nextTick) {
+        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
+      } else {
+        vi.advanceTimersByTime(100)
+      }
+      
+      expect(app.successMessage).toBe('レシートを送信しました')
       expect(app.error).toBe(null)
       
       // 5秒経過
@@ -1018,20 +1066,17 @@ describe('receiptApp', () => {
     })
 
     it('エラーメッセージが途中で変更された場合は自動クリアしない', async () => {
-      // エラー表示関数をキャプチャするためのテスト
-      let errorDisplayFunction: (message: string) => void = () => {}
-      
-      vi.mocked(EmailService.sendMail).mockImplementation(async (_photo, _settings, _debugLog, showError, _progress) => {
-        errorDisplayFunction = showError
-        return { success: true, shouldRetake: true }
+      vi.mocked(EmailService.sendMail).mockResolvedValue({
+        success: true,
+        shouldRetake: true
       })
       
       app.photo = 'data:image/jpeg;base64,test'
       await app.sendMail()
       
-      // 成功メッセージを表示
-      errorDisplayFunction('✅ 成功メッセージ')
-      expect(app.successMessage).toBe('成功メッセージ')
+      // 3秒経過して、メイン画面に戻った後
+      vi.advanceTimersByTime(3000)
+      expect(app.successMessage).toBe('レシートを送信しました')
       
       // メッセージを途中で変更
       app.successMessage = '別のメッセージ'
@@ -1039,6 +1084,29 @@ describe('receiptApp', () => {
       // 5秒経過
       vi.advanceTimersByTime(5000)
       expect(app.successMessage).toBe('別のメッセージ')
+    })
+  })
+
+  describe('handleEmailMessage()メソッド', () => {
+    it('✅付きメッセージは無視される', () => {
+      const showSuccessSpy = vi.spyOn(app, 'showSuccess')
+      const showErrorSpy = vi.spyOn(app, 'showError')
+      
+      app.handleEmailMessage('✅ レシートを送信しました')
+      
+      expect(showSuccessSpy).not.toHaveBeenCalled()
+      expect(showErrorSpy).not.toHaveBeenCalled()
+      expect(app.successMessage).toBe(null)
+      expect(app.error).toBe(null)
+    })
+    
+    it('通常のメッセージはエラーとして表示される', () => {
+      const showErrorSpy = vi.spyOn(app, 'showError')
+      
+      app.handleEmailMessage('送信に失敗しました')
+      
+      expect(showErrorSpy).toHaveBeenCalledWith('送信に失敗しました')
+      expect(app.error).toBe('送信に失敗しました')
     })
   })
 
