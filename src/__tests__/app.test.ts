@@ -1309,4 +1309,88 @@ describe('receiptApp', () => {
       })
     })
   })
+
+  describe('handleEmailProgress', () => {
+    beforeEach(() => {
+      vi.clearAllTimers()
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('進捗状態を設定する', () => {
+      const app = receiptApp()
+      const progress = {
+        total: 3,
+        sent: 1,
+        failed: 0,
+        currentRecipients: ['test@example.com'],
+        status: 'sending' as const,
+        percentage: 33
+      }
+      
+      app.handleEmailProgress(progress)
+      
+      expect(app.sendProgress).toBe(progress)
+    })
+
+    it('completed時に3秒後にクリアする', () => {
+      const app = receiptApp()
+      const progress = {
+        total: 2,
+        sent: 2,
+        failed: 0,
+        currentRecipients: [],
+        status: 'completed' as const,
+        percentage: 100
+      }
+      
+      app.handleEmailProgress(progress)
+      expect(app.sendProgress).toBe(progress)
+      
+      // 3秒経過
+      vi.advanceTimersByTime(3000)
+      expect(app.sendProgress).toBe(null)
+    })
+
+    it('error時に3秒後にクリアする', () => {
+      const app = receiptApp()
+      const progress = {
+        total: 2,
+        sent: 1,
+        failed: 1,
+        currentRecipients: [],
+        status: 'error' as const,
+        percentage: 100
+      }
+      
+      app.handleEmailProgress(progress)
+      expect(app.sendProgress).toBe(progress)
+      
+      // 3秒経過
+      vi.advanceTimersByTime(3000)
+      expect(app.sendProgress).toBe(null)
+    })
+
+    it('sending時は自動クリアしない', () => {
+      const app = receiptApp()
+      const progress = {
+        total: 3,
+        sent: 1,
+        failed: 0,
+        currentRecipients: ['test2@example.com', 'test3@example.com'],
+        status: 'sending' as const,
+        percentage: 33
+      }
+      
+      app.handleEmailProgress(progress)
+      expect(app.sendProgress).toBe(progress)
+      
+      // 3秒経過してもクリアされない
+      vi.advanceTimersByTime(3000)
+      expect(app.sendProgress).toBe(progress)
+    })
+  })
 })

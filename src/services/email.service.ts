@@ -369,22 +369,24 @@ export class EmailService {
       }
       
       // 結果を表示
-      if (results.success > 0 && results.failed === 0) {
-        const successMessage = results.success === 1 
-          ? 'レシートを送信しました' 
-          : `${results.success}件のレシートを送信しました`
-        showError('✅ ' + successMessage)
-        return { success: true, shouldRetake: true }
-      } else if (results.failed > 0) {
+      if (results.failed > 0) {
         // エラーメッセージをまとめて表示
         const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
         const fullError = summary + '\n\n' + errorMessages.join('\n\n')
         
         showError(fullError)
         return { success: false, shouldRetake: false }
+      } else if (results.success > 0) {
+        // 全成功の場合
+        const successMessage = results.success === 1 
+          ? 'レシートを送信しました' 
+          : `${results.success}件のレシートを送信しました`
+        showError('✅ ' + successMessage)
+        return { success: true, shouldRetake: true }
+      } else {
+        // 送信件数が0件の場合（空の受信者リスト等）
+        return { success: true, shouldRetake: false }
       }
-      
-      return { success: true, shouldRetake: false }
       
     } catch (error) {
       const errorMessage = getErrorMessage(error)
