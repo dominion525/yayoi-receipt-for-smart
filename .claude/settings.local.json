@@ -47,7 +47,11 @@
       "mcp__serena__replace_regex",
       "mcp__serena__think_about_task_adherence",
       "mcp__serena__find_file",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(gh pr checks:*)",
+      "Bash(gh run view:*)",
+      "Bash(gh run list:*)",
+      "WebFetch(domain:developers.cloudflare.com)"
     ],
     "deny": []
   },

@@ -437,7 +437,7 @@ describe('EmailSender', () => {
       emailSender.setApiKey('re_test_123456')
       // 時刻を固定するためのモック
       vi.useFakeTimers()
-      vi.setSystemTime(new Date('2024-01-15T14:30:45.123Z'))
+      vi.setSystemTime(new Date('2024-01-15T14:30:45.123+09:00'))
     })
 
     afterEach(() => {
@@ -467,7 +467,7 @@ describe('EmailSender', () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: expect.stringContaining('"subject":"レシート画像 - 2024/01/15 23:30"')
+          body: expect.stringContaining('"subject":"レシート画像 - 2024/01/15 14:30"')
         })
       )
     })
@@ -489,7 +489,7 @@ describe('EmailSender', () => {
       const requestBody = JSON.parse(callArgs?.body as string)
 
       expect(requestBody.html).toContain('<h2>レシート画像</h2>')
-      expect(requestBody.html).toContain('<p>撮影日時: 2024/01/15 23:30</p>')
+      expect(requestBody.html).toContain('<p>撮影日時: 2024/01/15 14:30</p>')
       expect(requestBody.html).toContain('<p><small>スマート レシート</small></p>')
     })
 
@@ -510,7 +510,7 @@ describe('EmailSender', () => {
       const requestBody = JSON.parse(callArgs?.body as string)
 
       expect(requestBody.text).toContain('レシート画像を送信します。')
-      expect(requestBody.text).toContain('撮影日時: 2024/01/15 23:30')
+      expect(requestBody.text).toContain('撮影日時: 2024/01/15 14:30')
       expect(requestBody.text).toContain('スマート レシート')
     })
 
@@ -553,7 +553,7 @@ describe('EmailSender', () => {
 
       expect(requestBody.attachments).toHaveLength(1)
       expect(requestBody.attachments[0]).toEqual({
-        filename: 'receipt_2024-01-15_23-30.jpg',
+        filename: 'receipt_2024-01-15_14-30.jpg',
         content: 'testbase64content',
         contentType: 'image/jpeg'
       })
@@ -638,7 +638,7 @@ describe('EmailSender', () => {
     })
 
     it('日時フォーマットが正しく動作する（異なる時刻）', async () => {
-      vi.setSystemTime(new Date('2024-12-25T09:15:30.456Z'))
+      vi.setSystemTime(new Date('2024-12-25T18:15:30.456+09:00'))
       
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,

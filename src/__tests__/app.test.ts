@@ -371,7 +371,7 @@ describe('receiptApp', () => {
   describe('addDebugLog()メソッド', () => {
     beforeEach(() => {
       vi.useFakeTimers()
-      vi.setSystemTime(new Date('2024-01-15T14:30:45.123Z'))
+      vi.setSystemTime(new Date('2024-01-15T23:30:45.123+09:00'))
     })
 
     afterEach(() => {
@@ -379,6 +379,9 @@ describe('receiptApp', () => {
     })
 
     it('デバッグログが正しく追加される', () => {
+      // JST時刻でシステム時刻を固定（UTC時刻でJST 23:30:45.123相当）
+      vi.setSystemTime(new Date('2024-12-25T23:30:45.123+09:00'))
+      
       const message = 'テストメッセージ'
       const type = 'info'
       
@@ -438,8 +441,8 @@ describe('receiptApp', () => {
     })
 
     it('時刻が正しくフォーマットされる', () => {
-      // 異なる時刻でテスト
-      vi.setSystemTime(new Date('2024-12-25T09:05:03.045Z'))
+      // 異なる時刻でテスト（UTC時刻でJST 18:05:03.045相当）
+      vi.setSystemTime(new Date('2024-12-25T18:05:03.045+09:00'))
       app.addDebugLog('時刻テスト')
       
       expect(app.debugLogs[0]?.time).toBe('18:05:03.045')
