@@ -205,7 +205,7 @@ describe('EmailService', () => {
 
       // 2つのユニークな宛先に送信
       expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledTimes(2)
-      expect(mockErrorDisplayer).toHaveBeenCalledWith('✅ 2件の送信が完了しました')
+      expect(mockErrorDisplayer).toHaveBeenCalledWith('✅ 2件のレシートを送信しました')
     })
 
     it('一部の送信が失敗した場合', async () => {
@@ -429,7 +429,7 @@ describe('EmailService', () => {
         shouldRetake: true
       })
 
-      expect(mockErrorDisplayer).toHaveBeenCalledWith('✅ 1件の送信が完了しました')
+      expect(mockErrorDisplayer).toHaveBeenCalledWith('✅ レシートを送信しました')
       expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledWith(
         'main@example.com',
         'data:image/jpeg;base64,test-photo'
@@ -522,11 +522,11 @@ describe('EmailService', () => {
       )
 
       expect(result).toEqual({
-        success: true,
+        success: false,
         shouldRetake: false
       })
 
-      // recipients が空なので何も送信されず、successもfailedも0のまま
+      // recipients が空なので何も送信されず、APIキーが空のためfalseを返す
       expect(vi.mocked(emailSender).sendReceipt).not.toHaveBeenCalled()
     })
 
@@ -581,18 +581,14 @@ describe('EmailService', () => {
     })
 
     it('予期しない例外が発生した場合', async () => {
-      // debugLoggerが例外を投げることで外側のcatchに到達
-      const errorThrowingLogger = vi.fn().mockImplementation((message: string) => {
-        if (message.includes('送信中')) {
-          throw new Error('Logger error')
-        }
-      })
+      // sendReceiptが例外を投げることで送信失敗にカウントされる
+      vi.mocked(emailSender).sendReceipt.mockRejectedValue(new Error('Unexpected error'))
 
       const result = await EmailService.sendMailToPreset(
         'main',
         'data:image/jpeg;base64,test-photo',
         mockSettings,
-        errorThrowingLogger,
+        mockDebugLogger,
         mockErrorDisplayer
       )
 
@@ -601,12 +597,13 @@ describe('EmailService', () => {
         shouldRetake: false
       })
 
-      expect(errorThrowingLogger).toHaveBeenCalledWith(
-        expect.stringContaining('予期しないエラー'),
-        'error'
-      )
+      // エラーメッセージが表示される
       expect(mockErrorDisplayer).toHaveBeenCalledWith(
-        expect.stringContaining('予期しないエラーが発生しました')
+        expect.stringContaining('送信結果: 成功0件, 失敗1件')
+      )
+      expect(mockDebugLogger).toHaveBeenCalledWith(
+        'main@example.comへの送信エラー: Unexpected error',
+        'error'
       )
     })
 
@@ -881,7 +878,7 @@ describe('EmailService', () => {
       it('結果表示処理で例外が発生した場合（114-119行目カバー）', async () => {
         // showErrorをモックして例外を投げる（結果表示時）
         const errorThrowingDisplayer = vi.fn().mockImplementation((message: string) => {
-          if (message.includes('✅') && message.includes('件の送信が完了しました')) {
+          if (message.includes('✅') && message.includes('レシートを送信しました')) {
             throw new Error('Error displayer error')
           }
         })

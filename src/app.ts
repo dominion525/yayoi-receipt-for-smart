@@ -3,10 +3,12 @@ import Alpine from 'alpinejs'
 import { SettingsService, AppSettings } from './services/settings.service'
 import { DebugService, DebugLog } from './services/debug.service'
 import { EmailService } from './services/email.service'
+import { SendProgress } from './types/progress.types'
 
 export interface ReceiptAppData {
   photo: string | null
   error: string | null
+  successMessage: string | null
   isLoading: boolean
   showDebug: boolean
   debugLogs: DebugLog[]
@@ -23,12 +25,14 @@ export interface ReceiptAppData {
   serviceWorkerStatus: string
   buildRevision: string
   buildTime: string
+  sendProgress: SendProgress | null
 }
 
 export function receiptApp(): ReceiptAppData & Record<string, any> {
   return {
     photo: null,
     error: null,
+    successMessage: null,
     isLoading: false,
     showDebug: false,
     debugLogs: [],
@@ -50,6 +54,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     serviceWorkerStatus: 'checking...',
     buildRevision: '',
     buildTime: '',
+    sendProgress: null,
     _initialized: false,
     
     // 初期化時に設定完了状態をチェック
@@ -188,6 +193,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     retake() {
       this.photo = null
       this.error = null
+      // successMessageは保持（撮影画面に戻っても表示を続ける）
     },
     
     returnToHome() {
@@ -243,6 +249,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }
       
       this.isSendingMail = true
+      this.sendProgress = null
       
       try {
         const result = await EmailService.sendMail(
@@ -250,19 +257,34 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           this.settings,
           this.addDebugLog.bind(this),
           (message: string) => {
-            this.error = message
-            // 成功メッセージの場合は3秒後に自動クリア
+            // 成功メッセージとエラーメッセージを分けて処理
             if (message.startsWith('✅')) {
+              // 成功メッセージは専用エリアに表示
+              this.successMessage = message.replace('✅ ', '')
+              // 5秒後に自動クリア
               setTimeout(() => {
-                if (this.error === message) {
-                  this.error = null
+                if (this.successMessage === message.replace('✅ ', '')) {
+                  this.successMessage = null
                 }
+              }, 5000)
+            } else {
+              // エラーメッセージは従来通り
+              this.error = message
+            }
+          },
+          (progress: SendProgress) => {
+            this.sendProgress = progress
+            // 完了時は3秒後に進捗表示をクリア
+            if (progress.status === 'completed' || progress.status === 'error') {
+              setTimeout(() => {
+                this.sendProgress = null
               }, 3000)
             }
           }
         )
         
         if (result.shouldRetake) {
+          // 成功時は撮影画面に戻る
           this.retake()
         }
         
@@ -287,6 +309,16 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           this.error = null
         }
       }, 10000)
+    },
+    
+    showSuccess(message: string) {
+      this.successMessage = message
+      // 成功メッセージを5秒表示
+      setTimeout(() => {
+        if (this.successMessage === message) {
+          this.successMessage = null
+        }
+      }, 5000)
     },
     
     addDebugLog(message: string, type: 'info' | 'success' | 'warning' | 'error' | 'debug' = 'info') {
@@ -383,6 +415,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     // 複数宛先への送信
     async sendMailToPreset(presetId: string) {
       this.isSendingMail = true
+      this.sendProgress = null
       
       try {
         const result = await EmailService.sendMailToPreset(
@@ -391,19 +424,34 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           this.settings,
           this.addDebugLog.bind(this),
           (message: string) => {
-            this.error = message
-            // 成功メッセージの場合は3秒後に自動クリア
+            // 成功メッセージとエラーメッセージを分けて処理
             if (message.startsWith('✅')) {
+              // 成功メッセージは専用エリアに表示
+              this.successMessage = message.replace('✅ ', '')
+              // 5秒後に自動クリア
               setTimeout(() => {
-                if (this.error === message) {
-                  this.error = null
+                if (this.successMessage === message.replace('✅ ', '')) {
+                  this.successMessage = null
                 }
+              }, 5000)
+            } else {
+              // エラーメッセージは従来通り
+              this.error = message
+            }
+          },
+          (progress: SendProgress) => {
+            this.sendProgress = progress
+            // 完了時は3秒後に進捗表示をクリア
+            if (progress.status === 'completed' || progress.status === 'error') {
+              setTimeout(() => {
+                this.sendProgress = null
               }, 3000)
             }
           }
         )
         
         if (result.shouldRetake) {
+          // 成功時は撮影画面に戻る
           this.retake()
         }
         

@@ -1,6 +1,7 @@
 import { emailSender } from '../lib/mail'
 import { AppSettings } from './settings.service'
 import { getErrorMessage } from '../utils/error'
+import { ProgressCallback, SendResult } from '../types/progress.types'
 
 export interface EmailResult {
   success: number
@@ -28,7 +29,8 @@ export class EmailService {
     photo: string,
     settings: AppSettings,
     addDebugLog: DebugLogger,
-    showError: ErrorDisplayer
+    showError: ErrorDisplayer,
+    onProgress?: ProgressCallback
   ): Promise<{ success: boolean; shouldRetake: boolean }> {
     if (!photo) {
       showError('写真が撮影されていません')
@@ -55,19 +57,39 @@ export class EmailService {
     
     const results = { success: 0, failed: 0 }
     const errorMessages: string[] = []
+    const sendResults: SendResult[] = []
+    
+    // 初期進捗状態を通知
+    if (onProgress) {
+      onProgress({
+        total: uniqueRecipients.length,
+        sent: 0,
+        failed: 0,
+        currentRecipients: uniqueRecipients,
+        status: 'sending',
+        percentage: 0
+      })
+    }
     
     try {
-      for (const recipient of uniqueRecipients) {
+      // 並行送信の実装
+      const promises = uniqueRecipients.map(async (recipient) => {
         addDebugLog(`${recipient}に送信中...`, 'info')
         
         try {
           const result = await emailSender.sendReceipt(recipient, photo)
           
           if (result.success) {
-            results.success++
+            const sendResult: SendResult = {
+              recipient,
+              success: true,
+              messageId: result.messageId,
+              timestamp: Date.now()
+            }
+            sendResults.push(sendResult)
             addDebugLog(`${recipient}への送信成功: ID=${result.messageId}`, 'success')
+            return sendResult
           } else {
-            results.failed++
             let errorDetail = `${recipient}への送信失敗`
             if (result.error) {
               errorDetail += `: ${result.error}`
@@ -85,15 +107,73 @@ export class EmailService {
               }
             }
             
+            const sendResult: SendResult = {
+              recipient,
+              success: false,
+              error: errorDetail,
+              timestamp: Date.now()
+            }
+            sendResults.push(sendResult)
             errorMessages.push(errorDetail)
             addDebugLog(`${recipient}への送信失敗: ${result.error}`, 'error')
+            return sendResult
           }
         } catch (error) {
-          results.failed++
           const errorMsg = `${recipient}への送信エラー: ${getErrorMessage(error)}`
+          const sendResult: SendResult = {
+            recipient,
+            success: false,
+            error: errorMsg,
+            timestamp: Date.now()
+          }
+          sendResults.push(sendResult)
           errorMessages.push(errorMsg)
           addDebugLog(errorMsg, 'error')
+          return sendResult
         }
+      })
+      
+      // すべての送信処理を並行実行し、結果を待つ
+      const allResults = await Promise.allSettled(promises)
+      
+      // 結果を集計
+      allResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          const sendResult = result.value
+          if (sendResult.success) {
+            results.success++
+          } else {
+            results.failed++
+          }
+          
+          // 進捗を更新
+          if (onProgress) {
+            const completed = results.success + results.failed
+            onProgress({
+              total: uniqueRecipients.length,
+              sent: results.success,
+              failed: results.failed,
+              currentRecipients: uniqueRecipients.slice(completed),
+              status: completed < uniqueRecipients.length ? 'sending' : 'completed',
+              percentage: Math.round((completed / uniqueRecipients.length) * 100)
+            })
+          }
+        } else {
+          // Promise自体が reject された場合（通常はない）
+          results.failed++
+        }
+      })
+      
+      // 最終進捗状態を通知
+      if (onProgress) {
+        onProgress({
+          total: uniqueRecipients.length,
+          sent: results.success,
+          failed: results.failed,
+          currentRecipients: [],
+          status: results.failed > 0 ? 'error' : 'completed',
+          percentage: 100
+        })
       }
       
       // 結果を表示
@@ -105,7 +185,9 @@ export class EmailService {
         return { success: false, shouldRetake: false }
       } else {
         // 全成功の場合（results.success > 0 && results.failed === 0）
-        const successMessage = `${results.success}件の送信が完了しました`
+        const successMessage = results.success === 1 
+          ? 'レシートを送信しました' 
+          : `${results.success}件のレシートを送信しました`
         showError('✅ ' + successMessage)
         return { success: true, shouldRetake: true }
       }
@@ -127,7 +209,8 @@ export class EmailService {
     photo: string,
     settings: AppSettings,
     addDebugLog: DebugLogger,
-    showError: ErrorDisplayer
+    showError: ErrorDisplayer,
+    onProgress?: ProgressCallback
   ): Promise<{ success: boolean; shouldRetake: boolean }> {
     
     // デバッグ用：実際にこの関数が呼ばれているか確認
@@ -149,34 +232,51 @@ export class EmailService {
     
     const results = { success: 0, failed: 0 }
     const errorMessages: string[] = []
+    const sendResults: SendResult[] = []
+    
+    // APIキーの事前確認
+    if (!settings.apiKey) {
+      addDebugLog('エラー: APIキーが設定されていません', 'error')
+      showError('APIキーが設定されていません')
+      return { success: false, shouldRetake: false }
+    }
+    
+    // 初期進捗状態を通知
+    if (onProgress) {
+      onProgress({
+        total: preset.recipients.length,
+        sent: 0,
+        failed: 0,
+        currentRecipients: preset.recipients,
+        status: 'sending',
+        percentage: 0
+      })
+    }
     
     try {
-      for (const recipient of preset.recipients) {
+      // 並行送信の実装
+      const promises = preset.recipients.map(async (recipient) => {
         addDebugLog(`${recipient}に送信中...`, 'info')
-        
-        // APIキーの存在確認
-        if (!settings.apiKey) {
-          addDebugLog('エラー: APIキーが設定されていません', 'error')
-          errorMessages.push('APIキーが設定されていません')
-          results.failed++
-          continue
-        }
         
         try {
           const result = await emailSender.sendReceipt(recipient, photo)
           
           if (result.success) {
-            results.success++
+            const sendResult: SendResult = {
+              recipient,
+              success: true,
+              messageId: result.messageId,
+              timestamp: Date.now()
+            }
+            sendResults.push(sendResult)
             addDebugLog(`${recipient}への送信成功: ID=${result.messageId}`, 'success')
+            return sendResult
           } else {
-            results.failed++
             // エラーメッセージを構築
             let errorDetail = `${recipient}への送信失敗`
             if (result.error) {
               errorDetail += `: ${result.error}`
             }
-            
-            // デバッグ用に完全な結果をログ出力
             
             // RESEND APIのエラー詳細を解析
             if (result.details) {
@@ -199,28 +299,84 @@ export class EmailService {
               }
             }
             
+            const sendResult: SendResult = {
+              recipient,
+              success: false,
+              error: errorDetail,
+              timestamp: Date.now()
+            }
+            sendResults.push(sendResult)
             errorMessages.push(errorDetail)
             addDebugLog(`${recipient}への送信失敗: ${result.error}`, 'error')
+            return sendResult
           }
         } catch (error) {
-          results.failed++
           const errorMsg = `${recipient}への送信エラー: ${getErrorMessage(error)}`
+          const sendResult: SendResult = {
+            recipient,
+            success: false,
+            error: errorMsg,
+            timestamp: Date.now()
+          }
+          sendResults.push(sendResult)
           errorMessages.push(errorMsg)
           addDebugLog(errorMsg, 'error')
+          return sendResult
         }
-      }
+      })
       
-      // デバッグ用：収集したエラーメッセージを出力
+      // すべての送信処理を並行実行し、結果を待つ
+      const allResults = await Promise.allSettled(promises)
+      
+      // 結果を集計
+      allResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          const sendResult = result.value
+          if (sendResult.success) {
+            results.success++
+          } else {
+            results.failed++
+          }
+          
+          // 進捗を更新
+          if (onProgress) {
+            const completed = results.success + results.failed
+            onProgress({
+              total: preset.recipients.length,
+              sent: results.success,
+              failed: results.failed,
+              currentRecipients: preset.recipients.slice(completed),
+              status: completed < preset.recipients.length ? 'sending' : 'completed',
+              percentage: Math.round((completed / preset.recipients.length) * 100)
+            })
+          }
+        } else {
+          // Promise自体が reject された場合（通常はない）
+          results.failed++
+        }
+      })
+      
+      // 最終進捗状態を通知
+      if (onProgress) {
+        onProgress({
+          total: preset.recipients.length,
+          sent: results.success,
+          failed: results.failed,
+          currentRecipients: [],
+          status: results.failed > 0 ? 'error' : 'completed',
+          percentage: 100
+        })
+      }
       
       // 結果を表示
       if (results.success > 0 && results.failed === 0) {
-        const successMessage = `${results.success}件の送信が完了しました`
+        const successMessage = results.success === 1 
+          ? 'レシートを送信しました' 
+          : `${results.success}件のレシートを送信しました`
         showError('✅ ' + successMessage)
         return { success: true, shouldRetake: true }
       } else if (results.failed > 0) {
         // エラーメッセージをまとめて表示
-        // 削除された不要な防御コード: failed++される際は必ずerrorMessages.push()も実行されるため、
-        // errorMessages.length === 0 の条件は成立しない
         const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
         const fullError = summary + '\n\n' + errorMessages.join('\n\n')
         
