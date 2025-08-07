@@ -128,13 +128,6 @@
           <div class="bg-white rounded-lg shadow-md overflow-hidden">
             <div class="relative max-w-md mx-auto">
               <img :src="photo" alt="撮影したレシート" class="w-full h-auto max-h-96 object-contain bg-gray-50">
-              <!-- キャプチャエフェクト -->
-              <div
-                x-show="showCaptureEffect"
-                x-transition:enter="transition-opacity duration-200"
-                x-transition:leave="transition-opacity duration-100"
-                class="absolute inset-0 bg-white pointer-events-none camera-flash"
-              ></div>
             </div>
             <div class="p-4 space-y-2">
               <button

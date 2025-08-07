@@ -104,7 +104,6 @@ describe('receiptApp', () => {
       expect(app.showDebug).toBe(false)
       expect(app.debugLogs).toEqual([])
       expect(app.showSettings).toBe(false)
-      expect(app.showCaptureEffect).toBe(false)
       expect(app.isSendingMail).toBe(false)
       expect(app.isCopyingLogs).toBe(false)
     })
@@ -569,12 +568,7 @@ describe('receiptApp', () => {
       // FileReader の onload を実行
       mockFileReader.onload({ target: { result: 'data:image/jpeg;base64,testImageData' } })
 
-      expect(app.showCaptureEffect).toBe(true)
       expect(app.photo).toBe('data:image/jpeg;base64,testImageData')
-
-      // 300ms経過でエフェクト終了
-      vi.advanceTimersByTime(300)
-      expect(app.showCaptureEffect).toBe(false)
     })
 
     it('ファイルが選択されていない場合は何もしない', () => {
@@ -686,7 +680,7 @@ describe('receiptApp', () => {
       
       // $nextTickの処理を待つ
       if (app.$nextTick) {
-        await new Promise(resolve => app.$nextTick!(resolve))
+        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
       } else {
         vi.advanceTimersByTime(100)
       }
@@ -720,7 +714,7 @@ describe('receiptApp', () => {
       
       // $nextTickの処理を待つ
       if (app.$nextTick) {
-        await new Promise(resolve => app.$nextTick!(resolve))
+        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
       } else {
         vi.advanceTimersByTime(100)
       }
@@ -800,7 +794,7 @@ describe('receiptApp', () => {
       
       // $nextTickの処理を待つ
       if (app.$nextTick) {
-        await new Promise(resolve => app.$nextTick!(resolve))
+        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
       } else {
         vi.advanceTimersByTime(100)
       }
@@ -1031,7 +1025,7 @@ describe('receiptApp', () => {
       
       // $nextTickの処理を待つ
       if (app.$nextTick) {
-        await new Promise(resolve => app.$nextTick!(resolve))
+        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
       } else {
         vi.advanceTimersByTime(100)
       }
@@ -1058,7 +1052,7 @@ describe('receiptApp', () => {
       
       // $nextTickの処理を待つ
       if (app.$nextTick) {
-        await new Promise(resolve => app.$nextTick!(resolve))
+        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
       } else {
         vi.advanceTimersByTime(100)
       }

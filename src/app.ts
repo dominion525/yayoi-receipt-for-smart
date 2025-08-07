@@ -22,7 +22,6 @@ export interface ReceiptAppData {
   settings: AppSettings
   tempSettings: AppSettings
   isSettingsComplete: boolean
-  showCaptureEffect: boolean
   isSendingMail: boolean
 
   isPWAMode: boolean

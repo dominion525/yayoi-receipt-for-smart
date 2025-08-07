@@ -1,9 +1,7 @@
-import { TIMEOUTS } from '../constants/timeouts'
 import { CompleteAppData } from '../types/app'
 
 export interface PhotoCaptureComposable {
   photo: string | null
-  showCaptureEffect: boolean
   handleNativeCamera: (event: Event) => void
   retake: () => void
   returnToHome: () => void
@@ -13,7 +11,6 @@ export function usePhotoCapture(): PhotoCaptureComposable {
   return {
     // 状態
     photo: null,
-    showCaptureEffect: false,
     
     // 標準カメラアプリでの撮影処理
     handleNativeCamera(event: Event) {
