@@ -1,4 +1,3 @@
-import { emailSender } from './lib/mail'
 import Alpine from 'alpinejs'
 import { SettingsService, AppSettings } from './services/settings.service'
 
@@ -7,6 +6,7 @@ import { useSettings } from './composables/useSettings'
 import { usePWADetection } from './composables/usePWADetection'
 import { usePhotoCapture } from './composables/usePhotoCapture'
 import { useMessage } from './composables/useMessage'
+import { useInitializer } from './composables/useInitializer'
 import { EmailService } from './services/email.service'
 import { SendProgress } from './types/progress.types'
 import { TIMEOUTS } from './constants/timeouts'
@@ -43,6 +43,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
   const photoCapture = usePhotoCapture()
   // メッセージ管理機能を統合
   const messageHandler = useMessage()
+  // 初期化処理を統合
+  const initializer = useInitializer()
   
   return {
     // デバッグ機能を展開
@@ -55,77 +57,13 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     ...photoCapture,
     // メッセージ管理機能を展開
     ...messageHandler,
+    // 初期化処理を展開
+    ...initializer,
     
     // アプリケーション状態
     isLoading: false,
     isSendingMail: false,
     sendProgress: null,
-    _initialized: false,
-    
-
-    // 初期化処理
-    init() {
-      // 重複実行を防ぐ
-      if (this._initialized) {
-        return
-      }
-      this._initialized = true
-      
-      // PWA関連の初期化
-      this.initPWADetection()
-      
-
-      // 保存されたAPIキーと送信元アドレスがあれば設定
-      if (this.settings.apiKey) {
-        emailSender.setApiKey(this.settings.apiKey)
-      }
-      if (this.settings.fromEmail) {
-        emailSender.setFromEmail(this.settings.fromEmail)
-      }
-      
-      // プリセットが空の場合、または古い形式の場合は再生成
-      if (!this.settings.sendPresets || this.settings.sendPresets.length === 0) {
-        SettingsService.syncPresetsWithEmails(this.settings)
-      } else {
-        // プリセットの整合性チェックと修正
-        let needsUpdate = false
-        
-        // Dropboxプリセットのチェック
-        const dropboxPreset = this.settings.sendPresets.find(p => p.id === 'dropbox')
-        if (this.settings.dropboxEmail) {
-          if (!dropboxPreset) {
-            needsUpdate = true
-          } else if (!dropboxPreset.isActive || dropboxPreset.recipients.length === 0) {
-            dropboxPreset.isActive = true
-            dropboxPreset.recipients = [this.settings.dropboxEmail]
-            needsUpdate = true
-          }
-        }
-        
-        // メインプリセットのチェック
-        const mainPreset = this.settings.sendPresets.find(p => p.id === 'main')
-        if (this.settings.email && mainPreset) {
-          if (mainPreset.recipients[0] !== this.settings.email) {
-            mainPreset.recipients = [this.settings.email]
-            needsUpdate = true
-          }
-        }
-        
-        if (needsUpdate) {
-          SettingsService.syncPresetsWithEmails(this.settings)
-        } else {
-          // 「すべてに送信」プリセットの更新チェック
-          SettingsService.updateAllPreset(this.settings)
-        }
-      }
-      
-      // デバッグ用：現在のプリセット状態を表示
-      const activeCount = this.settings.sendPresets?.filter(p => p.isActive).length || 0
-      this.addDebugLog(`プリセット数: ${activeCount}個がアクティブ`, 'info')
-    },
-    
-
-
     
     async sendMail() {
       // 設定が完了しているか確認
