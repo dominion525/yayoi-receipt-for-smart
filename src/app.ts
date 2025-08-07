@@ -256,31 +256,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           this.photo!,
           this.settings,
           this.addDebugLog.bind(this),
-          (message: string) => {
-            // 成功メッセージとエラーメッセージを分けて処理
-            if (message.startsWith('✅')) {
-              // 成功メッセージは専用エリアに表示
-              this.successMessage = message.replace('✅ ', '')
-              // 5秒後に自動クリア
-              setTimeout(() => {
-                if (this.successMessage === message.replace('✅ ', '')) {
-                  this.successMessage = null
-                }
-              }, 5000)
-            } else {
-              // エラーメッセージは従来通り
-              this.error = message
-            }
-          },
-          (progress: SendProgress) => {
-            this.sendProgress = progress
-            // 完了時は3秒後に進捗表示をクリア
-            if (progress.status === 'completed' || progress.status === 'error') {
-              setTimeout(() => {
-                this.sendProgress = null
-              }, 3000)
-            }
-          }
+          this.handleEmailMessage.bind(this),
+          this.handleEmailProgress.bind(this)
         )
         
         if (result.shouldRetake) {
@@ -296,6 +273,35 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     
     
     
+    
+    // 共通メール処理ハンドラー
+    handleEmailMessage(message: string) {
+      // 成功メッセージとエラーメッセージを分けて処理
+      if (message.startsWith('✅')) {
+        // 成功メッセージは専用エリアに表示
+        this.successMessage = message.replace('✅ ', '')
+        // 5秒後に自動クリア
+        setTimeout(() => {
+          if (this.successMessage === message.replace('✅ ', '')) {
+            this.successMessage = null
+          }
+        }, 5000)
+      } else {
+        // エラーメッセージは従来通り
+        this.error = message
+      }
+    },
+    
+    // 共通進捗処理ハンドラー
+    handleEmailProgress(progress: SendProgress) {
+      this.sendProgress = progress
+      // 完了時は3秒後に進捗表示をクリア
+      if (progress.status === 'completed' || progress.status === 'error') {
+        setTimeout(() => {
+          this.sendProgress = null
+        }, 3000)
+      }
+    },
     
     toggleDebug() {
       this.showDebug = !this.showDebug
@@ -423,31 +429,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           this.photo!,
           this.settings,
           this.addDebugLog.bind(this),
-          (message: string) => {
-            // 成功メッセージとエラーメッセージを分けて処理
-            if (message.startsWith('✅')) {
-              // 成功メッセージは専用エリアに表示
-              this.successMessage = message.replace('✅ ', '')
-              // 5秒後に自動クリア
-              setTimeout(() => {
-                if (this.successMessage === message.replace('✅ ', '')) {
-                  this.successMessage = null
-                }
-              }, 5000)
-            } else {
-              // エラーメッセージは従来通り
-              this.error = message
-            }
-          },
-          (progress: SendProgress) => {
-            this.sendProgress = progress
-            // 完了時は3秒後に進捗表示をクリア
-            if (progress.status === 'completed' || progress.status === 'error') {
-              setTimeout(() => {
-                this.sendProgress = null
-              }, 3000)
-            }
-          }
+          this.handleEmailMessage.bind(this),
+          this.handleEmailProgress.bind(this)
         )
         
         if (result.shouldRetake) {
