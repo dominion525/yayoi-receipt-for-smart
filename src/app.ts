@@ -6,6 +6,7 @@ import { useDebugPanel } from './composables/useDebugPanel'
 import { useSettings } from './composables/useSettings'
 import { usePWADetection } from './composables/usePWADetection'
 import { usePhotoCapture } from './composables/usePhotoCapture'
+import { useMessage } from './composables/useMessage'
 import { EmailService } from './services/email.service'
 import { SendProgress } from './types/progress.types'
 import { TIMEOUTS } from './constants/timeouts'
@@ -40,6 +41,8 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
   const pwaDetection = usePWADetection()
   // 写真撮影機能を統合
   const photoCapture = usePhotoCapture()
+  // メッセージ管理機能を統合
+  const messageHandler = useMessage()
   
   return {
     // デバッグ機能を展開
@@ -50,10 +53,10 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     ...pwaDetection,
     // 写真撮影機能を展開
     ...photoCapture,
+    // メッセージ管理機能を展開
+    ...messageHandler,
     
     // アプリケーション状態
-    error: null,
-    successMessage: null,
     isLoading: false,
     isSendingMail: false,
     sendProgress: null,
@@ -158,23 +161,6 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     
     
     
-    // 共通メール処理ハンドラー
-    handleEmailMessage(message: string) {
-      // 成功メッセージとエラーメッセージを分けて処理
-      if (message.startsWith('✅')) {
-        // 成功メッセージは専用エリアに表示
-        this.successMessage = message.replace('✅ ', '')
-        // 5秒後に自動クリア
-        setTimeout(() => {
-          if (this.successMessage === message.replace('✅ ', '')) {
-            this.successMessage = null
-          }
-        }, TIMEOUTS.SUCCESS_MESSAGE)
-      } else {
-        // エラーメッセージは従来通り
-        this.error = message
-      }
-    },
     
     // 共通進捗処理ハンドラー
     handleEmailProgress(progress: SendProgress) {
@@ -185,28 +171,6 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           this.sendProgress = null
         }, TIMEOUTS.PROGRESS_CLEAR)
       }
-    },
-    
-
-    
-    showError(message: string) {
-      this.error = message
-      // エラーメッセージを長めに表示（10秒）
-      setTimeout(() => {
-        if (this.error === message) {
-          this.error = null
-        }
-      }, TIMEOUTS.ERROR_MESSAGE)
-    },
-    
-    showSuccess(message: string) {
-      this.successMessage = message
-      // 成功メッセージを5秒表示
-      setTimeout(() => {
-        if (this.successMessage === message) {
-          this.successMessage = null
-        }
-      }, TIMEOUTS.SUCCESS_MESSAGE)
     },
     
 

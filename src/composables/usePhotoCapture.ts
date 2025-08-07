@@ -65,17 +65,18 @@ export function usePhotoCapture(): PhotoCaptureComposable {
     // 再撮影
     retake() {
       this.photo = null
+      // エラーメッセージをクリア（成功メッセージは保持）
       if ((this as any).error) {
         (this as any).error = null
       }
-      // successMessageは保持（撮影画面に戻っても表示を続ける）
     },
     
     // ホームに戻る
     returnToHome() {
       this.photo = null
-      if ((this as any).error) {
-        (this as any).error = null
+      // すべてのメッセージをクリア
+      if ((this as any).clearMessages) {
+        (this as any).clearMessages()
       }
     }
   }
