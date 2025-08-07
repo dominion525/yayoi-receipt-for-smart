@@ -1,7 +1,8 @@
 import { emailSender } from './lib/mail'
 import Alpine from 'alpinejs'
 import { SettingsService, AppSettings } from './services/settings.service'
-import { DebugService, DebugLog } from './services/debug.service'
+
+import { useDebugPanel } from './composables/useDebugPanel'
 import { EmailService } from './services/email.service'
 import { SendProgress } from './types/progress.types'
 
@@ -10,15 +11,13 @@ export interface ReceiptAppData {
   error: string | null
   successMessage: string | null
   isLoading: boolean
-  showDebug: boolean
-  debugLogs: DebugLog[]
   showSettings: boolean
   settings: AppSettings
   tempSettings: AppSettings
   isSettingsComplete: boolean
   showCaptureEffect: boolean
   isSendingMail: boolean
-  isCopyingLogs: boolean
+
   isPWAMode: boolean
   userAgent: string
   screenInfo: string
@@ -29,13 +28,18 @@ export interface ReceiptAppData {
 }
 
 export function receiptApp(): ReceiptAppData & Record<string, any> {
+  // デバッグパネル機能を統合
+  const debug = useDebugPanel()
+  
   return {
+    // デバッグ機能を展開
+    ...debug,
+    
+    // アプリケーション状態
     photo: null,
     error: null,
     successMessage: null,
     isLoading: false,
-    showDebug: false,
-    debugLogs: [],
     showSettings: false,
     settings: SettingsService.load(),
     tempSettings: {
@@ -47,7 +51,6 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     },
     showCaptureEffect: false,
     isSendingMail: false,
-    isCopyingLogs: false,
     isPWAMode: false,
     userAgent: '',
     screenInfo: '',
@@ -303,9 +306,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }
     },
     
-    toggleDebug() {
-      this.showDebug = !this.showDebug
-    },
+
     
     showError(message: string) {
       this.error = message
@@ -325,45 +326,6 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
           this.successMessage = null
         }
       }, 5000)
-    },
-    
-    addDebugLog(message: string, type: 'info' | 'success' | 'warning' | 'error' | 'debug' = 'info') {
-      const now = new Date()
-      const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`
-      
-      const log: DebugLog = { time, type, message }
-      this.debugLogs.push(log)
-      
-      // DebugServiceにも記録
-      DebugService.add(message, type)
-      
-      // 最大100件に制限
-      if (this.debugLogs.length > 100) {
-        this.debugLogs.shift()
-      }
-      
-      // 最新のログが見えるようにスクロール
-      this.$nextTick(() => {
-        const logContainer = document.querySelector('#debug-panel .bg-black')
-        if (logContainer) {
-          logContainer.scrollTop = logContainer.scrollHeight
-        }
-      })
-    },
-
-    clearDebugLogs() {
-      this.debugLogs = []
-      DebugService.clear()
-    },
-    
-    async copyDebugLogs() {
-      this.isCopyingLogs = true
-      await DebugService.copyToClipboard()
-      
-      // 成功/失敗に関わらず、視覚的フィードバックのために一定時間待つ
-      setTimeout(() => {
-        this.isCopyingLogs = false
-      }, 2000)
     },
     
     // 設定関連メソッド
