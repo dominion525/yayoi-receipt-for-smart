@@ -3,6 +3,7 @@ import Alpine from 'alpinejs'
 import { SettingsService, AppSettings } from './services/settings.service'
 
 import { useDebugPanel } from './composables/useDebugPanel'
+import { useSettings } from './composables/useSettings'
 import { EmailService } from './services/email.service'
 import { SendProgress } from './types/progress.types'
 
@@ -30,25 +31,20 @@ export interface ReceiptAppData {
 export function receiptApp(): ReceiptAppData & Record<string, any> {
   // デバッグパネル機能を統合
   const debug = useDebugPanel()
+  // 設定管理機能を統合
+  const settingsComposable = useSettings()
   
   return {
     // デバッグ機能を展開
     ...debug,
+    // 設定機能を展開
+    ...settingsComposable,
     
     // アプリケーション状態
     photo: null,
     error: null,
     successMessage: null,
     isLoading: false,
-    showSettings: false,
-    settings: SettingsService.load(),
-    tempSettings: {
-      email: '',
-      apiKey: '',
-      dropboxEmail: '',
-      fromEmail: '',
-      sendPresets: []
-    },
     showCaptureEffect: false,
     isSendingMail: false,
     isPWAMode: false,
@@ -60,11 +56,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     sendProgress: null,
     _initialized: false,
     
-    // 初期化時に設定完了状態をチェック
-    get isSettingsComplete() {
-      return SettingsService.isComplete(this.settings)
-    },
-    
+
     // 初期化処理
     init() {
       // 重複実行を防ぐ
@@ -328,57 +320,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }, 5000)
     },
     
-    // 設定関連メソッド
-    openSettings() {
-      // 現在の設定を一時設定にコピー（深いコピー）
-      this.tempSettings = {
-        email: this.settings.email,
-        apiKey: this.settings.apiKey,
-        dropboxEmail: this.settings.dropboxEmail || '',
-        fromEmail: this.settings.fromEmail || '',
-        sendPresets: JSON.parse(JSON.stringify(this.settings.sendPresets))
-      }
-      this.showSettings = true
-    },
-    
-    closeSettings() {
-      this.showSettings = false
-      // 一時設定をクリア
-      this.tempSettings = {
-        email: '',
-        apiKey: '',
-        dropboxEmail: '',
-        fromEmail: '',
-        sendPresets: []
-      }
-    },
-    
-    async saveSettings() {
-      // プリセットを更新
-      SettingsService.updatePresetsFromTempSettings(this.tempSettings)
-      
-      // 設定データを準備
-      const newSettings: AppSettings = {
-        email: this.tempSettings.email.trim(),
-        apiKey: this.tempSettings.apiKey.trim(),
-        dropboxEmail: this.tempSettings.dropboxEmail?.trim() || '',
-        fromEmail: this.tempSettings.fromEmail?.trim() || '',
-        sendPresets: this.tempSettings.sendPresets
-      }
-      
-      // localStorageに保存
-      if (SettingsService.save(newSettings)) {
-        // 保存成功時のみ状態を更新
-        this.settings = newSettings
-        
-        this.closeSettings()
-        this.addDebugLog('設定をlocalStorageに保存しました', 'success')
-      } else {
-        // 保存失敗時のエラー処理
-        this.showError('設定の保存に失敗しました。ブラウザの設定を確認してください。')
-        this.addDebugLog('localStorage保存エラー', 'error')
-      }
-    },
+
     
     // 複数宛先への送信
     async sendMailToPreset(presetId: string) {
