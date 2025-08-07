@@ -1,3 +1,5 @@
+import { UI } from '../constants/ui'
+
 export interface DebugLog {
   time: string
   type: 'info' | 'success' | 'warning' | 'error' | 'debug'
@@ -71,7 +73,7 @@ export class DebugService {
         // フォールバック: テキストエリアを使用
         return this.copyToClipboardFallback(logText)
       }
-    } catch (error) {
+    } catch (_error) {
       this.add('ログのコピーに失敗しました', 'error')
       // Copy failed
       return false
@@ -85,7 +87,7 @@ export class DebugService {
     const textarea = document.createElement('textarea')
     textarea.value = text
     textarea.style.position = 'absolute'
-    textarea.style.left = '-999999px'
+    textarea.style.left = UI.OFFSCREEN_POSITION
     document.body.appendChild(textarea)
     
     let successful = false
@@ -98,7 +100,7 @@ export class DebugService {
       } else {
         this.add('ログのコピーに失敗しました', 'error')
       }
-    } catch (error) {
+    } catch (_error) {
       this.add('ログのコピーに失敗しました', 'error')
     }
     

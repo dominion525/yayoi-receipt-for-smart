@@ -22,17 +22,22 @@
     <h4 class="text-sm font-semibold mb-2 text-blue-400">動作環境</h4>
     <div class="text-xs space-y-1">
       <div class="ml-2">
+        <span class="text-gray-400">バージョン:</span>
+        <span x-text="versionInfo?.version || '0.3.0'" class="text-green-400 font-bold"></span>
+        <span x-text="`(${versionInfo?.environment || 'unknown'})`" class="text-gray-500 ml-1"></span>
+      </div>
+      <div class="ml-2">
         <span class="text-gray-400">動作モード:</span>
         <span x-text="isPWAMode ? '🎯 PWAモード' : '🌐 ブラウザモード'" 
               :class="isPWAMode ? 'text-green-400 font-bold' : 'text-yellow-400'"></span>
       </div>
-      <div class="ml-2">
-        <span class="text-gray-400">リビジョン:</span>
-        <span x-text="buildRevision" class="text-cyan-400 font-mono"></span>
+      <div class="ml-2" x-show="versionInfo?.gitCommit">
+        <span class="text-gray-400">コミット:</span>
+        <span x-text="versionInfo?.gitCommit || buildRevision" class="text-cyan-400 font-mono"></span>
       </div>
       <div class="ml-2">
         <span class="text-gray-400">ビルド日時:</span>
-        <span x-text="buildTime" class="text-gray-300"></span>
+        <span x-text="versionInfo?.buildTime || buildTime" class="text-gray-300"></span>
       </div>
       <div class="ml-2">
         <span class="text-gray-400">Service Worker:</span>

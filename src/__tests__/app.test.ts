@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { receiptApp, ReceiptAppData } from '../app'
+import { receiptApp } from '../app'
+import { CompleteAppData } from '../types/app'
 import { SettingsService } from '../services/settings.service'
 import { DebugService } from '../services/debug.service'
 import { EmailService } from '../services/email.service'
@@ -41,7 +42,7 @@ vi.mock('../services/email.service', () => ({
 }))
 
 describe('receiptApp', () => {
-  let app: ReceiptAppData & Record<string, any>
+  let app: CompleteAppData
   
   // デフォルト設定
   const mockSettings = {
@@ -370,7 +371,7 @@ describe('receiptApp', () => {
   describe('addDebugLog()メソッド', () => {
     beforeEach(() => {
       vi.useFakeTimers()
-      vi.setSystemTime(new Date('2024-01-15T14:30:45.123Z'))
+      vi.setSystemTime(new Date('2024-01-15T23:30:45.123+09:00'))
     })
 
     afterEach(() => {
@@ -378,6 +379,9 @@ describe('receiptApp', () => {
     })
 
     it('デバッグログが正しく追加される', () => {
+      // JST時刻でシステム時刻を固定（UTC時刻でJST 23:30:45.123相当）
+      vi.setSystemTime(new Date('2024-12-25T23:30:45.123+09:00'))
+      
       const message = 'テストメッセージ'
       const type = 'info'
       
@@ -437,8 +441,8 @@ describe('receiptApp', () => {
     })
 
     it('時刻が正しくフォーマットされる', () => {
-      // 異なる時刻でテスト
-      vi.setSystemTime(new Date('2024-12-25T09:05:03.045Z'))
+      // 異なる時刻でテスト（UTC時刻でJST 18:05:03.045相当）
+      vi.setSystemTime(new Date('2024-12-25T18:05:03.045+09:00'))
       app.addDebugLog('時刻テスト')
       
       expect(app.debugLogs[0]?.time).toBe('18:05:03.045')
@@ -664,6 +668,7 @@ describe('receiptApp', () => {
         'data:image/jpeg;base64,testImageData',
         mockSettings,
         expect.any(Function),
+        expect.any(Function),
         expect.any(Function)
       )
       expect(retakeSpy).toHaveBeenCalledOnce()
@@ -682,7 +687,7 @@ describe('receiptApp', () => {
       expect(retakeSpy).not.toHaveBeenCalled()
     })
 
-    it('成功メッセージは3秒後に自動クリアされる', async () => {
+    it('成功メッセージは5秒後に自動クリアされる', async () => {
       vi.mocked(EmailService.sendMail).mockResolvedValue({
         success: true,
         shouldRetake: true
@@ -691,7 +696,7 @@ describe('receiptApp', () => {
       // sendMailの実行中にエラー表示関数をテスト
       let errorDisplayFunction: (message: string) => void = () => {}
       
-      vi.mocked(EmailService.sendMail).mockImplementation(async (_photo, _settings, _debugLog, showError) => {
+      vi.mocked(EmailService.sendMail).mockImplementation(async (_photo, _settings, _debugLog, showError, _progress) => {
         errorDisplayFunction = showError
         return { success: true, shouldRetake: true }
       })
@@ -700,11 +705,12 @@ describe('receiptApp', () => {
       
       // 成功メッセージを表示
       errorDisplayFunction('✅ 送信完了!')
-      expect(app.error).toBe('✅ 送信完了!')
-      
-      // 3秒経過
-      vi.advanceTimersByTime(3000)
+      expect(app.successMessage).toBe('送信完了!')  // ✅が除去される
       expect(app.error).toBe(null)
+      
+      // 5秒経過
+      vi.advanceTimersByTime(5000)
+      expect(app.successMessage).toBe(null)
     })
 
     it('通常のエラーメッセージは自動クリアされない', async () => {
@@ -756,6 +762,7 @@ describe('receiptApp', () => {
         'main',
         'data:image/jpeg;base64,testImageData',
         mockSettings,
+        expect.any(Function),
         expect.any(Function),
         expect.any(Function)
       )
@@ -975,7 +982,7 @@ describe('receiptApp', () => {
       // エラー表示関数をキャプチャするためのテスト
       let errorDisplayFunction: (message: string) => void = () => {}
       
-      vi.mocked(EmailService.sendMail).mockImplementation(async (_photo, _settings, _debugLog, showError) => {
+      vi.mocked(EmailService.sendMail).mockImplementation(async (_photo, _settings, _debugLog, showError, _progress) => {
         errorDisplayFunction = showError
         return { success: true, shouldRetake: true }
       })
@@ -985,15 +992,16 @@ describe('receiptApp', () => {
       
       // 成功メッセージを表示
       errorDisplayFunction('✅ 成功メッセージ')
-      expect(app.error).toBe('✅ 成功メッセージ')
-      
-      // 3秒経過
-      vi.advanceTimersByTime(3000)
+      expect(app.successMessage).toBe('成功メッセージ')
       expect(app.error).toBe(null)
+      
+      // 5秒経過
+      vi.advanceTimersByTime(5000)
+      expect(app.successMessage).toBe(null)
     })
 
     it('sendMailToPreset内での成功メッセージ自動クリア', async () => {
-      vi.mocked(EmailService.sendMailToPreset).mockImplementation(async (_presetId, _photo, _settings, _debugLog, showError) => {
+      vi.mocked(EmailService.sendMailToPreset).mockImplementation(async (_presetId, _photo, _settings, _debugLog, showError, _progress) => {
         showError('✅ プリセット送信成功')
         return { success: true, shouldRetake: false }
       })
@@ -1001,18 +1009,19 @@ describe('receiptApp', () => {
       app.photo = 'data:image/jpeg;base64,test'
       await app.sendMailToPreset('main')
       
-      expect(app.error).toBe('✅ プリセット送信成功')
-      
-      // 3秒経過
-      vi.advanceTimersByTime(3000)
+      expect(app.successMessage).toBe('プリセット送信成功')
       expect(app.error).toBe(null)
+      
+      // 5秒経過
+      vi.advanceTimersByTime(5000)
+      expect(app.successMessage).toBe(null)
     })
 
     it('エラーメッセージが途中で変更された場合は自動クリアしない', async () => {
       // エラー表示関数をキャプチャするためのテスト
       let errorDisplayFunction: (message: string) => void = () => {}
       
-      vi.mocked(EmailService.sendMail).mockImplementation(async (_photo, _settings, _debugLog, showError) => {
+      vi.mocked(EmailService.sendMail).mockImplementation(async (_photo, _settings, _debugLog, showError, _progress) => {
         errorDisplayFunction = showError
         return { success: true, shouldRetake: true }
       })
@@ -1022,14 +1031,14 @@ describe('receiptApp', () => {
       
       // 成功メッセージを表示
       errorDisplayFunction('✅ 成功メッセージ')
-      expect(app.error).toBe('✅ 成功メッセージ')
+      expect(app.successMessage).toBe('成功メッセージ')
       
       // メッセージを途中で変更
-      app.error = '別のエラー'
+      app.successMessage = '別のメッセージ'
       
-      // 3秒経過
-      vi.advanceTimersByTime(3000)
-      expect(app.error).toBe('別のエラー')
+      // 5秒経過
+      vi.advanceTimersByTime(5000)
+      expect(app.successMessage).toBe('別のメッセージ')
     })
   })
 
@@ -1065,7 +1074,7 @@ describe('receiptApp', () => {
       try {
         // 新しいイベントリスナーを追加して332-333行目の処理を再現
         const alpineInitHandler = () => {
-          // @ts-ignore - app.ts 332行目のコードを直接実行
+          // @ts-expect-error - app.ts 332行目のコードを直接実行
           Alpine.data('receiptApp', receiptApp)
         }
         
@@ -1302,6 +1311,90 @@ describe('receiptApp', () => {
         // クリーンアップ
         delete (navigator as any).serviceWorker
       })
+    })
+  })
+
+  describe('handleEmailProgress', () => {
+    beforeEach(() => {
+      vi.clearAllTimers()
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('進捗状態を設定する', () => {
+      const app = receiptApp()
+      const progress = {
+        total: 3,
+        sent: 1,
+        failed: 0,
+        currentRecipients: ['test@example.com'],
+        status: 'sending' as const,
+        percentage: 33
+      }
+      
+      app.handleEmailProgress(progress)
+      
+      expect(app.sendProgress).toBe(progress)
+    })
+
+    it('completed時に3秒後にクリアする', () => {
+      const app = receiptApp()
+      const progress = {
+        total: 2,
+        sent: 2,
+        failed: 0,
+        currentRecipients: [],
+        status: 'completed' as const,
+        percentage: 100
+      }
+      
+      app.handleEmailProgress(progress)
+      expect(app.sendProgress).toBe(progress)
+      
+      // 3秒経過
+      vi.advanceTimersByTime(3000)
+      expect(app.sendProgress).toBe(null)
+    })
+
+    it('error時に3秒後にクリアする', () => {
+      const app = receiptApp()
+      const progress = {
+        total: 2,
+        sent: 1,
+        failed: 1,
+        currentRecipients: [],
+        status: 'error' as const,
+        percentage: 100
+      }
+      
+      app.handleEmailProgress(progress)
+      expect(app.sendProgress).toBe(progress)
+      
+      // 3秒経過
+      vi.advanceTimersByTime(3000)
+      expect(app.sendProgress).toBe(null)
+    })
+
+    it('sending時は自動クリアしない', () => {
+      const app = receiptApp()
+      const progress = {
+        total: 3,
+        sent: 1,
+        failed: 0,
+        currentRecipients: ['test2@example.com', 'test3@example.com'],
+        status: 'sending' as const,
+        percentage: 33
+      }
+      
+      app.handleEmailProgress(progress)
+      expect(app.sendProgress).toBe(progress)
+      
+      // 3秒経過してもクリアされない
+      vi.advanceTimersByTime(3000)
+      expect(app.sendProgress).toBe(progress)
     })
   })
 })

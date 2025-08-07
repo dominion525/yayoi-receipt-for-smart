@@ -184,7 +184,7 @@ export class SettingsService {
       settings.dropboxEmail
     ].filter((email): email is string => !!email)
     
-    let allPreset = settings.sendPresets.find(p => p.id === 'all')
+    const allPreset = settings.sendPresets.find(p => p.id === 'all')
     
     if (allRecipients.length > 1) {
       if (!allPreset) {

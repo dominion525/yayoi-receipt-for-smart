@@ -35,9 +35,9 @@ describe('DebugService', () => {
     DebugService.clear()
     // 最大ログ数をデフォルトに戻す
     DebugService.setMaxLogs(100)
-    // 時刻を固定するためのモック
+    // 時刻を固定するためのモック（JST 21:30:45.123相当のUTC時刻）
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2024-01-01T12:30:45.123Z'))
+    vi.setSystemTime(new Date('2024-01-01T21:30:45.123+09:00'))
   })
 
   afterEach(() => {
@@ -69,7 +69,7 @@ describe('DebugService', () => {
       DebugService.add('時刻テスト')
       
       const logs = DebugService.getAll()
-      expect(logs[0]?.time).toBe('21:30:45.123') // JST (UTC+9)
+      expect(logs[0]?.time).toBe('21:30:45.123') // JST時刻
     })
 
     it('異なるログタイプを正常に処理する', () => {
