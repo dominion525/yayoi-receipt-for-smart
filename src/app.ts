@@ -4,6 +4,7 @@ import { SettingsService, AppSettings } from './services/settings.service'
 
 import { useDebugPanel } from './composables/useDebugPanel'
 import { useSettings } from './composables/useSettings'
+import { usePWADetection } from './composables/usePWADetection'
 import { EmailService } from './services/email.service'
 import { SendProgress } from './types/progress.types'
 
@@ -33,12 +34,16 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
   const debug = useDebugPanel()
   // 設定管理機能を統合
   const settingsComposable = useSettings()
+  // PWA検出機能を統合
+  const pwaDetection = usePWADetection()
   
   return {
     // デバッグ機能を展開
     ...debug,
     // 設定機能を展開
     ...settingsComposable,
+    // PWA検出機能を展開
+    ...pwaDetection,
     
     // アプリケーション状態
     photo: null,
@@ -47,12 +52,6 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
     isLoading: false,
     showCaptureEffect: false,
     isSendingMail: false,
-    isPWAMode: false,
-    userAgent: '',
-    screenInfo: '',
-    serviceWorkerStatus: 'checking...',
-    buildRevision: '',
-    buildTime: '',
     sendProgress: null,
     _initialized: false,
     
@@ -65,56 +64,10 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       }
       this._initialized = true
       
-      // ビルド情報を取得
-      try {
-        this.buildRevision = __BUILD_REVISION__
-        this.buildTime = __BUILD_TIME__
-      } catch (error) {
-        this.buildRevision = 'dev'
-        this.buildTime = 'development'
-      }
+      // PWA関連の初期化
+      this.initPWADetection()
       
-      // PWAモード検出
-      this.detectPWAMode()
-      
-      // 動作環境情報を取得
-      this.userAgent = navigator.userAgent
-      this.screenInfo = `${window.innerWidth} x ${window.innerHeight} (${window.devicePixelRatio}x)`
-      
-      // Service Worker状態チェック
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.ready.then(() => {
-          this.serviceWorkerStatus = '✅ 有効'
-          this.addDebugLog('Service Worker: 有効', 'success')
-          
-          // 明示的に更新をチェック（PWA起動時に最新版を確認）
-          navigator.serviceWorker.getRegistration().then((registration) => {
-            if (registration) {
-              registration.update()
-              this.addDebugLog('最新版をチェック中...', 'info')
-            }
-          })
-          
-          // Service Workerからのメッセージを受信
-          navigator.serviceWorker.addEventListener('message', (event) => {
-            if (event.data && event.data.type === 'SW_ACTIVATED') {
-              this.addDebugLog('🔄 Service Worker更新完了', 'success')
-              // 必要に応じてページをリロード
-              setTimeout(() => {
-                if (confirm('新しいバージョンが利用可能です。ページをリロードしますか？')) {
-                  window.location.reload()
-                }
-              }, 1000)
-            }
-          })
-        }).catch(() => {
-          this.serviceWorkerStatus = '❌ エラー'
-          this.addDebugLog('Service Worker: エラー', 'error')
-        })
-      } else {
-        this.serviceWorkerStatus = '❌ 未対応'
-      }
-      
+
       // 保存されたAPIキーと送信元アドレスがあれば設定
       if (this.settings.apiKey) {
         emailSender.setApiKey(this.settings.apiKey)
@@ -164,27 +117,7 @@ export function receiptApp(): ReceiptAppData & Record<string, any> {
       this.addDebugLog(`プリセット数: ${activeCount}個がアクティブ`, 'info')
     },
     
-    // PWAモード検出
-    detectPWAMode() {
-      // 方法1: display-mode メディアクエリ
-      if (window.matchMedia('(display-mode: standalone)').matches) {
-        this.isPWAMode = true
-        this.addDebugLog('🎯 PWAモードで起動しました', 'success')
-        return
-      }
-      
-      // 方法2: iOS Safari の standalone プロパティ
-      if ((window.navigator as any).standalone === true) {
-        this.isPWAMode = true
-        this.addDebugLog('🎯 PWAモード（iOS）で起動しました', 'success')
-        return
-      }
-      
-      // ブラウザモード
-      this.isPWAMode = false
-      this.addDebugLog('🌐 ブラウザモードで起動しました', 'info')
-    },
-    
+
     retake() {
       this.photo = null
       this.error = null
