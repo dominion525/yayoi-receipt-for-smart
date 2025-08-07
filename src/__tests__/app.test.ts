@@ -1071,7 +1071,7 @@ describe('receiptApp', () => {
       try {
         // 新しいイベントリスナーを追加して332-333行目の処理を再現
         const alpineInitHandler = () => {
-          // @ts-ignore - app.ts 332行目のコードを直接実行
+          // @ts-expect-error - app.ts 332行目のコードを直接実行
           Alpine.data('receiptApp', receiptApp)
         }
         

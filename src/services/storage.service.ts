@@ -14,7 +14,7 @@ export class StorageService {
       const serialized = JSON.stringify(value)
       localStorage.setItem(key, serialized)
       return true
-    } catch (error) {
+    } catch (_error) {
       // Failed to save to localStorage
       return false
     }
@@ -33,7 +33,7 @@ export class StorageService {
         return defaultValue
       }
       return JSON.parse(item) as T
-    } catch (error) {
+    } catch (_error) {
       // Failed to get from localStorage
       return defaultValue
     }
@@ -48,7 +48,7 @@ export class StorageService {
     try {
       localStorage.removeItem(key)
       return true
-    } catch (error) {
+    } catch (_error) {
       // Failed to remove from localStorage
       return false
     }
@@ -62,7 +62,7 @@ export class StorageService {
   static has(key: string): boolean {
     try {
       return localStorage.getItem(key) !== null
-    } catch (error) {
+    } catch (_error) {
       // Failed to check localStorage
       return false
     }
@@ -76,7 +76,7 @@ export class StorageService {
     try {
       localStorage.clear()
       return true
-    } catch (error) {
+    } catch (_error) {
       // Failed to clear localStorage
       return false
     }
@@ -91,7 +91,7 @@ export class StorageService {
       try {
         const estimate = await navigator.storage.estimate()
         return (estimate.quota || 0) - (estimate.usage || 0)
-      } catch (error) {
+      } catch (_error) {
         // Failed to estimate storage
         return -1
       }

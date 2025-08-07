@@ -7,6 +7,9 @@ declare global {
     __BUILD_REVISION__: string
     __BUILD_TIME__: string
   }
+  interface Navigator {
+    standalone?: boolean
+  }
 }
 
 export interface PWADetectionComposable {
@@ -44,7 +47,7 @@ export function usePWADetection(): PWADetectionComposable {
       }
       
       // 方法2: iOS Safari の standalone プロパティ
-      if ((window.navigator as any).standalone === true) {
+      if (window.navigator.standalone === true) {
         this.isPWAMode = true
         const app = this as CompleteAppData
         if (app.addDebugLog) {
@@ -67,7 +70,7 @@ export function usePWADetection(): PWADetectionComposable {
       try {
         this.buildRevision = window.__BUILD_REVISION__ || 'dev'
         this.buildTime = window.__BUILD_TIME__ || 'development'
-      } catch (error) {
+      } catch (_error) {
         this.buildRevision = 'dev'
         this.buildTime = 'development'
       }

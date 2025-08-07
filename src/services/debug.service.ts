@@ -73,7 +73,7 @@ export class DebugService {
         // フォールバック: テキストエリアを使用
         return this.copyToClipboardFallback(logText)
       }
-    } catch (error) {
+    } catch (_error) {
       this.add('ログのコピーに失敗しました', 'error')
       // Copy failed
       return false
@@ -100,7 +100,7 @@ export class DebugService {
       } else {
         this.add('ログのコピーに失敗しました', 'error')
       }
-    } catch (error) {
+    } catch (_error) {
       this.add('ログのコピーに失敗しました', 'error')
     }
     
