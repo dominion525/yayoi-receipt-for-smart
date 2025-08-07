@@ -5,6 +5,7 @@ import { PWADetectionComposable } from '../composables/usePWADetection'
 import { PhotoCaptureComposable } from '../composables/usePhotoCapture'
 import { MessageComposable } from '../composables/useMessage'
 import { InitializerComposable } from '../composables/useInitializer'
+import { BuildInfo } from '../utils/version'
 
 /**
  * 全てのComposableを統合したAlpine.jsアプリケーション型
@@ -19,6 +20,10 @@ export type CompleteAppData = DebugPanelData &
   isLoading: boolean
   isSendingMail: boolean
   sendProgress: SendProgress | null
+  
+  // バージョン情報
+  appVersion: string
+  versionInfo: BuildInfo
   
   // Alpine.js固有のメソッド
   $nextTick?: (callback: () => void) => void

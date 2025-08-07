@@ -1,13 +1,21 @@
 import { defineConfig } from 'vite'
-import { copyFileSync } from 'fs'
+import { copyFileSync, readFileSync } from 'fs'
 import { resolve } from 'path'
 import { execSync } from 'child_process'
 
-// Git リビジョンとビルド時刻を取得
+// ビルド情報を取得
 function getBuildInfo() {
   try {
-    const revision = execSync('git rev-parse --short HEAD').toString().trim()
-    const buildTime = new Date().toLocaleString('ja-JP', {
+    // package.jsonからバージョンを取得
+    const packageJson = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'))
+    const version = packageJson.version
+    
+    // Gitリビジョンを取得
+    const gitCommit = execSync('git rev-parse --short HEAD').toString().trim()
+    
+    // ビルド時刻を取得
+    const buildTimeISO = new Date().toISOString()
+    const buildTimeJP = new Date().toLocaleString('ja-JP', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -16,10 +24,24 @@ function getBuildInfo() {
       second: '2-digit',
       hour12: false
     })
-    return { revision, buildTime }
+    
+    return { 
+      version,
+      gitCommit,
+      buildTime: buildTimeISO,
+      revision: gitCommit, // 後方互換性のため
+      buildTimeJP // 日本語表示用
+    }
   } catch (error) {
-    console.warn('Git revision not available:', error)
-    return { revision: 'unknown', buildTime: new Date().toISOString() }
+    console.warn('Build info not available:', error)
+    const fallbackTime = new Date()
+    return { 
+      version: '0.3.0',
+      gitCommit: 'unknown',
+      buildTime: fallbackTime.toISOString(),
+      revision: 'unknown',
+      buildTimeJP: fallbackTime.toLocaleString('ja-JP')
+    }
   }
 }
 
@@ -28,8 +50,9 @@ const buildInfo = getBuildInfo()
 export default defineConfig({
   define: {
     '__BUILD_REVISION__': JSON.stringify(buildInfo.revision),
-    '__BUILD_TIME__': JSON.stringify(buildInfo.buildTime),
+    '__BUILD_TIME__': JSON.stringify(buildInfo.buildTimeJP),
   },
+  envPrefix: ['VITE_'],
   server: {
     host: true,
     port: 5173,

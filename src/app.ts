@@ -11,6 +11,7 @@ import { EmailService } from './services/email.service'
 import { SendProgress } from './types/progress.types'
 import { TIMEOUTS } from './constants/timeouts'
 import { CompleteAppData } from './types/app'
+import { getBuildInfo, getShortVersion } from './utils/version'
 
 export interface ReceiptAppData {
   photo: string | null
@@ -46,6 +47,10 @@ export function receiptApp(): CompleteAppData {
   const messageHandler = useMessage()
   // 初期化処理を統合
   const initializer = useInitializer()
+
+  // バージョン情報を取得
+  const buildInfo = getBuildInfo()
+  const shortVersion = getShortVersion()
   
   return {
     // デバッグ機能を展開
@@ -65,6 +70,10 @@ export function receiptApp(): CompleteAppData {
     isLoading: false,
     isSendingMail: false,
     sendProgress: null,
+    
+    // バージョン情報
+    appVersion: shortVersion,
+    versionInfo: buildInfo,
     
     async sendMail() {
       // 設定が完了しているか確認
