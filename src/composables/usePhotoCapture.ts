@@ -31,16 +31,8 @@ export function usePhotoCapture(): PhotoCaptureComposable {
         reader.onload = (e) => {
           const result = e.target?.result
           if (result && typeof result === 'string') {
-            // キャプチャエフェクトを表示
-            this.showCaptureEffect = true
-            
-            // 画像を設定
+            // 画像を設定（標準カメラアプリ自体がフィードバックを提供するのでエフェクトは不要）
             this.photo = result
-            
-            // エフェクトを非表示
-            setTimeout(() => {
-              this.showCaptureEffect = false
-            }, TIMEOUTS.CAPTURE_EFFECT)
             
             if (app.addDebugLog) {
               app.addDebugLog('標準カメラで撮影完了', 'success')
@@ -68,7 +60,6 @@ export function usePhotoCapture(): PhotoCaptureComposable {
     retake() {
       const app = this as CompleteAppData
       app.photo = null
-      app.showCaptureEffect = false
       
       // エラーメッセージをクリア
       if (app.error) {
