@@ -19,22 +19,20 @@ export function usePhotoCapture(): PhotoCaptureComposable {
     handleCameraClick() {
       const app = this as CompleteAppData
       
-      // 先に画面を切り替える
-      this.isCameraActive = true
-      // プレースホルダー画像をセット（透明な1x1のbase64画像）
-      this.photo = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-      
       if (app.addDebugLog) {
-        app.addDebugLog('カメラ起動準備中...', 'info')
+        app.addDebugLog('カメラ起動中...', 'info')
       }
       
-      // 少し遅延させてからカメラを起動（画面遷移を先に完了させる）
-      setTimeout(() => {
-        const cameraInput = document.getElementById('camera-input') as HTMLInputElement
-        if (cameraInput) {
-          cameraInput.click()
-        }
-      }, 100)
+      // カメラを即座に起動
+      const cameraInput = document.getElementById('camera-input') as HTMLInputElement
+      if (cameraInput) {
+        cameraInput.click()
+        
+        // カメラが起動したら即座に画面を切り替え（iOS/Androidで遅延なし）
+        // プレースホルダー画像をセット（透明な1x1のbase64画像）
+        this.photo = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+        this.isCameraActive = true
+      }
     },
     
     // 標準カメラアプリでの撮影処理
