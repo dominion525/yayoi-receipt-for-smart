@@ -35,21 +35,3 @@ export function getBuildInfo(): BuildInfo {
 export function getShortVersion(): string {
   return `v${packageInfo.version}`
 }
-
-/**
- * フォーマット済みのバージョン情報を取得 (デバッグパネル用)
- */
-export function getVersionDetails(): Record<string, string> {
-  const buildInfo = getBuildInfo()
-  const details: Record<string, string> = {
-    'バージョン': buildInfo.version,
-    '環境': buildInfo.environment,
-    'ビルド日時': new Date(buildInfo.buildTime).toLocaleString('ja-JP')
-  }
-
-  if (buildInfo.gitCommit) {
-    details['コミット'] = buildInfo.gitCommit.substring(0, 8)
-  }
-
-  return details
-}

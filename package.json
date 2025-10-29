@@ -16,6 +16,7 @@
     "dev:all": "npm run proxy & npm run dev"
   },
   "devDependencies": {
+    "@eslint/js": "^9.38.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^22.10.7",
     "@vitest/coverage-v8": "^3.2.4",

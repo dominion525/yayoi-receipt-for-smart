@@ -34,14 +34,3 @@ export interface SendProgress {
  * 進捗更新コールバック関数の型
  */
 export type ProgressCallback = (progress: SendProgress) => void
-
-/**
- * 送信結果の詳細
- */
-export interface SendResult {
-  recipient: string
-  success: boolean
-  messageId?: string
-  error?: string
-  timestamp: number
-}
