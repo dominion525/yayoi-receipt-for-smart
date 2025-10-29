@@ -1,7 +1,7 @@
 import { emailSender } from '../lib/mail'
 import { AppSettings } from './settings.service'
 import { getErrorMessage } from '../utils/error'
-import { ProgressCallback, SendResult } from '../types/progress.types'
+import { ProgressCallback } from '../types/progress.types'
 
 export interface EmailResult {
   success: number
@@ -54,10 +54,8 @@ export class EmailService {
     }
     
     addDebugLog(`レシート画像を${uniqueRecipients.length}件の宛先に送信中...`, 'info')
-    
+
     const results = { success: 0, failed: 0 }
-    const errorMessages: string[] = []
-    const sendResults: SendResult[] = []
     
     // 初期進捗状態を通知
     if (onProgress) {
@@ -72,125 +70,76 @@ export class EmailService {
     }
     
     try {
-      // 並行送信の実装
-      const promises = uniqueRecipients.map(async (recipient) => {
-        addDebugLog(`${recipient}に送信中...`, 'info')
-        
-        try {
-          const result = await emailSender.sendReceipt(recipient, photo)
-          
-          if (result.success) {
-            const sendResult: SendResult = {
-              recipient,
-              success: true,
-              messageId: result.messageId,
-              timestamp: Date.now()
-            }
-            sendResults.push(sendResult)
-            addDebugLog(`${recipient}への送信成功: ID=${result.messageId}`, 'success')
-            return sendResult
-          } else {
-            let errorDetail = `${recipient}への送信失敗`
-            if (result.error) {
-              errorDetail += `: ${result.error}`
-            }
-            
-            // RESEND APIのエラー詳細を解析
-            if (result.details && typeof result.details === 'object' && 'name' in result.details) {
-              const details = result.details as { name?: string; message?: string }
-              if (details.name === 'validation_error') {
-                errorDetail += '\n（メールアドレスが無効です）'
-              } else if (details.name === 'invalid_to_address') {
-                errorDetail += '\n（送信先アドレスが無効です）'
-              } else if (details.message) {
-                errorDetail += `\n（${details.message}）`
-              }
-            }
-            
-            const sendResult: SendResult = {
-              recipient,
-              success: false,
-              error: errorDetail,
-              timestamp: Date.now()
-            }
-            sendResults.push(sendResult)
-            errorMessages.push(errorDetail)
-            addDebugLog(`${recipient}への送信失敗: ${result.error}`, 'error')
-            return sendResult
-          }
-        } catch (error) {
-          const errorMsg = `${recipient}への送信エラー: ${getErrorMessage(error)}`
-          const sendResult: SendResult = {
-            recipient,
-            success: false,
-            error: errorMsg,
-            timestamp: Date.now()
-          }
-          sendResults.push(sendResult)
-          errorMessages.push(errorMsg)
-          addDebugLog(errorMsg, 'error')
-          return sendResult
+      addDebugLog(`${uniqueRecipients.length}件の宛先に一括送信中...`, 'info')
+
+      const result = await emailSender.sendReceipt(uniqueRecipients, photo)
+
+      if (result.success) {
+        results.success = uniqueRecipients.length
+        addDebugLog(`送信成功: ID=${result.messageId}`, 'success')
+
+        // 最終進捗状態を通知
+        if (onProgress) {
+          onProgress({
+            total: uniqueRecipients.length,
+            sent: uniqueRecipients.length,
+            failed: 0,
+            currentRecipients: [],
+            status: 'completed',
+            percentage: 100
+          })
         }
-      })
-      
-      // すべての送信処理を並行実行し、結果を待つ
-      const allResults = await Promise.allSettled(promises)
-      
-      // 結果を集計
-      allResults.forEach((result) => {
-        if (result.status === 'fulfilled') {
-          const sendResult = result.value
-          if (sendResult.success) {
-            results.success++
-          } else {
-            results.failed++
+
+        return { success: true, shouldRetake: true }
+      } else {
+        results.failed = uniqueRecipients.length
+        let errorMsg = `送信失敗: ${result.error || '不明なエラー'}`
+
+        // RESEND APIのエラー詳細を解析
+        if (result.details && typeof result.details === 'object' && 'name' in result.details) {
+          const details = result.details as { name?: string; message?: string }
+          if (details.name === 'validation_error') {
+            errorMsg += '\n（メールアドレスが無効です）'
+          } else if (details.name === 'invalid_to_address') {
+            errorMsg += '\n（送信先アドレスが無効です）'
+          } else if (details.message) {
+            errorMsg += `\n（${details.message}）`
           }
-          
-          // 進捗を更新
-          if (onProgress) {
-            const completed = results.success + results.failed
-            onProgress({
-              total: uniqueRecipients.length,
-              sent: results.success,
-              failed: results.failed,
-              currentRecipients: uniqueRecipients.slice(completed),
-              status: completed < uniqueRecipients.length ? 'sending' : 'completed',
-              percentage: Math.round((completed / uniqueRecipients.length) * 100)
-            })
-          }
-        } else {
-          // Promise自体が reject された場合（通常はない）
-          results.failed++
         }
-      })
-      
+
+        addDebugLog(errorMsg, 'error')
+
+        // 最終進捗状態を通知
+        if (onProgress) {
+          onProgress({
+            total: uniqueRecipients.length,
+            sent: 0,
+            failed: uniqueRecipients.length,
+            currentRecipients: [],
+            status: 'error',
+            percentage: 100
+          })
+        }
+
+        showError(errorMsg)
+        return { success: false, shouldRetake: false }
+      }
+    } catch (error) {
+      const errorMessage = getErrorMessage(error)
+      addDebugLog(`予期しないエラー: ${errorMessage}`, 'error')
+
       // 最終進捗状態を通知
       if (onProgress) {
         onProgress({
           total: uniqueRecipients.length,
-          sent: results.success,
-          failed: results.failed,
+          sent: 0,
+          failed: uniqueRecipients.length,
           currentRecipients: [],
-          status: results.failed > 0 ? 'error' : 'completed',
+          status: 'error',
           percentage: 100
         })
       }
-      
-      // 結果を表示
-      if (results.failed > 0) {
-        // エラーメッセージをまとめて表示
-        const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
-        const fullError = summary + '\n\n' + errorMessages.join('\n\n')
-        showError(fullError)
-        return { success: false, shouldRetake: false }
-      } else {
-        // 全成功の場合（results.success > 0 && results.failed === 0）
-        return { success: true, shouldRetake: true }
-      }
-      
-    } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      addDebugLog(`予期しないエラー: ${errorMessage}`, 'error')
+
       showError(`予期しないエラーが発生しました: ${errorMessage}`)
       return { success: false, shouldRetake: false }
     }
@@ -225,10 +174,8 @@ export class EmailService {
     preset.recipients.forEach(r => {
       addDebugLog(`  - ${r}`, 'debug')
     })
-    
+
     const results = { success: 0, failed: 0 }
-    const errorMessages: string[] = []
-    const sendResults: SendResult[] = []
     
     // APIキーの事前確認
     if (!settings.apiKey) {
@@ -250,139 +197,88 @@ export class EmailService {
     }
     
     try {
-      // 並行送信の実装
-      const promises = preset.recipients.map(async (recipient) => {
-        addDebugLog(`${recipient}に送信中...`, 'info')
-        
-        try {
-          const result = await emailSender.sendReceipt(recipient, photo)
-          
-          if (result.success) {
-            const sendResult: SendResult = {
-              recipient,
-              success: true,
-              messageId: result.messageId,
-              timestamp: Date.now()
-            }
-            sendResults.push(sendResult)
-            addDebugLog(`${recipient}への送信成功: ID=${result.messageId}`, 'success')
-            return sendResult
-          } else {
-            // エラーメッセージを構築
-            let errorDetail = `${recipient}への送信失敗`
-            if (result.error) {
-              errorDetail += `: ${result.error}`
-            }
-            
-            // RESEND APIのエラー詳細を解析
-            if (result.details) {
-              if (typeof result.details === 'object' && 'name' in result.details) {
-                const details = result.details as { name?: string; message?: string }
-                if (details.name === 'validation_error') {
-                  errorDetail += '\n（メールアドレスが無効です）'
-                } else if (details.name === 'invalid_to_address') {
-                  errorDetail += '\n（送信先アドレスが無効です）'
-                } else if (details.message) {
-                  errorDetail += `\n（${details.message}）`
-                }
-              }
-            }
-            
-            // Dropboxのメールアドレス形式を確認
-            if (presetId === 'dropbox' && recipient.includes('@')) {
-              if (!recipient.endsWith('@getdropbox.com') && !recipient.endsWith('@addtodropbox.com')) {
-                errorDetail += '\n\n⚠️ ヒント: Dropboxのメールアドレスは通常 @getdropbox.com または @addtodropbox.com で終わります'
-              }
-            }
-            
-            const sendResult: SendResult = {
-              recipient,
-              success: false,
-              error: errorDetail,
-              timestamp: Date.now()
-            }
-            sendResults.push(sendResult)
-            errorMessages.push(errorDetail)
-            addDebugLog(`${recipient}への送信失敗: ${result.error}`, 'error')
-            return sendResult
-          }
-        } catch (error) {
-          const errorMsg = `${recipient}への送信エラー: ${getErrorMessage(error)}`
-          const sendResult: SendResult = {
-            recipient,
-            success: false,
-            error: errorMsg,
-            timestamp: Date.now()
-          }
-          sendResults.push(sendResult)
-          errorMessages.push(errorMsg)
-          addDebugLog(errorMsg, 'error')
-          return sendResult
+      addDebugLog(`${preset.recipients.length}件の宛先に一括送信中...`, 'info')
+
+      const result = await emailSender.sendReceipt(preset.recipients, photo)
+
+      if (result.success) {
+        results.success = preset.recipients.length
+        addDebugLog(`送信成功: ID=${result.messageId}`, 'success')
+
+        // 最終進捗状態を通知
+        if (onProgress) {
+          onProgress({
+            total: preset.recipients.length,
+            sent: preset.recipients.length,
+            failed: 0,
+            currentRecipients: [],
+            status: 'completed',
+            percentage: 100
+          })
         }
-      })
-      
-      // すべての送信処理を並行実行し、結果を待つ
-      const allResults = await Promise.allSettled(promises)
-      
-      // 結果を集計
-      allResults.forEach((result) => {
-        if (result.status === 'fulfilled') {
-          const sendResult = result.value
-          if (sendResult.success) {
-            results.success++
-          } else {
-            results.failed++
+
+        return { success: true, shouldRetake: true }
+      } else {
+        results.failed = preset.recipients.length
+        let errorMsg = `送信失敗: ${result.error || '不明なエラー'}`
+
+        // RESEND APIのエラー詳細を解析
+        if (result.details && typeof result.details === 'object' && 'name' in result.details) {
+          const details = result.details as { name?: string; message?: string }
+          if (details.name === 'validation_error') {
+            errorMsg += '\n（メールアドレスが無効です）'
+          } else if (details.name === 'invalid_to_address') {
+            errorMsg += '\n（送信先アドレスが無効です）'
+          } else if (details.message) {
+            errorMsg += `\n（${details.message}）`
           }
-          
-          // 進捗を更新
-          if (onProgress) {
-            const completed = results.success + results.failed
-            onProgress({
-              total: preset.recipients.length,
-              sent: results.success,
-              failed: results.failed,
-              currentRecipients: preset.recipients.slice(completed),
-              status: completed < preset.recipients.length ? 'sending' : 'completed',
-              percentage: Math.round((completed / preset.recipients.length) * 100)
-            })
-          }
-        } else {
-          // Promise自体が reject された場合（通常はない）
-          results.failed++
         }
-      })
-      
+
+        // Dropboxのメールアドレス形式を確認
+        if (presetId === 'dropbox' && preset.recipients.some(r => r.includes('@'))) {
+          const invalidDropboxEmails = preset.recipients.filter(r =>
+            r.includes('@') &&
+            !r.endsWith('@getdropbox.com') &&
+            !r.endsWith('@addtodropbox.com')
+          )
+          if (invalidDropboxEmails.length > 0) {
+            errorMsg += '\n\n⚠️ ヒント: Dropboxのメールアドレスは通常 @getdropbox.com または @addtodropbox.com で終わります'
+          }
+        }
+
+        addDebugLog(errorMsg, 'error')
+
+        // 最終進捗状態を通知
+        if (onProgress) {
+          onProgress({
+            total: preset.recipients.length,
+            sent: 0,
+            failed: preset.recipients.length,
+            currentRecipients: [],
+            status: 'error',
+            percentage: 100
+          })
+        }
+
+        showError(errorMsg)
+        return { success: false, shouldRetake: false }
+      }
+    } catch (error) {
+      const errorMessage = getErrorMessage(error)
+      addDebugLog(`予期しないエラー: ${errorMessage}`, 'error')
+
       // 最終進捗状態を通知
       if (onProgress) {
         onProgress({
           total: preset.recipients.length,
-          sent: results.success,
-          failed: results.failed,
+          sent: 0,
+          failed: preset.recipients.length,
           currentRecipients: [],
-          status: results.failed > 0 ? 'error' : 'completed',
+          status: 'error',
           percentage: 100
         })
       }
-      
-      // 結果を表示
-      if (results.failed > 0) {
-        // エラーメッセージをまとめて表示
-        const summary = `送信結果: 成功${results.success}件, 失敗${results.failed}件`
-        const fullError = summary + '\n\n' + errorMessages.join('\n\n')
-        
-        showError(fullError)
-        return { success: false, shouldRetake: false }
-      } else if (results.success > 0) {
-        // 全成功の場合
-        return { success: true, shouldRetake: true }
-      } else {
-        // 送信件数が0件の場合（空の受信者リスト等）
-        return { success: true, shouldRetake: false }
-      }
-      
-    } catch (error) {
-      const errorMessage = getErrorMessage(error)
-      addDebugLog(`予期しないエラー: ${errorMessage}`, 'error')
+
       showError(`予期しないエラーが発生しました: ${errorMessage}`)
       return { success: false, shouldRetake: false }
     }
