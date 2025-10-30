@@ -72,25 +72,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
   
-  // 内部リソース（Network First）
+  // 内部リソース（Cache First）
   if (url.origin === self.location.origin) {
     event.respondWith(
-      fetch(event.request).then((response) => {
-        // 成功したレスポンスをキャッシュに保存（バックアップ用）
-        if (response.status === 200 && !url.pathname.includes('/api/')) {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
+      caches.match(event.request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse;
         }
-        return response;
-      }).catch(() => {
-        // オフライン時はキャッシュから取得
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
+        return fetch(event.request).then((response) => {
+          // 成功したレスポンスをキャッシュに保存
+          if (response.status === 200 && !url.pathname.includes('/api/')) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
           }
-          // HTMLページの場合はオフラインページを表示
+          return response;
+        }).catch(() => {
+          // オフライン時はオフラインページを表示
           if (event.request.mode === 'navigate') {
             return caches.match(OFFLINE_URL);
           }
