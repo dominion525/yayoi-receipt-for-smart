@@ -54,7 +54,9 @@
       "WebFetch(domain:developers.cloudflare.com)",
       "Bash(npm audit:*)",
       "Bash(gh pr view:*)",
-      "Bash(git fetch:*)"
+      "Bash(git fetch:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(python3:*)"
     ],
     "deny": []
   },
