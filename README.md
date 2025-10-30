@@ -5,6 +5,8 @@
 [![CI/CD](https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF.svg)](https://github.com/features/actions)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+**デモ**: https://receipt.dominion525.com
+
 ## 概要
 
 弥生の[スマート証憑管理](https://www.yayoi-kk.co.jp/products/smart-syohyo/)サービス向けレシート送信アプリ。
