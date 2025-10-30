@@ -5,14 +5,14 @@ import { execSync } from 'child_process'
 
 // ビルド情報を取得
 function getBuildInfo() {
+  // package.jsonからバージョンを取得（常に必要）
+  const packageJson = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'))
+  const version = packageJson.version
+
   try {
-    // package.jsonからバージョンを取得
-    const packageJson = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf-8'))
-    const version = packageJson.version
-    
     // Gitリビジョンを取得
     const gitCommit = execSync('git rev-parse --short HEAD').toString().trim()
-    
+
     // ビルド時刻を取得
     const buildTimeISO = new Date().toISOString()
     const buildTimeJP = new Date().toLocaleString('ja-JP', {
@@ -24,8 +24,8 @@ function getBuildInfo() {
       second: '2-digit',
       hour12: false
     })
-    
-    return { 
+
+    return {
       version,
       gitCommit,
       buildTime: buildTimeISO,
@@ -35,8 +35,8 @@ function getBuildInfo() {
   } catch (error) {
     console.warn('Build info not available:', error)
     const fallbackTime = new Date()
-    return { 
-      version: '0.3.0',
+    return {
+      version, // package.jsonから取得したバージョンを使用
       gitCommit: 'unknown',
       buildTime: fallbackTime.toISOString(),
       revision: 'unknown',

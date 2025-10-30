@@ -4,7 +4,6 @@ import { getBuildInfo, getShortVersion } from '../version'
 describe('version', () => {
   const originalBuildTime = (globalThis as any).__BUILD_TIME__
   const originalBuildRevision = (globalThis as any).__BUILD_REVISION__
-  const originalImportMetaEnv = import.meta.env
 
   beforeEach(() => {
     // グローバル変数をクリア
