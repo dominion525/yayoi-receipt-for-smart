@@ -30,7 +30,6 @@ self.addEventListener('activate', (event) => {
         cacheNames.map((cacheName) => {
           // 古いキャッシュを削除
           if (cacheName.startsWith('smart-receipt-') && cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })

@@ -186,15 +186,11 @@ async function sendEmailWithFetch({ apiKey, from, to, subject, text, html, attac
     const data = await response.json()
     
     if (!response.ok) {
-      // 本番環境でも重要なエラーはログに残す（簡潔に）
-      console.error('RESEND API error:', response.status)
       return { error: data }
     }
     
     return { data }
   } catch (error) {
-    // 本番環境でも重要なエラーはログに残す（簡潔に）
-    console.error('Send email error:', error.message || error)
     return { error }
   }
 }
