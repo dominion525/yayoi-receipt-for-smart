@@ -34,3 +34,13 @@ qr.png
 
 # Test coverage
 coverage/
+coverage-report.json
+
+# Claude Code settings
+.claude/
+
+# MCP settings
+.mcp.json
+
+# Serena agent
+.serena/
