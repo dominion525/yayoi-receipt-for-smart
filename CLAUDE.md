@@ -30,11 +30,6 @@ ngrokを使用してHTTPS環境を構築：
 ngrok http 5173
 ```
 
-QRコード生成：
-```
-/qr
-```
-
 ### 技術的な注意事項
 - 標準カメラアプリ使用のためgetUserMedia不要
 - レスポンシブデザイン（モバイルファースト）
@@ -71,6 +66,3 @@ npx wrangler deploy --env production
 #### デプロイ確認
 - URL: https://receipt.dominion525.com
 - Version IDで確認可能
-
-### プロジェクト固有のスラッシュコマンド
-- `/qr` - ngrokのQRコードを生成・表示
