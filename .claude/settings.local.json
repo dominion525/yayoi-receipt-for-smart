@@ -51,7 +51,10 @@
       "Bash(gh pr checks:*)",
       "Bash(gh run view:*)",
       "Bash(gh run list:*)",
-      "WebFetch(domain:developers.cloudflare.com)"
+      "WebFetch(domain:developers.cloudflare.com)",
+      "Bash(npm audit:*)",
+      "Bash(gh pr view:*)",
+      "Bash(git fetch:*)"
     ],
     "deny": []
   },
