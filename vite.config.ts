@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import { copyFileSync, readFileSync } from 'fs'
+import { copyFileSync, readFileSync, writeFileSync } from 'fs'
 import { resolve } from 'path'
 import { execSync } from 'child_process'
 
@@ -79,6 +79,24 @@ export default defineConfig({
           console.log('✓ term.html copied to dist/')
         } catch (err) {
           console.error('Failed to copy term.html:', err)
+        }
+      }
+    },
+    {
+      name: 'process-service-worker',
+      closeBundle() {
+        // ビルド完了後にService Workerのプレースホルダーを置換
+        try {
+          const swPath = resolve(__dirname, 'dist', 'sw.js')
+          let swContent = readFileSync(swPath, 'utf-8')
+
+          // __BUILD_TIME__をビルド時刻に置換
+          swContent = swContent.replace(/__BUILD_TIME__/g, buildInfo.buildTime)
+
+          writeFileSync(swPath, swContent, 'utf-8')
+          console.log('✓ Service Worker processed with build time:', buildInfo.buildTime)
+        } catch (err) {
+          console.error('Failed to process service worker:', err)
         }
       }
     }
