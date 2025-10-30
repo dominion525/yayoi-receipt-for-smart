@@ -1464,5 +1464,79 @@ describe('receiptApp', () => {
       vi.advanceTimersByTime(3000)
       expect(app.sendProgress).toBe(progress)
     })
+
+    it('$nextTickが存在しない場合、setTimeoutで成功メッセージを表示する（sendMail・111-114行目カバー）', async () => {
+      const mockLoadedSettings = {
+        email: 'test@example.com',
+        dropboxEmail: 'dropbox@example.com',
+        apiKey: 'test-api-key',
+        fromEmail: 'sender@example.com',
+        sendPresets: []
+      }
+
+      vi.mocked(SettingsService.load).mockReturnValue(mockLoadedSettings)
+      vi.mocked(SettingsService.isComplete).mockReturnValue(true)
+
+      const app = receiptApp()
+      app.photo = 'data:image/jpeg;base64,test-photo'
+
+      // showSuccessをスパイ
+      const showSuccessSpy = vi.spyOn(app, 'showSuccess')
+
+      // $nextTickを無効化
+      app.$nextTick = undefined
+
+      vi.mocked(EmailService.sendMail).mockResolvedValue({
+        success: true,
+        shouldRetake: true
+      })
+
+      await app.sendMail()
+
+      // 3秒 + 100msのsetTimeoutを進める
+      vi.advanceTimersByTime(3100)
+
+      expect(showSuccessSpy).toHaveBeenCalledWith('レシートを送信しました')
+    })
+
+    it('$nextTickが存在しない場合、setTimeoutで成功メッセージを表示する（sendMailToPreset・169-172行目カバー）', async () => {
+      const mockLoadedSettings = {
+        email: 'test@example.com',
+        apiKey: 'test-api-key',
+        fromEmail: 'sender@example.com',
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メイン',
+            recipients: ['main@example.com'],
+            isActive: true
+          }
+        ]
+      }
+
+      vi.mocked(SettingsService.load).mockReturnValue(mockLoadedSettings)
+      vi.mocked(SettingsService.isComplete).mockReturnValue(true)
+
+      const app = receiptApp()
+      app.photo = 'data:image/jpeg;base64,test-photo'
+
+      // showSuccessをスパイ
+      const showSuccessSpy = vi.spyOn(app, 'showSuccess')
+
+      // $nextTickを無効化
+      app.$nextTick = undefined
+
+      vi.mocked(EmailService.sendMailToPreset).mockResolvedValue({
+        success: true,
+        shouldRetake: true
+      })
+
+      await app.sendMailToPreset('main')
+
+      // 3秒 + 100msのsetTimeoutを進める
+      vi.advanceTimersByTime(3100)
+
+      expect(showSuccessSpy).toHaveBeenCalledWith('レシートを送信しました')
+    })
   })
 })

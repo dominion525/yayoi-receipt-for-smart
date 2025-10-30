@@ -1,5 +1,5 @@
 // Service Worker - キャッシュ戦略付き
-const CACHE_VERSION = new Date().getTime(); // ビルドごとに異なるタイムスタンプ
+const CACHE_VERSION = '__BUILD_TIME__'; // ビルド時に置換される
 const CACHE_NAME = `smart-receipt-${CACHE_VERSION}`;
 const OFFLINE_URL = '/offline.html';
 
@@ -30,7 +30,6 @@ self.addEventListener('activate', (event) => {
         cacheNames.map((cacheName) => {
           // 古いキャッシュを削除
           if (cacheName.startsWith('smart-receipt-') && cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })

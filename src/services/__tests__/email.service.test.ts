@@ -1063,6 +1063,102 @@ describe('EmailService', () => {
         })
       })
 
+      it('sendMail失敗時にonProgressがerror状態で呼ばれる（114-122行目カバー）', async () => {
+        const mockEmailSender = vi.mocked(emailSender)
+        mockEmailSender.sendReceipt.mockResolvedValue({
+          success: false,
+          error: 'API error'
+        })
+
+        const addDebugLog = vi.fn()
+        const showError = vi.fn()
+        const onProgress = vi.fn()
+
+        const settings = {
+          sendPresets: [
+            { id: 'main', name: 'メイン', recipients: ['test@example.com', 'test2@example.com'], isActive: true }
+          ]
+        }
+
+        await EmailService.sendMail(
+          'data:image/jpeg;base64,test',
+          settings as any,
+          addDebugLog,
+          showError,
+          onProgress
+        )
+
+        // エラー時の進捗通知が呼ばれることを確認
+        expect(onProgress).toHaveBeenCalledWith({
+          total: 2,
+          sent: 0,
+          failed: 2,
+          currentRecipients: [],
+          status: 'error',
+          percentage: 100
+        })
+      })
+
+      it('sendMailで例外が発生した場合、onProgressがerror状態で呼ばれる（133-141行目カバー）', async () => {
+        const mockEmailSender = vi.mocked(emailSender)
+        mockEmailSender.sendReceipt.mockRejectedValue(new Error('Unexpected error'))
+
+        const addDebugLog = vi.fn()
+        const showError = vi.fn()
+        const onProgress = vi.fn()
+
+        const settings = {
+          sendPresets: [
+            { id: 'main', name: 'メイン', recipients: ['test@example.com', 'test2@example.com'], isActive: true }
+          ]
+        }
+
+        await EmailService.sendMail(
+          'data:image/jpeg;base64,test',
+          settings as any,
+          addDebugLog,
+          showError,
+          onProgress
+        )
+
+        // 例外時の進捗通知が呼ばれることを確認
+        expect(onProgress).toHaveBeenCalledWith({
+          total: 2,
+          sent: 0,
+          failed: 2,
+          currentRecipients: [],
+          status: 'error',
+          percentage: 100
+        })
+      })
+
+      it('sendMail失敗時にerrorがundefinedの場合、"不明なエラー"と表示される（96行目カバー）', async () => {
+        const mockEmailSender = vi.mocked(emailSender)
+        mockEmailSender.sendReceipt.mockResolvedValue({
+          success: false
+          // errorプロパティを指定しない
+        })
+
+        const addDebugLog = vi.fn()
+        const showError = vi.fn()
+
+        const settings = {
+          sendPresets: [
+            { id: 'main', name: 'メイン', recipients: ['test@example.com'], isActive: true }
+          ]
+        }
+
+        await EmailService.sendMail(
+          'data:image/jpeg;base64,test',
+          settings as any,
+          addDebugLog,
+          showError
+        )
+
+        // "不明なエラー"が使用されることを確認
+        expect(showError).toHaveBeenCalledWith(expect.stringContaining('不明なエラー'))
+      })
+
       it('sendMailToPreset: 最終進捗通知のテスト（361-369行目カバー）', async () => {
         const mockEmailSender = vi.mocked(emailSender)
         mockEmailSender.sendReceipt.mockResolvedValue({
@@ -1103,6 +1199,120 @@ describe('EmailService', () => {
           status: 'completed',
           percentage: 100
         })
+      })
+
+      it('sendMailToPreset失敗時にonProgressがerror状態で呼ばれる（253-261行目カバー）', async () => {
+        const mockEmailSender = vi.mocked(emailSender)
+        mockEmailSender.sendReceipt.mockResolvedValue({
+          success: false,
+          error: 'API error'
+        })
+
+        const addDebugLog = vi.fn()
+        const showError = vi.fn()
+        const onProgress = vi.fn()
+
+        const preset = {
+          id: 'test',
+          name: 'テスト',
+          recipients: ['test@example.com', 'test2@example.com'],
+          isActive: true
+        }
+        const settings = {
+          apiKey: 'test-key',
+          sendPresets: [preset]
+        }
+
+        await EmailService.sendMailToPreset(
+          'test',
+          'data:image/jpeg;base64,test',
+          settings as any,
+          addDebugLog,
+          showError,
+          onProgress
+        )
+
+        // エラー時の進捗通知が呼ばれることを確認
+        expect(onProgress).toHaveBeenCalledWith({
+          total: 2,
+          sent: 0,
+          failed: 2,
+          currentRecipients: [],
+          status: 'error',
+          percentage: 100
+        })
+      })
+
+      it('sendMailToPresetで例外が発生した場合、onProgressがerror状態で呼ばれる（272-280行目カバー）', async () => {
+        const mockEmailSender = vi.mocked(emailSender)
+        mockEmailSender.sendReceipt.mockRejectedValue(new Error('Unexpected error'))
+
+        const addDebugLog = vi.fn()
+        const showError = vi.fn()
+        const onProgress = vi.fn()
+
+        const preset = {
+          id: 'test',
+          name: 'テスト',
+          recipients: ['test@example.com', 'test2@example.com'],
+          isActive: true
+        }
+        const settings = {
+          apiKey: 'test-key',
+          sendPresets: [preset]
+        }
+
+        await EmailService.sendMailToPreset(
+          'test',
+          'data:image/jpeg;base64,test',
+          settings as any,
+          addDebugLog,
+          showError,
+          onProgress
+        )
+
+        // 例外時の進捗通知が呼ばれることを確認
+        expect(onProgress).toHaveBeenCalledWith({
+          total: 2,
+          sent: 0,
+          failed: 2,
+          currentRecipients: [],
+          status: 'error',
+          percentage: 100
+        })
+      })
+
+      it('sendMailToPreset失敗時にerrorがundefinedの場合、"不明なエラー"と表示される（223行目カバー）', async () => {
+        const mockEmailSender = vi.mocked(emailSender)
+        mockEmailSender.sendReceipt.mockResolvedValue({
+          success: false
+          // errorプロパティを指定しない
+        })
+
+        const addDebugLog = vi.fn()
+        const showError = vi.fn()
+
+        const preset = {
+          id: 'test',
+          name: 'テスト',
+          recipients: ['test@example.com'],
+          isActive: true
+        }
+        const settings = {
+          apiKey: 'test-key',
+          sendPresets: [preset]
+        }
+
+        await EmailService.sendMailToPreset(
+          'test',
+          'data:image/jpeg;base64,test',
+          settings as any,
+          addDebugLog,
+          showError
+        )
+
+        // "不明なエラー"が使用されることを確認
+        expect(showError).toHaveBeenCalledWith(expect.stringContaining('不明なエラー'))
       })
 
     })

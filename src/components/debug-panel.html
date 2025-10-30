@@ -2,7 +2,7 @@
 <div
   x-show="showDebug"
   x-transition
-  class="fixed inset-x-0 bottom-0 bg-gray-900 text-white p-4 max-h-96 overflow-y-auto z-40"
+  class="fixed inset-x-0 bottom-0 bg-gray-900 text-white p-4 max-h-96 overflow-y-auto overflow-x-hidden z-40"
 >
   <div class="flex items-center justify-between mb-4">
     <h3 class="text-lg font-bold">デバッグ情報</h3>
@@ -59,14 +59,16 @@
     <h4 class="text-sm font-semibold mb-2 text-yellow-400">送信プリセット</h4>
     <div class="text-xs space-y-1">
       <template x-for="preset in settings.sendPresets" :key="preset.id">
-        <div class="ml-2 flex items-center gap-2">
-          <span x-text="preset.isActive ? '✅' : '❌'" class="text-sm"></span>
-          <span x-text="preset.name" class="font-semibold"></span>
-          <span class="text-gray-400">
+        <div class="ml-2">
+          <div class="flex items-center gap-2">
+            <span x-text="preset.isActive ? '✅' : '❌'" class="text-sm"></span>
+            <span x-text="preset.name" class="font-semibold"></span>
+          </div>
+          <div class="ml-6 text-gray-400 break-all">
             <span x-text="'(' + preset.recipients.length + '件: '"></span>
             <span x-text="preset.recipients.join(', ')"></span>
             <span>)</span>
-          </span>
+          </div>
         </div>
       </template>
       <div x-show="settings.sendPresets.length === 0" class="text-gray-500 ml-2">
@@ -78,9 +80,9 @@
   <!-- デバッグログ -->
   <div class="mb-4">
     <h4 class="text-sm font-semibold mb-2">デバッグログ</h4>
-    <div class="bg-black rounded p-2 max-h-48 overflow-y-auto font-mono text-xs">
+    <div class="bg-black rounded p-2 max-h-48 overflow-y-auto overflow-x-hidden font-mono text-xs">
       <template x-for="(log, index) in debugLogs" :key="index">
-        <div class="py-0.5" :class="{
+        <div class="py-0.5 break-all" :class="{
           'text-green-400': log.type === 'success',
           'text-red-400': log.type === 'error',
           'text-yellow-400': log.type === 'warning',
