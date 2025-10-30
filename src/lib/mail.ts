@@ -143,7 +143,7 @@ export class EmailSender {
   /**
    * レシート画像を送信
    */
-  async sendReceipt(toEmail: string, imageData: string, comment?: string): Promise<EmailResult> {
+  async sendReceipt(toEmail: string | string[], imageData: string, comment?: string): Promise<EmailResult> {
     
     const now = new Date()
     const dateStr = now.toLocaleDateString('ja-JP', {

@@ -179,10 +179,12 @@ describe('EmailService', () => {
         shouldRetake: true
       })
 
-      // 重複排除により2回だけ呼ばれる（test@example.com, other@example.com）
-      expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledTimes(2)
-      expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledWith('test@example.com', 'data:image/jpeg;base64,test-photo')
-      expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledWith('other@example.com', 'data:image/jpeg;base64,test-photo')
+      // 一括送信：重複排除後の配列で1回だけ呼ばれる
+      expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledTimes(1)
+      expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledWith(
+        ['test@example.com', 'other@example.com'],
+        'data:image/jpeg;base64,test-photo'
+      )
     })
 
     it('全ての送信が成功した場合', async () => {
@@ -203,45 +205,14 @@ describe('EmailService', () => {
         shouldRetake: true
       })
 
-      // 2つのユニークな宛先に送信
-      expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledTimes(2)
+      // 一括送信なので1回だけ呼ばれる
+      expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledTimes(1)
+      expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledWith(
+        ['main@example.com', 'dropbox@example.com'],
+        'data:image/jpeg;base64,test-photo'
+      )
       // 成功メッセージは表示されない（app.tsで処理）
       expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
-    })
-
-    it('一部の送信が失敗した場合', async () => {
-      vi.mocked(emailSender).sendReceipt
-        .mockResolvedValueOnce({
-          success: true,
-          messageId: 'msg-123'
-        })
-        .mockResolvedValueOnce({
-          success: false,
-          error: 'Invalid email address',
-          details: {
-            name: 'validation_error',
-            message: 'Email validation failed'
-          }
-        })
-
-      const result = await EmailService.sendMail(
-        'data:image/jpeg;base64,test-photo',
-        mockSettings,
-        mockDebugLogger,
-        mockErrorDisplayer
-      )
-
-      expect(result).toEqual({
-        success: false,
-        shouldRetake: false
-      })
-
-      expect(mockErrorDisplayer).toHaveBeenCalledWith(
-        expect.stringContaining('送信結果: 成功1件, 失敗1件')
-      )
-      expect(mockErrorDisplayer).toHaveBeenCalledWith(
-        expect.stringContaining('Invalid email address')
-      )
     })
 
     it('全ての送信が失敗した場合', async () => {
@@ -263,7 +234,7 @@ describe('EmailService', () => {
       })
 
       expect(mockErrorDisplayer).toHaveBeenCalledWith(
-        expect.stringContaining('送信結果: 成功0件, 失敗2件')
+        expect.stringContaining('送信失敗: API key invalid')
       )
     })
 
@@ -433,7 +404,7 @@ describe('EmailService', () => {
       // 成功メッセージは表示されない（app.tsで処理）
       expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
       expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledWith(
-        'main@example.com',
+        ['main@example.com'],
         'data:image/jpeg;base64,test-photo'
       )
     })
@@ -532,13 +503,10 @@ describe('EmailService', () => {
       expect(vi.mocked(emailSender).sendReceipt).not.toHaveBeenCalled()
     })
 
-    it('エラーメッセージ配列が空の場合のデフォルトメッセージ追加', async () => {
-      // 手動でresults.failedを1にしてerrorMessagesを空にするケースをシミュレート
-      // EmailServiceのロジックを確認すると、実際のコードではerrorMessagesが空になることは稀
-      // ただし、テストでコードパスをカバーするため、空のerror応答をテスト
+    it('エラーメッセージが正しく表示される', async () => {
       vi.mocked(emailSender).sendReceipt.mockResolvedValue({
         success: false,
-        error: 'APIエラーが発生しました' // 実際に文字列として設定
+        error: 'APIエラーが発生しました'
       })
 
       await EmailService.sendMailToPreset(
@@ -550,13 +518,7 @@ describe('EmailService', () => {
       )
 
       expect(mockErrorDisplayer).toHaveBeenCalledWith(
-        expect.stringContaining('main@example.comへの送信失敗')
-      )
-      
-      // errorプロパティが直接使用されることをテスト
-      expect(mockDebugLogger).toHaveBeenCalledWith(
-        'main@example.comへの送信失敗: APIエラーが発生しました',
-        'error'
+        expect.stringContaining('送信失敗: APIエラーが発生しました')
       )
     })
 
@@ -583,7 +545,6 @@ describe('EmailService', () => {
     })
 
     it('予期しない例外が発生した場合', async () => {
-      // sendReceiptが例外を投げることで送信失敗にカウントされる
       vi.mocked(emailSender).sendReceipt.mockRejectedValue(new Error('Unexpected error'))
 
       const result = await EmailService.sendMailToPreset(
@@ -599,51 +560,14 @@ describe('EmailService', () => {
         shouldRetake: false
       })
 
-      // エラーメッセージが表示される
+      // 予期しないエラーメッセージが表示される
       expect(mockErrorDisplayer).toHaveBeenCalledWith(
-        expect.stringContaining('送信結果: 成功0件, 失敗1件')
+        expect.stringContaining('予期しないエラーが発生しました: Unexpected error')
       )
       expect(mockDebugLogger).toHaveBeenCalledWith(
-        'main@example.comへの送信エラー: Unexpected error',
+        '予期しないエラー: Unexpected error',
         'error'
       )
-    })
-
-    it('複数の宛先があるプリセットの処理', async () => {
-      const settingsWithMultipleRecipients: AppSettings = {
-        ...mockSettings,
-        sendPresets: [
-          {
-            id: 'multi',
-            name: '複数宛先',
-            recipients: ['test1@example.com', 'test2@example.com', 'test3@example.com'],
-            isActive: true
-          }
-        ]
-      }
-
-      vi.mocked(emailSender).sendReceipt
-        .mockResolvedValueOnce({ success: true, messageId: 'msg-1' })
-        .mockResolvedValueOnce({ success: false, error: 'Failed' })
-        .mockResolvedValueOnce({ success: true, messageId: 'msg-3' })
-
-      const result = await EmailService.sendMailToPreset(
-        'multi',
-        'data:image/jpeg;base64,test-photo',
-        settingsWithMultipleRecipients,
-        mockDebugLogger,
-        mockErrorDisplayer
-      )
-
-      expect(result).toEqual({
-        success: false,
-        shouldRetake: false
-      })
-
-      expect(mockErrorDisplayer).toHaveBeenCalledWith(
-        expect.stringContaining('送信結果: 成功2件, 失敗1件')
-      )
-      expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledTimes(3)
     })
 
     it('RESEND APIエラー詳細の解析（validation_error）', async () => {
@@ -758,7 +682,7 @@ describe('EmailService', () => {
       )
     })
 
-    it('各送信先への送信開始時にログを出力する', async () => {
+    it('一括送信開始時にログを出力する', async () => {
       vi.mocked(emailSender).sendReceipt.mockResolvedValue({
         success: true,
         messageId: 'msg-123'
@@ -777,7 +701,7 @@ describe('EmailService', () => {
         'info'
       )
       expect(mockDebugLogger).toHaveBeenCalledWith(
-        'main@example.comに送信中...',
+        '1件の宛先に一括送信中...',
         'info'
       )
     })
@@ -785,7 +709,7 @@ describe('EmailService', () => {
 
   describe('100%カバレッジのためのエッジケーステスト', () => {
     describe('sendMailToPreset() - 空の受信者リストケース', () => {
-      it('受信者リストが空の場合はsuccess: true, shouldRetake: falseを返す（112行目カバー）', async () => {
+      it('受信者リストが空の場合でも送信を試みる', async () => {
         const settingsWithEmptyRecipients: AppSettings = {
           ...mockSettings,
           sendPresets: [
@@ -798,6 +722,12 @@ describe('EmailService', () => {
           ]
         }
 
+        // 空の配列でも送信成功とする
+        vi.mocked(emailSender).sendReceipt.mockResolvedValue({
+          success: true,
+          messageId: 'msg-empty'
+        })
+
         const result = await EmailService.sendMailToPreset(
           'empty',
           'data:image/jpeg;base64,test-photo',
@@ -808,11 +738,14 @@ describe('EmailService', () => {
 
         expect(result).toEqual({
           success: true,
-          shouldRetake: false
+          shouldRetake: true
         })
 
-        // emailSender.sendReceiptは呼ばれない
-        expect(vi.mocked(emailSender).sendReceipt).not.toHaveBeenCalled()
+        // 一括送信では空の配列でも呼ばれる
+        expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledWith(
+          [],
+          'data:image/jpeg;base64,test-photo'
+        )
       })
     })
 
@@ -851,12 +784,9 @@ describe('EmailService', () => {
         expect(mockErrorDisplayer).toHaveBeenCalledWith('送信先が設定されていません')
       })
 
-      it('送信処理でundefinedが返されるケース（failedとしてカウント）', async () => {
-        // emailSenderがundefinedを返すケース（実際にはfailedにカウントされる）
-        const originalSendReceipt = vi.mocked(emailSender).sendReceipt
-        vi.mocked(emailSender).sendReceipt = vi.fn().mockImplementation(async () => {
-          return undefined as any
-        })
+      it('送信処理でundefinedが返されるケース', async () => {
+        // emailSenderがundefinedを返すケース
+        vi.mocked(emailSender).sendReceipt.mockResolvedValue(undefined as any)
 
         const result = await EmailService.sendMail(
           'data:image/jpeg;base64,test-photo',
@@ -869,54 +799,6 @@ describe('EmailService', () => {
           success: false,
           shouldRetake: false
         })
-
-        // 元に戻す
-        vi.mocked(emailSender).sendReceipt = originalSendReceipt
-      })
-
-    })
-
-    describe('sendMail() - 外側catch部分', () => {
-      it('結果表示処理で例外が発生した場合（114-119行目カバー）', async () => {
-        // showErrorをモックして例外を投げる（エラーメッセージ表示時）
-        const errorThrowingDisplayer = vi.fn().mockImplementation((message: string) => {
-          if (message.includes('送信結果:')) {
-            throw new Error('Error displayer error')
-          }
-        })
-
-        // 一部送信失敗でエラー表示が呼ばれるケース
-        vi.mocked(emailSender).sendReceipt
-          .mockResolvedValueOnce({
-            success: true,
-            messageId: 'msg-123'
-          })
-          .mockResolvedValueOnce({
-            success: false,
-            error: 'Failed to send'
-          })
-
-        // EmailService.sendMailは例外を内部でキャッチして適切に処理する
-        const result = await EmailService.sendMail(
-          'data:image/jpeg;base64,test-photo',
-          mockSettings,
-          mockDebugLogger,
-          errorThrowingDisplayer
-        )
-
-        expect(result).toEqual({
-          success: false,
-          shouldRetake: false
-        })
-
-        // 外側のcatchで予期しないエラーログが出力される
-        expect(mockDebugLogger).toHaveBeenCalledWith(
-          expect.stringContaining('予期しないエラー'),
-          'error'
-        )
-        expect(errorThrowingDisplayer).toHaveBeenCalledWith(
-          expect.stringContaining('予期しないエラーが発生しました: Error displayer error')
-        )
       })
     })
 
@@ -940,11 +822,11 @@ describe('EmailService', () => {
         const mockDebugLogger = vi.fn()
         const mockErrorDisplayer = vi.fn()
 
-        // 3件すべてが成功
-        vi.mocked(emailSender).sendReceipt
-          .mockResolvedValueOnce({ success: true, messageId: 'msg-1' })
-          .mockResolvedValueOnce({ success: true, messageId: 'msg-2' })
-          .mockResolvedValueOnce({ success: true, messageId: 'msg-3' })
+        // 一括送信で成功
+        vi.mocked(emailSender).sendReceipt.mockResolvedValue({
+          success: true,
+          messageId: 'msg-123'
+        })
 
         const result = await EmailService.sendMail(
           'data:image/jpeg;base64,test-photo',
@@ -956,6 +838,8 @@ describe('EmailService', () => {
         expect(result.success).toBe(true)
         expect(result.shouldRetake).toBe(true)
 
+        // 一括送信なので1回だけ呼ばれる
+        expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledTimes(1)
         // 成功メッセージは表示されない（app.tsで処理）
         expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
       })
@@ -1003,91 +887,6 @@ describe('EmailService', () => {
         })
       })
 
-      it('sendMailToPresetで個別送信エラーが発生した場合', async () => {
-        const mockSettings = {
-          email: 'test@example.com',
-          apiKey: 'test-key',
-          fromEmail: 'sender@example.com',
-          sendPresets: [
-            {
-              id: 'main',
-              name: 'メイン',
-              recipients: ['test@example.com'],
-              isActive: true
-            }
-          ]
-        }
-
-        const mockDebugLogger = vi.fn()
-        const mockErrorDisplayer = vi.fn()
-
-        // emailSender.sendReceiptがエラーレスポンスを返す
-        vi.mocked(emailSender).sendReceipt.mockRejectedValue(new Error('Network failure'))
-
-        const result = await EmailService.sendMailToPreset(
-          'main',
-          'data:image/jpeg;base64,test-photo',
-          mockSettings,
-          mockDebugLogger,
-          mockErrorDisplayer
-        )
-
-        expect(result.success).toBe(false)
-        expect(result.shouldRetake).toBe(false)
-
-        // 個別送信エラーのログが記録される
-        expect(mockDebugLogger).toHaveBeenCalledWith(
-          'test@example.comへの送信エラー: Network failure',
-          'error'
-        )
-        expect(mockErrorDisplayer).toHaveBeenCalledWith(
-          expect.stringContaining('送信結果: 成功0件, 失敗1件')
-        )
-      })
-
-      it('sendMailで部分的な送信失敗が発生した場合', async () => {
-        const mockSettings = {
-          email: 'main@example.com',
-          dropboxEmail: 'dropbox@example.com',
-          apiKey: 'test-key',
-          fromEmail: 'sender@example.com',
-          sendPresets: [
-            {
-              id: 'all',
-              name: 'すべてに送信',
-              recipients: ['main@example.com', 'dropbox@example.com'],
-              isActive: true
-            }
-          ]
-        }
-
-        const mockDebugLogger = vi.fn()
-        const mockErrorDisplayer = vi.fn()
-
-        // 1件目は成功、2件目で失敗
-        vi.mocked(emailSender).sendReceipt
-          .mockResolvedValueOnce({ success: true, messageId: 'msg-1' })
-          .mockRejectedValueOnce(new Error('Unexpected network error'))
-
-        const result = await EmailService.sendMail(
-          'data:image/jpeg;base64,test-photo',
-          mockSettings,
-          mockDebugLogger,
-          mockErrorDisplayer
-        )
-
-        expect(result.success).toBe(false)
-        expect(result.shouldRetake).toBe(false)
-
-        // 個別の送信エラーログが記録される
-        expect(mockDebugLogger).toHaveBeenCalledWith(
-          'dropbox@example.comへの送信エラー: Unexpected network error',
-          'error'
-        )
-        expect(mockErrorDisplayer).toHaveBeenCalledWith(
-          expect.stringContaining('送信結果: 成功1件, 失敗1件')
-        )
-      })
 
       it('進捗コールバックなしでの送信処理', async () => {
         const mockSettings = {
@@ -1125,7 +924,7 @@ describe('EmailService', () => {
         expect(result.shouldRetake).toBe(true)
       })
 
-      it('1件送信成功時の単数メッセージ', async () => {
+      it('1件送信成功時の処理', async () => {
         const mockSettings = {
           email: 'single@example.com',
           apiKey: 'test-key',
@@ -1134,7 +933,7 @@ describe('EmailService', () => {
             {
               id: 'main',
               name: 'メイン',
-              recipients: ['single@example.com'], // 1件のみ
+              recipients: ['single@example.com'],
               isActive: true
             }
           ]
@@ -1156,9 +955,8 @@ describe('EmailService', () => {
         )
 
         expect(result.success).toBe(true)
-        // 単数形メッセージを確認
-        // 成功メッセージは表示されない（app.tsで処理）
-      expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
+        expect(result.shouldRetake).toBe(true)
+        expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
       })
 
       it('送信対象0件の稀なケース（理論的エッジケース）', async () => {
@@ -1192,87 +990,10 @@ describe('EmailService', () => {
         expect(mockErrorDisplayer).toHaveBeenCalledWith('送信先が設定されていません')
       })
 
-      it('外層catch: システムレベルエラーの処理', async () => {
-        const mockSettings = {
-          email: 'test@example.com',
-          apiKey: 'test-key',
-          fromEmail: 'sender@example.com',
-          sendPresets: [
-            {
-              id: 'main',
-              name: 'メイン',
-              recipients: ['test@example.com'],
-              isActive: true
-            }
-          ]
-        }
-
-        const mockDebugLogger = vi.fn()
-        const mockErrorDisplayer = vi.fn()
-
-        // Promise.allSettled自体をモックして例外を投げる
-        const originalAllSettled = Promise.allSettled
-        Promise.allSettled = vi.fn().mockRejectedValue(new Error('System error'))
-
-        try {
-          const result = await EmailService.sendMail(
-            'data:image/jpeg;base64,test-photo',
-            mockSettings,
-            mockDebugLogger,
-            mockErrorDisplayer
-          )
-
-          expect(result.success).toBe(false)
-          expect(result.shouldRetake).toBe(false)
-
-          // 外層catchでの処理を確認
-          expect(mockDebugLogger).toHaveBeenCalledWith(
-            '予期しないエラー: System error',
-            'error'
-          )
-          expect(mockErrorDisplayer).toHaveBeenCalledWith(
-            '予期しないエラーが発生しました: System error'
-          )
-        } finally {
-          // Promise.allSettledを元に戻す
-          Promise.allSettled = originalAllSettled
-        }
-      })
     })
 
     describe('残りの未カバー行対応テスト', () => {
-      it('sendMailToPreset: 外層catchでシステムエラーを処理（392-396行目）', async () => {
-        // Promise.allSettledを直接モックしてエラーを発生させる
-        const originalAllSettled = Promise.allSettled
-        Promise.allSettled = vi.fn().mockRejectedValue(new Error('sendMailToPreset システムエラー'))
-        
-        const addDebugLog = vi.fn()
-        const showError = vi.fn()
-        
-        const preset = { id: 'test', name: 'テスト', recipients: ['test@example.com'], isActive: true }
-        const settings = {
-          apiKey: 'test-key',
-          sendPresets: [preset]
-        }
-        
-        try {
-          const result = await EmailService.sendMailToPreset(
-            'test',
-            'data:image/jpeg;base64,test',
-            settings as any,
-            addDebugLog,
-            showError
-          )
-          
-          expect(result).toEqual({ success: false, shouldRetake: false })
-          expect(showError).toHaveBeenCalledWith('予期しないエラーが発生しました: sendMailToPreset システムエラー')
-          expect(addDebugLog).toHaveBeenCalledWith('予期しないエラー: sendMailToPreset システムエラー', 'error')
-        } finally {
-          Promise.allSettled = originalAllSettled
-        }
-      })
-
-      it('複数件送信成功時のメッセージテスト（383行目カバー）', async () => {
+      it('複数件送信成功時の処理', async () => {
         const mockEmailSender = vi.mocked(emailSender)
         mockEmailSender.sendReceipt.mockResolvedValue({
           success: true,
@@ -1384,85 +1105,6 @@ describe('EmailService', () => {
         })
       })
 
-      it('sendMailToPreset: Promise.allSettledでrejectedケース（355-356行目カバー）', async () => {
-        const addDebugLog = vi.fn()
-        const showError = vi.fn()
-        
-        const preset = { 
-          id: 'test', 
-          name: 'テスト', 
-          recipients: ['test@example.com'], 
-          isActive: true 
-        }
-        const settings = {
-          apiKey: 'test-key',
-          sendPresets: [preset]
-        }
-        
-        // Promise.allSettledのmockを使って、特定の結果をrejectedにする
-        const originalAllSettled = Promise.allSettled
-        Promise.allSettled = vi.fn().mockImplementation(() => {
-          return Promise.resolve([
-            { status: 'rejected', reason: new Error('Test rejection') }
-          ])
-        })
-        
-        try {
-          const result = await EmailService.sendMailToPreset(
-            'test',
-            'data:image/jpeg;base64,test',
-            settings as any,
-            addDebugLog,
-            showError
-          )
-          
-          expect(result).toEqual({ success: false, shouldRetake: false })
-          
-          // エラーメッセージが表示される（results.failed++ の処理により失敗件数が1になる）
-          expect(showError).toHaveBeenCalledWith(
-            expect.stringContaining('送信結果: 成功0件, 失敗1件')
-          )
-        } finally {
-          Promise.allSettled = originalAllSettled
-        }
-      })
-
-      it('sendMail: Promise.allSettledでrejectedケース（163-164行目カバー）', async () => {
-        const addDebugLog = vi.fn()
-        const showError = vi.fn()
-        
-        const settings = {
-          sendPresets: [
-            { id: 'main', name: 'メイン', recipients: ['test@example.com'], isActive: true }
-          ]
-        }
-        
-        // Promise.allSettledのmockを使って、特定の結果をrejectedにする
-        const originalAllSettled = Promise.allSettled
-        Promise.allSettled = vi.fn().mockImplementation(() => {
-          return Promise.resolve([
-            { status: 'rejected', reason: new Error('Test rejection') }
-          ])
-        })
-        
-        try {
-          const result = await EmailService.sendMail(
-            'data:image/jpeg;base64,test',
-            settings as any,
-            addDebugLog,
-            showError
-          )
-          
-          expect(result).toEqual({ success: false, shouldRetake: false })
-          
-          // エラーメッセージが表示される（results.failed++ の処理により失敗件数が1になる）
-          expect(showError).toHaveBeenCalledWith(
-            expect.stringContaining('送信結果: 成功0件, 失敗1件')
-          )
-        } finally {
-          Promise.allSettled = originalAllSettled
-        }
-      })
     })
 
   })
