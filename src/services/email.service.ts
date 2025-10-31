@@ -60,7 +60,7 @@ export class EmailService {
     // 初期進捗状態を通知
     if (onProgress) {
       onProgress({
-        total: uniqueRecipients.length,
+        total: 1,
         sent: 0,
         failed: 0,
         currentRecipients: uniqueRecipients,
@@ -81,8 +81,8 @@ export class EmailService {
         // 最終進捗状態を通知
         if (onProgress) {
           onProgress({
-            total: uniqueRecipients.length,
-            sent: uniqueRecipients.length,
+            total: 1,
+            sent: 1,
             failed: 0,
             currentRecipients: [],
             status: 'completed',
@@ -112,9 +112,9 @@ export class EmailService {
         // 最終進捗状態を通知
         if (onProgress) {
           onProgress({
-            total: uniqueRecipients.length,
+            total: 1,
             sent: 0,
-            failed: uniqueRecipients.length,
+            failed: 1,
             currentRecipients: [],
             status: 'error',
             percentage: 100
@@ -131,9 +131,9 @@ export class EmailService {
       // 最終進捗状態を通知
       if (onProgress) {
         onProgress({
-          total: uniqueRecipients.length,
+          total: 1,
           sent: 0,
-          failed: uniqueRecipients.length,
+          failed: 1,
           currentRecipients: [],
           status: 'error',
           percentage: 100

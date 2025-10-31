@@ -1090,9 +1090,9 @@ describe('EmailService', () => {
 
         // エラー時の進捗通知が呼ばれることを確認
         expect(onProgress).toHaveBeenCalledWith({
-          total: 2,
+          total: 1,
           sent: 0,
-          failed: 2,
+          failed: 1,
           currentRecipients: [],
           status: 'error',
           percentage: 100
@@ -1123,9 +1123,9 @@ describe('EmailService', () => {
 
         // 例外時の進捗通知が呼ばれることを確認
         expect(onProgress).toHaveBeenCalledWith({
-          total: 2,
+          total: 1,
           sent: 0,
-          failed: 2,
+          failed: 1,
           currentRecipients: [],
           status: 'error',
           percentage: 100
