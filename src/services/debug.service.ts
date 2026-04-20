@@ -21,15 +21,15 @@ export class DebugService {
   static add(message: string, type: DebugLog['type'] = 'info'): void {
     const now = new Date()
     const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}.${now.getMilliseconds().toString().padStart(3, '0')}`
-    
+
     const log: DebugLog = { time, type, message }
     this.logs.push(log)
-    
+
     // 最大件数を超えたら古いログを削除
     if (this.logs.length > this.maxLogs) {
       this.logs.shift()
     }
-    
+
     // リスナーに通知
     this.notifyListeners()
   }
@@ -54,7 +54,7 @@ export class DebugService {
    */
   static export(): string {
     return this.logs
-      .map(log => `[${log.time}] ${log.type.toUpperCase()}: ${log.message}`)
+      .map((log) => `[${log.time}] ${log.type.toUpperCase()}: ${log.message}`)
       .join('\n')
   }
 
@@ -63,7 +63,7 @@ export class DebugService {
    */
   static async copyToClipboard(): Promise<boolean> {
     const logText = this.export()
-    
+
     try {
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(logText)
@@ -89,9 +89,9 @@ export class DebugService {
     textarea.style.position = 'absolute'
     textarea.style.left = UI.OFFSCREEN_POSITION
     document.body.appendChild(textarea)
-    
+
     let successful = false
-    
+
     try {
       textarea.select()
       successful = document.execCommand('copy')
@@ -103,10 +103,10 @@ export class DebugService {
     } catch (_error) {
       this.add('ログのコピーに失敗しました', 'error')
     }
-    
+
     // DOM要素を削除
     document.body.removeChild(textarea)
-    
+
     return successful
   }
 
@@ -132,7 +132,7 @@ export class DebugService {
    */
   private static notifyListeners(): void {
     const logs = this.getAll()
-    this.listeners.forEach(listener => listener(logs))
+    this.listeners.forEach((listener) => listener(logs))
   }
 
   /**

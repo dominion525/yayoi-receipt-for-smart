@@ -8,12 +8,7 @@ import prettierConfig from 'eslint-config-prettier'
 export default tseslint.config(
   // 除外設定（最初に配置）
   {
-    ignores: [
-      'dist/**',
-      'node_modules/**',
-      '*.min.js',
-      '.serena/**'
-    ]
+    ignores: ['dist/**', 'node_modules/**', '*.min.js', '.serena/**']
   },
 
   // 基本設定
@@ -41,13 +36,16 @@ export default tseslint.config(
     rules: {
       // 既存のコード品質に合わせた設定
       '@typescript-eslint/no-explicit-any': 'warn', // 段階的に改善
-      '@typescript-eslint/no-unused-vars': ['error', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_',
-        destructuredArrayIgnorePattern: '^_'
-      }],
-      
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_'
+        }
+      ],
+
       // TypeScript用のno-undefは不要
       'no-undef': 'off'
     }

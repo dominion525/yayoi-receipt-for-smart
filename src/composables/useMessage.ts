@@ -15,7 +15,7 @@ export function useMessage(): MessageComposable {
     // 状態
     error: null,
     successMessage: null,
-    
+
     // 汎用メッセージ表示
     showMessage(message: string, type: 'error' | 'success') {
       if (type === 'error') {
@@ -34,17 +34,17 @@ export function useMessage(): MessageComposable {
         }, TIMEOUTS.SUCCESS_MESSAGE)
       }
     },
-    
+
     // エラーメッセージ表示
     showError(message: string) {
       this.showMessage(message, 'error')
     },
-    
+
     // 成功メッセージ表示
     showSuccess(message: string) {
       this.showMessage(message, 'success')
     },
-    
+
     // メール処理メッセージハンドラー
     handleEmailMessage(message: string) {
       // 成功メッセージとエラーメッセージを分けて処理
@@ -56,7 +56,7 @@ export function useMessage(): MessageComposable {
         this.showError(message)
       }
     },
-    
+
     // メッセージクリア
     clearMessages() {
       this.error = null

@@ -21,7 +21,6 @@ export interface ErrorDisplayer {
  * メール送信を管理するサービス
  */
 export class EmailService {
-  
   /**
    * レシート画像を全アクティブプリセットに送信
    */
@@ -36,7 +35,7 @@ export class EmailService {
       showError('写真が撮影されていません')
       return { success: false, shouldRetake: false }
     }
-    
+
     // 送信先を収集（アクティブなプリセットの全宛先）
     const recipients: string[] = []
     for (const preset of settings.sendPresets) {
@@ -44,19 +43,19 @@ export class EmailService {
         recipients.push(...preset.recipients)
       }
     }
-    
+
     // 重複を除去
     const uniqueRecipients = [...new Set(recipients)]
-    
+
     if (uniqueRecipients.length === 0) {
       showError('送信先が設定されていません')
       return { success: false, shouldRetake: false }
     }
-    
+
     addDebugLog(`レシート画像を${uniqueRecipients.length}件の宛先に送信中...`, 'info')
 
     const results = { success: 0, failed: 0 }
-    
+
     // 初期進捗状態を通知
     if (onProgress) {
       onProgress({
@@ -68,7 +67,7 @@ export class EmailService {
         percentage: 0
       })
     }
-    
+
     try {
       addDebugLog(`${uniqueRecipients.length}件の宛先に一括送信中...`, 'info')
 
@@ -144,8 +143,7 @@ export class EmailService {
       return { success: false, shouldRetake: false }
     }
   }
-  
-  
+
   /**
    * 指定したプリセットの宛先に送信
    */
@@ -157,33 +155,32 @@ export class EmailService {
     showError: ErrorDisplayer,
     onProgress?: ProgressCallback
   ): Promise<{ success: boolean; shouldRetake: boolean }> {
-    
     // デバッグ用：実際にこの関数が呼ばれているか確認
     addDebugLog(`sendMailToPreset開始: presetId=${presetId}`, 'info')
-    
-    const preset = settings.sendPresets.find(p => p.id === presetId)
-    
+
+    const preset = settings.sendPresets.find((p) => p.id === presetId)
+
     if (!preset || !preset.isActive) {
       showError('送信先が見つかりません')
       addDebugLog(`プリセットが見つかりません: presetId=${presetId}`, 'error')
       return { success: false, shouldRetake: false }
     }
-    
+
     // 送信先を明示的に表示
     addDebugLog(`送信先: ${preset.name} (${preset.recipients.length}件)`, 'info')
-    preset.recipients.forEach(r => {
+    preset.recipients.forEach((r) => {
       addDebugLog(`  - ${r}`, 'debug')
     })
 
     const results = { success: 0, failed: 0 }
-    
+
     // APIキーの事前確認
     if (!settings.apiKey) {
       addDebugLog('エラー: APIキーが設定されていません', 'error')
       showError('APIキーが設定されていません')
       return { success: false, shouldRetake: false }
     }
-    
+
     // 初期進捗状態を通知
     if (onProgress) {
       onProgress({
@@ -195,7 +192,7 @@ export class EmailService {
         percentage: 0
       })
     }
-    
+
     try {
       addDebugLog(`${preset.recipients.length}件の宛先に一括送信中...`, 'info')
 
@@ -235,14 +232,14 @@ export class EmailService {
         }
 
         // Dropboxのメールアドレス形式を確認
-        if (presetId === 'dropbox' && preset.recipients.some(r => r.includes('@'))) {
-          const invalidDropboxEmails = preset.recipients.filter(r =>
-            r.includes('@') &&
-            !r.endsWith('@getdropbox.com') &&
-            !r.endsWith('@addtodropbox.com')
+        if (presetId === 'dropbox' && preset.recipients.some((r) => r.includes('@'))) {
+          const invalidDropboxEmails = preset.recipients.filter(
+            (r) =>
+              r.includes('@') && !r.endsWith('@getdropbox.com') && !r.endsWith('@addtodropbox.com')
           )
           if (invalidDropboxEmails.length > 0) {
-            errorMsg += '\n\n⚠️ ヒント: Dropboxのメールアドレスは通常 @getdropbox.com または @addtodropbox.com で終わります'
+            errorMsg +=
+              '\n\n⚠️ ヒント: Dropboxのメールアドレスは通常 @getdropbox.com または @addtodropbox.com で終わります'
           }
         }
 

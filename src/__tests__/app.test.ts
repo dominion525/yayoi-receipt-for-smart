@@ -6,7 +6,6 @@ import { DebugService } from '../services/debug.service'
 import { EmailService } from '../services/email.service'
 import { emailSender } from '../lib/mail'
 
-
 // モック設定
 vi.mock('../lib/mail', () => ({
   emailSender: {
@@ -43,7 +42,7 @@ vi.mock('../services/email.service', () => ({
 
 describe('receiptApp', () => {
   let app: CompleteAppData
-  
+
   // デフォルト設定
   const mockSettings = {
     email: 'test@example.com',
@@ -68,22 +67,22 @@ describe('receiptApp', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    
+
     // デフォルトモック設定
     vi.mocked(SettingsService.load).mockReturnValue(mockSettings)
     vi.mocked(SettingsService.isComplete).mockReturnValue(true)
     vi.mocked(SettingsService.save).mockReturnValue(true)
-    
+
     // DOM環境のセットアップ
     document.body.innerHTML = `
       <div id="debug-panel">
         <div class="bg-black"></div>
       </div>
     `
-    
+
     // 新しいアプリインスタンスを作成
     app = receiptApp()
-    
+
     // Alpine.jsの$nextTickをモック
     app.$nextTick = vi.fn((callback: () => void) => {
       // 即座にコールバックを実行（同期的に）
@@ -132,7 +131,7 @@ describe('receiptApp', () => {
   describe('init()メソッド', () => {
     it('APIキーと送信元アドレスが設定される', () => {
       app.init()
-      
+
       expect(vi.mocked(emailSender).setApiKey).toHaveBeenCalledWith('test-api-key')
       expect(vi.mocked(emailSender).setFromEmail).toHaveBeenCalledWith('from@example.com')
     })
@@ -142,11 +141,11 @@ describe('receiptApp', () => {
         ...mockSettings,
         apiKey: ''
       })
-      
+
       app = receiptApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
-      
+
       expect(vi.mocked(emailSender).setApiKey).not.toHaveBeenCalled()
     })
 
@@ -155,11 +154,11 @@ describe('receiptApp', () => {
         ...mockSettings,
         fromEmail: ''
       })
-      
+
       app = receiptApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
-      
+
       expect(vi.mocked(emailSender).setFromEmail).not.toHaveBeenCalled()
     })
 
@@ -168,11 +167,11 @@ describe('receiptApp', () => {
         ...mockSettings,
         sendPresets: []
       })
-      
+
       app = receiptApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
-      
+
       expect(SettingsService.syncPresetsWithEmails).toHaveBeenCalledWith(app.settings)
     })
 
@@ -181,15 +180,15 @@ describe('receiptApp', () => {
         ...mockSettings,
         sendPresets: null as any
       }
-      
+
       vi.mocked(SettingsService.load).mockReturnValue(settingsWithNullPresets)
-      
+
       app = receiptApp()
       // $nextTickをモック（再設定）
       app.$nextTick = vi.fn((callback: () => void) => callback())
-      
+
       app.init()
-      
+
       expect(SettingsService.syncPresetsWithEmails).toHaveBeenCalledWith(app.settings)
     })
 
@@ -205,13 +204,13 @@ describe('receiptApp', () => {
           }
         ]
       }
-      
+
       vi.mocked(SettingsService.load).mockReturnValue(settingsWithoutDropboxPreset)
-      
+
       app = receiptApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
-      
+
       expect(SettingsService.syncPresetsWithEmails).toHaveBeenCalledWith(app.settings)
     })
 
@@ -233,13 +232,13 @@ describe('receiptApp', () => {
           }
         ]
       }
-      
+
       vi.mocked(SettingsService.load).mockReturnValue(settingsWithInactiveDropbox)
-      
+
       app = receiptApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
-      
+
       expect(SettingsService.syncPresetsWithEmails).toHaveBeenCalledWith(app.settings)
     })
 
@@ -262,33 +261,30 @@ describe('receiptApp', () => {
           }
         ]
       }
-      
+
       vi.mocked(SettingsService.load).mockReturnValue(settingsWithMismatchedEmail)
-      
+
       app = receiptApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
-      
+
       expect(SettingsService.syncPresetsWithEmails).toHaveBeenCalledWith(app.settings)
     })
 
     it('プリセットが正常な場合はupdateAllPresetのみ呼ばれる', () => {
       // 既存のappを使用（$nextTickは既にbeforeEachで設定済み）
       app.init()
-      
+
       expect(SettingsService.syncPresetsWithEmails).not.toHaveBeenCalled()
       expect(SettingsService.updateAllPreset).toHaveBeenCalledWith(mockSettings)
     })
 
     it('デバッグログが追加される', () => {
       const addDebugLogSpy = vi.spyOn(app, 'addDebugLog')
-      
+
       app.init()
-      
-      expect(addDebugLogSpy).toHaveBeenCalledWith(
-        'プリセット数: 2個がアクティブ',
-        'info'
-      )
+
+      expect(addDebugLogSpy).toHaveBeenCalledWith('プリセット数: 2個がアクティブ', 'info')
     })
   })
 
@@ -296,9 +292,9 @@ describe('receiptApp', () => {
     it('写真とエラーをクリアする', () => {
       app.photo = 'data:image/jpeg;base64,test'
       app.error = 'テストエラー'
-      
+
       app.retake()
-      
+
       expect(app.photo).toBe(null)
       expect(app.error).toBe(null)
     })
@@ -308,9 +304,9 @@ describe('receiptApp', () => {
     it('写真とエラーをクリアする', () => {
       app.photo = 'data:image/jpeg;base64,test'
       app.error = 'テストエラー'
-      
+
       app.returnToHome()
-      
+
       expect(app.photo).toBe(null)
       expect(app.error).toBe(null)
     })
@@ -319,10 +315,10 @@ describe('receiptApp', () => {
   describe('toggleDebug()メソッド', () => {
     it('デバッグ表示をトグルする', () => {
       expect(app.showDebug).toBe(false)
-      
+
       app.toggleDebug()
       expect(app.showDebug).toBe(true)
-      
+
       app.toggleDebug()
       expect(app.showDebug).toBe(false)
     })
@@ -339,18 +335,18 @@ describe('receiptApp', () => {
 
     it('エラーメッセージを設定する', () => {
       const message = 'テストエラー'
-      
+
       app.showError(message)
-      
+
       expect(app.error).toBe(message)
     })
 
     it('10秒後にエラーメッセージをクリアする', () => {
       const message = 'テストエラー'
-      
+
       app.showError(message)
       expect(app.error).toBe(message)
-      
+
       vi.advanceTimersByTime(10000)
       expect(app.error).toBe(null)
     })
@@ -358,10 +354,10 @@ describe('receiptApp', () => {
     it('エラーメッセージが変更された場合は自動クリアしない', () => {
       const message1 = 'テストエラー1'
       const message2 = 'テストエラー2'
-      
+
       app.showError(message1)
       app.error = message2
-      
+
       vi.advanceTimersByTime(10000)
       expect(app.error).toBe(message2)
     })
@@ -380,12 +376,12 @@ describe('receiptApp', () => {
     it('デバッグログが正しく追加される', () => {
       // JST時刻でシステム時刻を固定（UTC時刻でJST 23:30:45.123相当）
       vi.setSystemTime(new Date('2024-12-25T23:30:45.123+09:00'))
-      
+
       const message = 'テストメッセージ'
       const type = 'info'
-      
+
       app.addDebugLog(message, type)
-      
+
       expect(app.debugLogs).toHaveLength(1)
       expect(app.debugLogs[0]).toEqual({
         time: '23:30:45.123',
@@ -396,18 +392,23 @@ describe('receiptApp', () => {
 
     it('デフォルトのタイプはinfoになる', () => {
       app.addDebugLog('テストメッセージ')
-      
+
       expect(app.debugLogs[0]?.type).toBe('info')
     })
 
     it('各タイプのログが正しく記録される', () => {
-      const types: Array<'info' | 'success' | 'warning' | 'error' | 'debug'> = 
-        ['info', 'success', 'warning', 'error', 'debug']
-      
+      const types: Array<'info' | 'success' | 'warning' | 'error' | 'debug'> = [
+        'info',
+        'success',
+        'warning',
+        'error',
+        'debug'
+      ]
+
       types.forEach((type, index) => {
         app.addDebugLog(`メッセージ${index}`, type)
       })
-      
+
       expect(app.debugLogs).toHaveLength(5)
       types.forEach((type, index) => {
         expect(app.debugLogs[index]?.type).toBe(type)
@@ -417,7 +418,7 @@ describe('receiptApp', () => {
 
     it('DebugServiceにも記録される', () => {
       app.addDebugLog('テストメッセージ', 'success')
-      
+
       expect(DebugService.add).toHaveBeenCalledWith('テストメッセージ', 'success')
     })
 
@@ -426,16 +427,16 @@ describe('receiptApp', () => {
       for (let i = 0; i < 100; i++) {
         app.addDebugLog(`ログ${i}`)
       }
-      
+
       expect(app.debugLogs).toHaveLength(100)
       expect(app.debugLogs[0]?.message).toBe('ログ0')
       expect(app.debugLogs[99]?.message).toBe('ログ99')
-      
+
       // 101件目を追加
       app.addDebugLog('ログ100')
-      
+
       expect(app.debugLogs).toHaveLength(100)
-      expect(app.debugLogs[0]?.message).toBe('ログ1')  // 最初のログが削除される
+      expect(app.debugLogs[0]?.message).toBe('ログ1') // 最初のログが削除される
       expect(app.debugLogs[99]?.message).toBe('ログ100')
     })
 
@@ -443,15 +444,14 @@ describe('receiptApp', () => {
       // 異なる時刻でテスト（UTC時刻でJST 18:05:03.045相当）
       vi.setSystemTime(new Date('2024-12-25T18:05:03.045+09:00'))
       app.addDebugLog('時刻テスト')
-      
+
       expect(app.debugLogs[0]?.time).toBe('18:05:03.045')
     })
-
 
     it('DOM要素が存在しない場合もエラーにならない', () => {
       // debug-panel要素を削除
       document.getElementById('debug-panel')?.remove()
-      
+
       expect(() => {
         app.addDebugLog('DOM要素なしテスト')
       }).not.toThrow()
@@ -460,7 +460,7 @@ describe('receiptApp', () => {
     it('bg-black要素が存在しない場合もエラーにならない', () => {
       // bg-black要素を削除
       document.querySelector('#debug-panel .bg-black')?.remove()
-      
+
       expect(() => {
         app.addDebugLog('bg-black要素なしテスト')
       }).not.toThrow()
@@ -473,17 +473,17 @@ describe('receiptApp', () => {
       app.addDebugLog('ログ1')
       app.addDebugLog('ログ2')
       app.addDebugLog('ログ3')
-      
+
       expect(app.debugLogs).toHaveLength(3)
-      
+
       app.clearDebugLogs()
-      
+
       expect(app.debugLogs).toHaveLength(0)
     })
 
     it('DebugServiceもクリアされる', () => {
       app.clearDebugLogs()
-      
+
       expect(DebugService.clear).toHaveBeenCalledOnce()
     })
   })
@@ -499,26 +499,25 @@ describe('receiptApp', () => {
 
     it('ログをクリップボードにコピーする', async () => {
       vi.mocked(DebugService.copyToClipboard).mockResolvedValue(true)
-      
+
       expect(app.isCopyingLogs).toBe(false)
-      
+
       const copyPromise = app.copyDebugLogs()
-      
+
       expect(app.isCopyingLogs).toBe(true)
       expect(DebugService.copyToClipboard).toHaveBeenCalledOnce()
-      
+
       // 非同期処理を待機
       await vi.waitFor(() => {
         expect(DebugService.copyToClipboard).toHaveBeenCalled()
       })
-      
+
       // 2秒経過
       vi.advanceTimersByTime(2000)
       await copyPromise
-      
+
       expect(app.isCopyingLogs).toBe(false)
     })
-
   })
 
   describe('handleNativeCamera()メソッド', () => {
@@ -528,11 +527,11 @@ describe('receiptApp', () => {
     beforeEach(() => {
       // モックファイルを作成
       mockFile = new File(['mock image data'], 'test.jpg', { type: 'image/jpeg' })
-      
+
       // モックinput要素を作成
       mockInput = document.createElement('input')
       mockInput.type = 'file'
-      
+
       vi.useFakeTimers()
     })
 
@@ -548,7 +547,7 @@ describe('receiptApp', () => {
         readAsDataURL: vi.fn(),
         result: 'data:image/jpeg;base64,testImageData'
       }
-      
+
       global.FileReader = vi.fn(() => mockFileReader) as any
 
       // ファイルを設定
@@ -558,7 +557,7 @@ describe('receiptApp', () => {
       })
 
       const event = { target: mockInput } as any
-      
+
       // メソッド実行
       app.handleNativeCamera(event)
 
@@ -579,9 +578,9 @@ describe('receiptApp', () => {
 
       const event = { target: mockInput } as any
       const initialPhoto = app.photo
-      
+
       app.handleNativeCamera(event)
-      
+
       expect(app.photo).toBe(initialPhoto)
     })
 
@@ -592,7 +591,7 @@ describe('receiptApp', () => {
         readAsDataURL: vi.fn(),
         result: null
       }
-      
+
       global.FileReader = vi.fn(() => mockFileReader) as any
 
       Object.defineProperty(mockInput, 'files', {
@@ -602,7 +601,7 @@ describe('receiptApp', () => {
 
       const event = { target: mockInput } as any
       const showErrorSpy = vi.spyOn(app, 'showError')
-      
+
       app.handleNativeCamera(event)
 
       // FileReader の onerror を実行
@@ -618,9 +617,9 @@ describe('receiptApp', () => {
       })
 
       const event = { target: mockInput } as any
-      
+
       app.handleNativeCamera(event)
-      
+
       expect(mockInput.value).toBe('')
     })
   })
@@ -639,10 +638,12 @@ describe('receiptApp', () => {
       vi.mocked(SettingsService.isComplete).mockReturnValue(false)
       const openSettingsSpy = vi.spyOn(app, 'openSettings')
       const showErrorSpy = vi.spyOn(app, 'showError')
-      
+
       await app.sendMail()
-      
-      expect(showErrorSpy).toHaveBeenCalledWith('メール設定が完了していません。設定を行ってください。')
+
+      expect(showErrorSpy).toHaveBeenCalledWith(
+        'メール設定が完了していません。設定を行ってください。'
+      )
       expect(openSettingsSpy).toHaveBeenCalledOnce()
       expect(app.isSendingMail).toBe(false)
     })
@@ -655,9 +656,9 @@ describe('receiptApp', () => {
 
       const retakeSpy = vi.spyOn(app, 'retake')
       const showSuccessSpy = vi.spyOn(app, 'showSuccess')
-      
+
       await app.sendMail()
-      
+
       expect(app.isSendingMail).toBe(false)
       expect(EmailService.sendMail).toHaveBeenCalledWith(
         'data:image/jpeg;base64,testImageData',
@@ -666,25 +667,25 @@ describe('receiptApp', () => {
         expect.any(Function),
         expect.any(Function)
       )
-      
+
       // 完了メッセージが設定される
       expect(app.completionMessage).toBe('送信が完了しました')
-      
+
       // まだretakeは呼ばれていない
       expect(retakeSpy).not.toHaveBeenCalled()
-      
+
       // 3秒後にretakeが呼ばれ、その後成功メッセージが表示される
       vi.advanceTimersByTime(3000)
       expect(app.completionMessage).toBe(null)
       expect(retakeSpy).toHaveBeenCalledOnce()
-      
+
       // $nextTickの処理を待つ
       if (app.$nextTick) {
-        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
+        await new Promise<void>((resolve) => app.$nextTick!(() => resolve()))
       } else {
         vi.advanceTimersByTime(100)
       }
-      
+
       expect(showSuccessSpy).toHaveBeenCalledWith('レシートを送信しました')
     })
 
@@ -695,9 +696,9 @@ describe('receiptApp', () => {
       })
 
       const retakeSpy = vi.spyOn(app, 'retake')
-      
+
       await app.sendMail()
-      
+
       expect(retakeSpy).not.toHaveBeenCalled()
     })
 
@@ -706,21 +707,21 @@ describe('receiptApp', () => {
         success: true,
         shouldRetake: true
       })
-      
+
       await app.sendMail()
-      
+
       // 3秒経過して、メイン画面に戻った後の成功メッセージ
       vi.advanceTimersByTime(3000)
-      
+
       // $nextTickの処理を待つ
       if (app.$nextTick) {
-        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
+        await new Promise<void>((resolve) => app.$nextTick!(() => resolve()))
       } else {
         vi.advanceTimersByTime(100)
       }
-      
+
       expect(app.successMessage).toBe('レシートを送信しました')
-      
+
       // 5秒経過
       vi.advanceTimersByTime(5000)
       expect(app.successMessage).toBe(null)
@@ -733,18 +734,20 @@ describe('receiptApp', () => {
       })
 
       let errorDisplayFunction: (message: string) => void = () => {}
-      
-      vi.mocked(EmailService.sendMail).mockImplementation(async (_photo, _settings, _debugLog, showError) => {
-        errorDisplayFunction = showError
-        return { success: false, shouldRetake: false }
-      })
-      
+
+      vi.mocked(EmailService.sendMail).mockImplementation(
+        async (_photo, _settings, _debugLog, showError) => {
+          errorDisplayFunction = showError
+          return { success: false, shouldRetake: false }
+        }
+      )
+
       await app.sendMail()
-      
+
       // エラーメッセージを表示
       errorDisplayFunction('送信に失敗しました')
       expect(app.error).toBe('送信に失敗しました')
-      
+
       // 3秒経過してもクリアされない
       vi.advanceTimersByTime(3000)
       expect(app.error).toBe('送信に失敗しました')
@@ -769,9 +772,9 @@ describe('receiptApp', () => {
 
       const retakeSpy = vi.spyOn(app, 'retake')
       const showSuccessSpy = vi.spyOn(app, 'showSuccess')
-      
+
       await app.sendMailToPreset('main')
-      
+
       expect(EmailService.sendMailToPreset).toHaveBeenCalledWith(
         'main',
         'data:image/jpeg;base64,testImageData',
@@ -780,25 +783,25 @@ describe('receiptApp', () => {
         expect.any(Function),
         expect.any(Function)
       )
-      
+
       // 完了メッセージが設定される
       expect(app.completionMessage).toBe('送信が完了しました')
-      
+
       // まだretakeは呼ばれていない
       expect(retakeSpy).not.toHaveBeenCalled()
-      
+
       // 3秒後にretakeが呼ばれ、その後成功メッセージが表示される
       vi.advanceTimersByTime(3000)
       expect(app.completionMessage).toBe(null)
       expect(retakeSpy).toHaveBeenCalledOnce()
-      
+
       // $nextTickの処理を待つ
       if (app.$nextTick) {
-        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
+        await new Promise<void>((resolve) => app.$nextTick!(() => resolve()))
       } else {
         vi.advanceTimersByTime(100)
       }
-      
+
       expect(showSuccessSpy).toHaveBeenCalledWith('レシートを送信しました')
     })
 
@@ -809,10 +812,10 @@ describe('receiptApp', () => {
       })
 
       expect(app.isSendingMail).toBe(false)
-      
+
       const sendPromise = app.sendMailToPreset('dropbox')
       expect(app.isSendingMail).toBe(true)
-      
+
       await sendPromise
       expect(app.isSendingMail).toBe(false)
     })
@@ -822,9 +825,9 @@ describe('receiptApp', () => {
     describe('openSettings()メソッド', () => {
       it('設定モーダルを開く', () => {
         expect(app.showSettings).toBe(false)
-        
+
         app.openSettings()
-        
+
         expect(app.showSettings).toBe(true)
       })
 
@@ -835,9 +838,9 @@ describe('receiptApp', () => {
           dropboxEmail: 'custom@getdropbox.com'
         }
         app.settings = customSettings
-        
+
         app.openSettings()
-        
+
         expect(app.tempSettings).toEqual({
           email: 'custom@example.com',
           apiKey: 'test-api-key',
@@ -854,21 +857,21 @@ describe('receiptApp', () => {
           fromEmail: undefined as any
         }
         app.settings = settingsWithUndefined
-        
+
         app.openSettings()
-        
+
         expect(app.tempSettings.dropboxEmail).toBe('')
         expect(app.tempSettings.fromEmail).toBe('')
       })
 
       it('sendPresetsの深いコピーが作成される', () => {
         app.openSettings()
-        
+
         // 元の配列とは異なるインスタンス
         expect(app.tempSettings.sendPresets).not.toBe(app.settings.sendPresets)
         // 内容は同じ
         expect(app.tempSettings.sendPresets).toEqual(app.settings.sendPresets)
-        
+
         // 変更しても元に影響しない
         app.tempSettings.sendPresets[0]!.name = '変更されたプリセット'
         expect(app.settings.sendPresets[0]?.name).toBe('メインアドレス')
@@ -878,9 +881,9 @@ describe('receiptApp', () => {
     describe('closeSettings()メソッド', () => {
       it('設定モーダルを閉じる', () => {
         app.showSettings = true
-        
+
         app.closeSettings()
-        
+
         expect(app.showSettings).toBe(false)
       })
 
@@ -892,9 +895,9 @@ describe('receiptApp', () => {
           fromEmail: 'temp@from.com',
           sendPresets: [{ id: 'temp', name: 'temp', recipients: [], isActive: true }]
         }
-        
+
         app.closeSettings()
-        
+
         expect(app.tempSettings).toEqual({
           email: '',
           apiKey: '',
@@ -921,9 +924,9 @@ describe('receiptApp', () => {
       it('一時設定から正式設定に保存する', async () => {
         vi.mocked(SettingsService.save).mockReturnValue(true)
         const closeSettingsSpy = vi.spyOn(app, 'closeSettings')
-        
+
         await app.saveSettings()
-        
+
         expect(SettingsService.updatePresetsFromTempSettings).toHaveBeenCalledWith({
           email: '  new@example.com  ',
           apiKey: '  new-api-key  ',
@@ -947,9 +950,9 @@ describe('receiptApp', () => {
 
       it('設定値の前後の空白をトリムする', async () => {
         vi.mocked(SettingsService.save).mockReturnValue(true)
-        
+
         await app.saveSettings()
-        
+
         expect(app.settings.email).toBe('new@example.com')
         expect(app.settings.apiKey).toBe('new-api-key')
         expect(app.settings.dropboxEmail).toBe('new@dropbox.com')
@@ -960,9 +963,9 @@ describe('receiptApp', () => {
         app.tempSettings.dropboxEmail = undefined as any
         app.tempSettings.fromEmail = undefined as any
         vi.mocked(SettingsService.save).mockReturnValue(true)
-        
+
         await app.saveSettings()
-        
+
         expect(app.settings.dropboxEmail).toBe('')
         expect(app.settings.fromEmail).toBe('')
       })
@@ -970,9 +973,9 @@ describe('receiptApp', () => {
       it('保存成功時にデバッグログを出力する', async () => {
         vi.mocked(SettingsService.save).mockReturnValue(true)
         const addDebugLogSpy = vi.spyOn(app, 'addDebugLog')
-        
+
         await app.saveSettings()
-        
+
         expect(addDebugLogSpy).toHaveBeenCalledWith('設定をlocalStorageに保存しました', 'success')
       })
 
@@ -981,10 +984,12 @@ describe('receiptApp', () => {
         const showErrorSpy = vi.spyOn(app, 'showError')
         const addDebugLogSpy = vi.spyOn(app, 'addDebugLog')
         const closeSettingsSpy = vi.spyOn(app, 'closeSettings')
-        
+
         await app.saveSettings()
-        
-        expect(showErrorSpy).toHaveBeenCalledWith('設定の保存に失敗しました。ブラウザの設定を確認してください。')
+
+        expect(showErrorSpy).toHaveBeenCalledWith(
+          '設定の保存に失敗しました。ブラウザの設定を確認してください。'
+        )
         expect(addDebugLogSpy).toHaveBeenCalledWith('localStorage保存エラー', 'error')
         expect(closeSettingsSpy).not.toHaveBeenCalled()
       })
@@ -992,9 +997,9 @@ describe('receiptApp', () => {
       it('保存失敗時は元の設定を維持する', async () => {
         const originalSettings = { ...app.settings }
         vi.mocked(SettingsService.save).mockReturnValue(false)
-        
+
         await app.saveSettings()
-        
+
         expect(app.settings).toEqual(originalSettings)
       })
     })
@@ -1016,23 +1021,23 @@ describe('receiptApp', () => {
         success: true,
         shouldRetake: true
       })
-      
+
       app.photo = 'data:image/jpeg;base64,test'
       await app.sendMail()
-      
+
       // 3秒経過して、メイン画面に戻った後
       vi.advanceTimersByTime(3000)
-      
+
       // $nextTickの処理を待つ
       if (app.$nextTick) {
-        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
+        await new Promise<void>((resolve) => app.$nextTick!(() => resolve()))
       } else {
         vi.advanceTimersByTime(100)
       }
-      
+
       expect(app.successMessage).toBe('レシートを送信しました')
       expect(app.error).toBe(null)
-      
+
       // 5秒経過
       vi.advanceTimersByTime(5000)
       expect(app.successMessage).toBe(null)
@@ -1043,23 +1048,23 @@ describe('receiptApp', () => {
         success: true,
         shouldRetake: true
       })
-      
+
       app.photo = 'data:image/jpeg;base64,test'
       await app.sendMailToPreset('main')
-      
+
       // 3秒経過して、メイン画面に戻った後
       vi.advanceTimersByTime(3000)
-      
+
       // $nextTickの処理を待つ
       if (app.$nextTick) {
-        await new Promise<void>(resolve => app.$nextTick!(() => resolve()))
+        await new Promise<void>((resolve) => app.$nextTick!(() => resolve()))
       } else {
         vi.advanceTimersByTime(100)
       }
-      
+
       expect(app.successMessage).toBe('レシートを送信しました')
       expect(app.error).toBe(null)
-      
+
       // 5秒経過
       vi.advanceTimersByTime(5000)
       expect(app.successMessage).toBe(null)
@@ -1070,17 +1075,17 @@ describe('receiptApp', () => {
         success: true,
         shouldRetake: true
       })
-      
+
       app.photo = 'data:image/jpeg;base64,test'
       await app.sendMail()
-      
+
       // 3秒経過して、メイン画面に戻った後
       vi.advanceTimersByTime(3000)
       expect(app.successMessage).toBe('レシートを送信しました')
-      
+
       // メッセージを途中で変更
       app.successMessage = '別のメッセージ'
-      
+
       // 5秒経過
       vi.advanceTimersByTime(5000)
       expect(app.successMessage).toBe('別のメッセージ')
@@ -1091,20 +1096,20 @@ describe('receiptApp', () => {
     it('✅付きメッセージは無視される', () => {
       const showSuccessSpy = vi.spyOn(app, 'showSuccess')
       const showErrorSpy = vi.spyOn(app, 'showError')
-      
+
       app.handleEmailMessage('✅ レシートを送信しました')
-      
+
       expect(showSuccessSpy).not.toHaveBeenCalled()
       expect(showErrorSpy).not.toHaveBeenCalled()
       expect(app.successMessage).toBe(null)
       expect(app.error).toBe(null)
     })
-    
+
     it('通常のメッセージはエラーとして表示される', () => {
       const showErrorSpy = vi.spyOn(app, 'showError')
-      
+
       app.handleEmailMessage('送信に失敗しました')
-      
+
       expect(showErrorSpy).toHaveBeenCalledWith('送信に失敗しました')
       expect(app.error).toBe('送信に失敗しました')
     })
@@ -1116,16 +1121,16 @@ describe('receiptApp', () => {
       expect(receiptApp).toBeDefined()
       expect(typeof receiptApp).toBe('function')
     })
-    
+
     it('receiptApp関数が適切なオブジェクトを返す', () => {
       const appInstance = receiptApp()
-      
+
       // 基本プロパティの存在確認
       expect(appInstance).toHaveProperty('init')
       expect(appInstance).toHaveProperty('sendMail')
       expect(appInstance).toHaveProperty('photo')
       expect(appInstance).toHaveProperty('settings')
-      
+
       // 関数プロパティの確認
       expect(typeof appInstance.init).toBe('function')
       expect(typeof appInstance.sendMail).toBe('function')
@@ -1135,27 +1140,27 @@ describe('receiptApp', () => {
       const mockAlpine = {
         data: vi.fn()
       }
-      
+
       // グローバルAlpineをモックに設定
       vi.stubGlobal('Alpine', mockAlpine)
-      
+
       try {
         // 新しいイベントリスナーを追加して332-333行目の処理を再現
         const alpineInitHandler = () => {
           // @ts-expect-error - app.ts 332行目のコードを直接実行
           Alpine.data('receiptApp', receiptApp)
         }
-        
+
         // イベントリスナーを追加
         document.addEventListener('alpine:init', alpineInitHandler)
-        
+
         // alpine:initイベントを発火
         const event = new Event('alpine:init')
         document.dispatchEvent(event)
-        
+
         // Alpine.dataが正しく呼ばれることを確認
         expect(mockAlpine.data).toHaveBeenCalledWith('receiptApp', receiptApp)
-        
+
         // イベントリスナーをクリーンアップ
         document.removeEventListener('alpine:init', alpineInitHandler)
       } finally {
@@ -1245,7 +1250,7 @@ describe('receiptApp', () => {
         // グローバル変数を保存
         originalBuildRevision = (global as any).__BUILD_REVISION__
         originalBuildTime = (global as any).__BUILD_TIME__
-        
+
         app = receiptApp()
         // $nextTickをモック
         app.$nextTick = vi.fn((cb) => cb())
@@ -1257,12 +1262,12 @@ describe('receiptApp', () => {
       afterEach(() => {
         // グローバル変数を復元
         if (originalBuildRevision !== undefined) {
-          (global as any).__BUILD_REVISION__ = originalBuildRevision
+          ;(global as any).__BUILD_REVISION__ = originalBuildRevision
         } else {
           delete (global as any).__BUILD_REVISION__
         }
         if (originalBuildTime !== undefined) {
-          (global as any).__BUILD_TIME__ = originalBuildTime
+          ;(global as any).__BUILD_TIME__ = originalBuildTime
         } else {
           delete (global as any).__BUILD_TIME__
         }
@@ -1326,7 +1331,7 @@ describe('receiptApp', () => {
         await vi.waitFor(() => {
           expect(mockServiceWorker.getRegistration).toHaveBeenCalled()
         })
-        
+
         expect(mockRegistration.update).toHaveBeenCalled()
         expect(app.addDebugLog).toHaveBeenCalledWith('最新版をチェック中...', 'info')
 
@@ -1362,7 +1367,10 @@ describe('receiptApp', () => {
         await mockServiceWorker.ready
 
         // addEventListenerが呼ばれたことを確認
-        expect(mockServiceWorker.addEventListener).toHaveBeenCalledWith('message', expect.any(Function))
+        expect(mockServiceWorker.addEventListener).toHaveBeenCalledWith(
+          'message',
+          expect.any(Function)
+        )
 
         // メッセージイベントをシミュレート
         const messageHandler = mockServiceWorker.addEventListener.mock.calls[0]?.[1]
@@ -1402,9 +1410,9 @@ describe('receiptApp', () => {
         status: 'sending' as const,
         percentage: 33
       }
-      
+
       app.handleEmailProgress(progress)
-      
+
       expect(app.sendProgress).toBe(progress)
     })
 
@@ -1418,10 +1426,10 @@ describe('receiptApp', () => {
         status: 'completed' as const,
         percentage: 100
       }
-      
+
       app.handleEmailProgress(progress)
       expect(app.sendProgress).toBe(progress)
-      
+
       // 3秒経過
       vi.advanceTimersByTime(3000)
       expect(app.sendProgress).toBe(null)
@@ -1437,10 +1445,10 @@ describe('receiptApp', () => {
         status: 'error' as const,
         percentage: 100
       }
-      
+
       app.handleEmailProgress(progress)
       expect(app.sendProgress).toBe(progress)
-      
+
       // 3秒経過
       vi.advanceTimersByTime(3000)
       expect(app.sendProgress).toBe(null)
@@ -1456,10 +1464,10 @@ describe('receiptApp', () => {
         status: 'sending' as const,
         percentage: 33
       }
-      
+
       app.handleEmailProgress(progress)
       expect(app.sendProgress).toBe(progress)
-      
+
       // 3秒経過してもクリアされない
       vi.advanceTimersByTime(3000)
       expect(app.sendProgress).toBe(progress)

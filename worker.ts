@@ -65,9 +65,10 @@ interface Env {
 function getCorsHeaders(): Record<string, string> {
   // 本番環境（Cloudflare Workers）では特定ドメインのみ許可
   const g = globalThis as { ENVIRONMENT?: unknown; window?: unknown; process?: unknown }
-  const isProduction = typeof g.ENVIRONMENT === 'undefined' &&
-                      typeof g.window === 'undefined' &&
-                      typeof g.process === 'undefined'
+  const isProduction =
+    typeof g.ENVIRONMENT === 'undefined' &&
+    typeof g.window === 'undefined' &&
+    typeof g.process === 'undefined'
 
   if (isProduction) {
     return {
@@ -208,7 +209,10 @@ async function handleRequest(
           errorMessage = result.message
         } else if (isResendErrorDetails(result.error) && result.error.name === 'validation_error') {
           errorMessage = 'メールアドレスまたはAPIキーが無効です'
-        } else if (isResendErrorDetails(result.error) && result.error.name === 'invalid_to_address') {
+        } else if (
+          isResendErrorDetails(result.error) &&
+          result.error.name === 'invalid_to_address'
+        ) {
           errorMessage = '送信先メールアドレスが無効です'
         }
 
@@ -234,7 +238,6 @@ async function handleRequest(
           data: result.data
         })
       }
-
     } catch (error) {
       // 本番環境でも重要なエラーはログに残す（簡潔に）
       const message = error instanceof Error ? error.message : String(error)
@@ -287,7 +290,7 @@ async function sendEmailWithFetch({
 
     // 添付ファイルがある場合の処理
     if (attachments && attachments.length > 0) {
-      emailData.attachments = attachments.map(att => ({
+      emailData.attachments = attachments.map((att) => ({
         filename: att.filename,
         content: att.content, // Base64文字列
         content_type: att.contentType || 'application/octet-stream'
@@ -300,7 +303,7 @@ async function sendEmailWithFetch({
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify(emailData)
@@ -336,10 +339,12 @@ export default {
       )
 
       // レスポンスを返す（セキュリティヘッダー付与）
-      return withSecurityHeaders(new Response(response.body, {
-        status: response.status,
-        headers: response.headers
-      }))
+      return withSecurityHeaders(
+        new Response(response.body, {
+          status: response.status,
+          headers: response.headers
+        })
+      )
     }
 
     // 静的アセットの処理（セキュリティヘッダー付与）

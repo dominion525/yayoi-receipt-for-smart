@@ -24,12 +24,12 @@ export function useSettings(): SettingsComposable {
       fromEmail: '',
       sendPresets: []
     },
-    
+
     // 設定が完了しているかチェック
     get isSettingsComplete() {
       return SettingsService.isComplete(this.settings)
     },
-    
+
     // 設定モーダルを開く
     openSettings() {
       // 現在の設定を一時設定にコピー（深いコピー）
@@ -42,7 +42,7 @@ export function useSettings(): SettingsComposable {
       }
       this.showSettings = true
     },
-    
+
     // 設定モーダルを閉じる
     closeSettings() {
       this.showSettings = false
@@ -55,12 +55,12 @@ export function useSettings(): SettingsComposable {
         sendPresets: []
       }
     },
-    
+
     // 設定を保存
     async saveSettings() {
       // プリセットを更新
       SettingsService.updatePresetsFromTempSettings(this.tempSettings)
-      
+
       // 設定データを準備
       const newSettings: AppSettings = {
         email: this.tempSettings.email.trim(),
@@ -69,15 +69,15 @@ export function useSettings(): SettingsComposable {
         fromEmail: this.tempSettings.fromEmail?.trim() || '',
         sendPresets: this.tempSettings.sendPresets
       }
-      
+
       // Alpine.jsコンテキストへの参照を取得
       const app = this as CompleteAppData
-      
+
       // localStorageに保存
       if (SettingsService.save(newSettings)) {
         // 保存成功時のみ状態を更新
         this.settings = newSettings
-        
+
         // APIキーと送信元アドレスを設定
         if (newSettings.apiKey) {
           emailSender.setApiKey(newSettings.apiKey)
@@ -85,14 +85,14 @@ export function useSettings(): SettingsComposable {
         if (newSettings.fromEmail) {
           emailSender.setFromEmail(newSettings.fromEmail)
         }
-        
+
         this.closeSettings()
-        
+
         // デバッグログ記録（Alpine.jsコンテキストで呼び出される）
         if (app.addDebugLog) {
           app.addDebugLog('設定をlocalStorageに保存しました', 'success')
         }
-        
+
         return true
       } else {
         // 保存失敗時のエラー処理
@@ -102,7 +102,7 @@ export function useSettings(): SettingsComposable {
         if (app.addDebugLog) {
           app.addDebugLog('localStorage保存エラー', 'error')
         }
-        
+
         return false
       }
     }

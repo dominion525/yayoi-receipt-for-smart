@@ -40,7 +40,9 @@ describe('usePhotoCapture', () => {
       expect(clickSpy).toHaveBeenCalled()
 
       // プレースホルダー画像が設定された
-      expect(merged.photo).toBe('data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7')
+      expect(merged.photo).toBe(
+        'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+      )
 
       // カメラがアクティブ状態になった
       expect(merged.isCameraActive).toBe(true)
@@ -116,7 +118,7 @@ describe('usePhotoCapture', () => {
       const mockReader = {
         onload: null as any,
         onerror: null as any,
-        readAsDataURL: vi.fn(function(this: any) {
+        readAsDataURL: vi.fn(function (this: any) {
           // readAsDataURLが呼ばれたら即座にonloadを発火
           setTimeout(() => {
             if (this.onload) {
@@ -131,7 +133,7 @@ describe('usePhotoCapture', () => {
       merged.handleNativeCamera(mockEvent)
 
       // FileReaderの非同期処理を待つ
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       expect(merged.photo).toBe('data:image/jpeg;base64,test-data')
       expect(merged.isCameraActive).toBe(false)
@@ -184,7 +186,7 @@ describe('usePhotoCapture', () => {
       const mockReader = {
         onload: null as any,
         onerror: null as any,
-        readAsDataURL: vi.fn(function(this: any) {
+        readAsDataURL: vi.fn(function (this: any) {
           setTimeout(() => {
             if (this.onerror) {
               this.onerror()
@@ -198,7 +200,7 @@ describe('usePhotoCapture', () => {
       merged.handleNativeCamera(mockEvent)
 
       // FileReaderの非同期処理を待つ
-      await new Promise(resolve => setTimeout(resolve, 10))
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       expect(merged.photo).toBeNull()
       expect(merged.isCameraActive).toBe(false)

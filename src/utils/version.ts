@@ -18,9 +18,12 @@ export interface BuildInfo {
  */
 export function getBuildInfo(): BuildInfo {
   // ビルド時に取得された情報（定数として埋め込まれる）
-  const buildTime = (globalThis as { __BUILD_TIME__?: string }).__BUILD_TIME__ || new Date().toISOString()
-  const gitCommit = (globalThis as { __BUILD_REVISION__?: string }).__BUILD_REVISION__ || import.meta.env.VITE_GIT_COMMIT
-  
+  const buildTime =
+    (globalThis as { __BUILD_TIME__?: string }).__BUILD_TIME__ || new Date().toISOString()
+  const gitCommit =
+    (globalThis as { __BUILD_REVISION__?: string }).__BUILD_REVISION__ ||
+    import.meta.env.VITE_GIT_COMMIT
+
   return {
     version: packageInfo.version,
     buildTime: buildTime,

@@ -26,11 +26,11 @@ describe('EmailService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    
+
     // モック関数を作成
     mockDebugLogger = vi.fn()
     mockErrorDisplayer = vi.fn()
-    
+
     // デフォルト設定
     mockSettings = {
       email: 'main@example.com',
@@ -259,7 +259,6 @@ describe('EmailService', () => {
       )
     })
 
-
     it('RESEND APIエラーの詳細を正しく解析する', async () => {
       vi.mocked(emailSender).sendReceipt.mockResolvedValue({
         success: false,
@@ -373,10 +372,7 @@ describe('EmailService', () => {
         shouldRetake: false
       })
 
-      expect(mockDebugLogger).toHaveBeenCalledWith(
-        'エラー: APIキーが設定されていません',
-        'error'
-      )
+      expect(mockDebugLogger).toHaveBeenCalledWith('エラー: APIキーが設定されていません', 'error')
       expect(mockErrorDisplayer).toHaveBeenCalledWith(
         expect.stringContaining('APIキーが設定されていません')
       )
@@ -436,7 +432,9 @@ describe('EmailService', () => {
       )
 
       expect(mockErrorDisplayer).toHaveBeenCalledWith(
-        expect.stringContaining('⚠️ ヒント: Dropboxのメールアドレスは通常 @getdropbox.com または @addtodropbox.com で終わります')
+        expect.stringContaining(
+          '⚠️ ヒント: Dropboxのメールアドレスは通常 @getdropbox.com または @addtodropbox.com で終わります'
+        )
       )
     })
 
@@ -466,9 +464,7 @@ describe('EmailService', () => {
         mockErrorDisplayer
       )
 
-      expect(mockErrorDisplayer).toHaveBeenCalledWith(
-        expect.not.stringContaining('⚠️ ヒント:')
-      )
+      expect(mockErrorDisplayer).toHaveBeenCalledWith(expect.not.stringContaining('⚠️ ヒント:'))
     })
 
     it('エラーメッセージが空の場合のデフォルト処理', async () => {
@@ -564,10 +560,7 @@ describe('EmailService', () => {
       expect(mockErrorDisplayer).toHaveBeenCalledWith(
         expect.stringContaining('予期しないエラーが発生しました: Unexpected error')
       )
-      expect(mockDebugLogger).toHaveBeenCalledWith(
-        '予期しないエラー: Unexpected error',
-        'error'
-      )
+      expect(mockDebugLogger).toHaveBeenCalledWith('予期しないエラー: Unexpected error', 'error')
     })
 
     it('RESEND APIエラー詳細の解析（validation_error）', async () => {
@@ -676,10 +669,7 @@ describe('EmailService', () => {
         mockErrorDisplayer
       )
 
-      expect(mockDebugLogger).toHaveBeenCalledWith(
-        'レシート画像を2件の宛先に送信中...',
-        'info'
-      )
+      expect(mockDebugLogger).toHaveBeenCalledWith('レシート画像を2件の宛先に送信中...', 'info')
     })
 
     it('一括送信開始時にログを出力する', async () => {
@@ -696,14 +686,8 @@ describe('EmailService', () => {
         mockErrorDisplayer
       )
 
-      expect(mockDebugLogger).toHaveBeenCalledWith(
-        'sendMailToPreset開始: presetId=main',
-        'info'
-      )
-      expect(mockDebugLogger).toHaveBeenCalledWith(
-        '1件の宛先に一括送信中...',
-        'info'
-      )
+      expect(mockDebugLogger).toHaveBeenCalledWith('sendMailToPreset開始: presetId=main', 'info')
+      expect(mockDebugLogger).toHaveBeenCalledWith('1件の宛先に一括送信中...', 'info')
     })
   })
 
@@ -761,7 +745,7 @@ describe('EmailService', () => {
               isActive: true
             },
             {
-              id: 'empty2', 
+              id: 'empty2',
               name: '空のプリセット2',
               recipients: [],
               isActive: true
@@ -887,7 +871,6 @@ describe('EmailService', () => {
         })
       })
 
-
       it('進捗コールバックなしでの送信処理', async () => {
         const mockSettings = {
           email: 'test@example.com',
@@ -989,7 +972,6 @@ describe('EmailService', () => {
         expect(result.shouldRetake).toBe(false)
         expect(mockErrorDisplayer).toHaveBeenCalledWith('送信先が設定されていません')
       })
-
     })
 
     describe('残りの未カバー行対応テスト', () => {
@@ -999,21 +981,21 @@ describe('EmailService', () => {
           success: true,
           messageId: 'msg-123'
         })
-        
+
         const addDebugLog = vi.fn()
         const showError = vi.fn()
-        
-        const preset = { 
-          id: 'test', 
-          name: 'テスト', 
-          recipients: ['test1@example.com', 'test2@example.com', 'test3@example.com'], 
-          isActive: true 
+
+        const preset = {
+          id: 'test',
+          name: 'テスト',
+          recipients: ['test1@example.com', 'test2@example.com', 'test3@example.com'],
+          isActive: true
         }
         const settings = {
           apiKey: 'test-key',
           sendPresets: [preset]
         }
-        
+
         const result = await EmailService.sendMailToPreset(
           'test',
           'data:image/jpeg;base64,test',
@@ -1021,7 +1003,7 @@ describe('EmailService', () => {
           addDebugLog,
           showError
         )
-        
+
         expect(result).toEqual({ success: true, shouldRetake: true })
         // 成功メッセージは表示されない（app.tsで処理）
         expect(showError).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
@@ -1033,17 +1015,17 @@ describe('EmailService', () => {
           success: true,
           messageId: 'msg-123'
         })
-        
+
         const addDebugLog = vi.fn()
         const showError = vi.fn()
         const onProgress = vi.fn()
-        
+
         const settings = {
           sendPresets: [
             { id: 'main', name: 'メイン', recipients: ['test@example.com'], isActive: true }
           ]
         }
-        
+
         await EmailService.sendMail(
           'data:image/jpeg;base64,test',
           settings as any,
@@ -1051,7 +1033,7 @@ describe('EmailService', () => {
           showError,
           onProgress
         )
-        
+
         // 最終進捗通知が呼ばれることを確認（169行目をカバー）
         expect(onProgress).toHaveBeenLastCalledWith({
           total: 1,
@@ -1076,7 +1058,12 @@ describe('EmailService', () => {
 
         const settings = {
           sendPresets: [
-            { id: 'main', name: 'メイン', recipients: ['test@example.com', 'test2@example.com'], isActive: true }
+            {
+              id: 'main',
+              name: 'メイン',
+              recipients: ['test@example.com', 'test2@example.com'],
+              isActive: true
+            }
           ]
         }
 
@@ -1109,7 +1096,12 @@ describe('EmailService', () => {
 
         const settings = {
           sendPresets: [
-            { id: 'main', name: 'メイン', recipients: ['test@example.com', 'test2@example.com'], isActive: true }
+            {
+              id: 'main',
+              name: 'メイン',
+              recipients: ['test@example.com', 'test2@example.com'],
+              isActive: true
+            }
           ]
         }
 
@@ -1165,22 +1157,22 @@ describe('EmailService', () => {
           success: true,
           messageId: 'msg-123'
         })
-        
+
         const addDebugLog = vi.fn()
         const showError = vi.fn()
         const onProgress = vi.fn()
-        
-        const preset = { 
-          id: 'test', 
-          name: 'テスト', 
-          recipients: ['test@example.com'], 
-          isActive: true 
+
+        const preset = {
+          id: 'test',
+          name: 'テスト',
+          recipients: ['test@example.com'],
+          isActive: true
         }
         const settings = {
           apiKey: 'test-key',
           sendPresets: [preset]
         }
-        
+
         await EmailService.sendMailToPreset(
           'test',
           'data:image/jpeg;base64,test',
@@ -1189,7 +1181,7 @@ describe('EmailService', () => {
           showError,
           onProgress
         )
-        
+
         // 最終進捗通知が呼ばれることを確認（361-369行目をカバー）
         expect(onProgress).toHaveBeenLastCalledWith({
           total: 1,
@@ -1314,8 +1306,6 @@ describe('EmailService', () => {
         // "不明なエラー"が使用されることを確認
         expect(showError).toHaveBeenCalledWith(expect.stringContaining('不明なエラー'))
       })
-
     })
-
   })
 })

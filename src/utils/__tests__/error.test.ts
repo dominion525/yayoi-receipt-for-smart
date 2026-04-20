@@ -11,7 +11,7 @@ describe('error utils', () => {
     it('Error のサブクラスに対してtrueを返す', () => {
       const typeError = new TypeError('type error')
       const rangeError = new RangeError('range error')
-      
+
       expect(isError(typeError)).toBe(true)
       expect(isError(rangeError)).toBe(true)
     })

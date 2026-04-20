@@ -49,11 +49,10 @@ export class SettingsService {
   static load(): AppSettings {
     const defaultSettings = this.getDefaultSettings()
     const stored = StorageService.get<AppSettings>(STORAGE_KEY, defaultSettings)
-    
-    
+
     // プリセットとメールアドレスを同期
     this.syncPresetsWithEmails(stored)
-    
+
     // APIキーと送信元アドレスを設定
     if (stored.apiKey) {
       emailSender.setApiKey(stored.apiKey)
@@ -61,7 +60,7 @@ export class SettingsService {
     if (stored.fromEmail) {
       emailSender.setFromEmail(stored.fromEmail)
     }
-    
+
     return stored
   }
 
@@ -69,7 +68,6 @@ export class SettingsService {
    * 設定を保存する
    */
   static save(settings: AppSettings): boolean {
-    
     // EmailSenderにAPIキーと送信元アドレスを設定
     if (settings.apiKey) {
       emailSender.setApiKey(settings.apiKey)
@@ -77,7 +75,7 @@ export class SettingsService {
     if (settings.fromEmail) {
       emailSender.setFromEmail(settings.fromEmail)
     }
-    
+
     return StorageService.set(STORAGE_KEY, settings)
   }
 
@@ -97,7 +95,7 @@ export class SettingsService {
     if (!settings.sendPresets || settings.sendPresets.length === 0) {
       // プリセットが空の場合は新規生成
       const presets: SendPreset[] = []
-      
+
       // メインアドレス
       if (settings.email) {
         presets.push({
@@ -107,7 +105,7 @@ export class SettingsService {
           isActive: true
         })
       }
-      
+
       // Dropboxアドレス
       if (settings.dropboxEmail) {
         presets.push({
@@ -117,9 +115,11 @@ export class SettingsService {
           isActive: true
         })
       }
-      
+
       // すべてに送信
-      const allRecipients = [settings.email, settings.dropboxEmail].filter((email): email is string => !!email)
+      const allRecipients = [settings.email, settings.dropboxEmail].filter(
+        (email): email is string => !!email
+      )
       if (allRecipients.length > 1) {
         presets.push({
           id: 'all',
@@ -128,13 +128,13 @@ export class SettingsService {
           isActive: true
         })
       }
-      
+
       settings.sendPresets = presets
     } else {
       // 既存プリセットを更新
       this.updatePresetsWithCurrentEmails(settings)
     }
-    
+
     // 設定を保存
     this.save(settings)
   }
@@ -146,9 +146,9 @@ export class SettingsService {
     if (!settings.sendPresets || settings.sendPresets.length === 0) {
       return
     }
-    
+
     // Dropboxプリセットの更新
-    const dropboxPreset = settings.sendPresets.find(p => p.id === 'dropbox')
+    const dropboxPreset = settings.sendPresets.find((p) => p.id === 'dropbox')
     if (settings.dropboxEmail) {
       if (!dropboxPreset) {
         settings.sendPresets.push({
@@ -162,15 +162,15 @@ export class SettingsService {
         dropboxPreset.recipients = [settings.dropboxEmail]
       }
     }
-    
+
     // メインプリセットの更新
-    const mainPreset = settings.sendPresets.find(p => p.id === 'main')
+    const mainPreset = settings.sendPresets.find((p) => p.id === 'main')
     if (settings.email && mainPreset) {
       if (mainPreset.recipients[0] !== settings.email) {
         mainPreset.recipients = [settings.email]
       }
     }
-    
+
     // すべてに送信プリセットの更新
     this.updateAllPreset(settings)
   }
@@ -179,13 +179,12 @@ export class SettingsService {
    * 「すべてに送信」プリセットを更新
    */
   static updateAllPreset(settings: AppSettings): void {
-    const allRecipients = [
-      settings.email,
-      settings.dropboxEmail
-    ].filter((email): email is string => !!email)
-    
-    const allPreset = settings.sendPresets.find(p => p.id === 'all')
-    
+    const allRecipients = [settings.email, settings.dropboxEmail].filter(
+      (email): email is string => !!email
+    )
+
+    const allPreset = settings.sendPresets.find((p) => p.id === 'all')
+
     if (allRecipients.length > 1) {
       if (!allPreset) {
         // プリセットが存在しない場合は追加
@@ -211,7 +210,7 @@ export class SettingsService {
    */
   static updatePresetsFromTempSettings(tempSettings: AppSettings): void {
     // メインプリセット
-    let mainPreset = tempSettings.sendPresets.find(p => p.id === 'main')
+    let mainPreset = tempSettings.sendPresets.find((p) => p.id === 'main')
     if (!mainPreset) {
       mainPreset = {
         id: 'main',
@@ -223,9 +222,9 @@ export class SettingsService {
     }
     mainPreset.recipients = tempSettings.email.trim() ? [tempSettings.email.trim()] : []
     mainPreset.isActive = mainPreset.recipients.length > 0
-    
+
     // Dropboxプリセット
-    let dropboxPreset = tempSettings.sendPresets.find(p => p.id === 'dropbox')
+    let dropboxPreset = tempSettings.sendPresets.find((p) => p.id === 'dropbox')
     if (tempSettings.dropboxEmail?.trim()) {
       if (!dropboxPreset) {
         dropboxPreset = {
@@ -243,11 +242,8 @@ export class SettingsService {
       dropboxPreset.recipients = []
       dropboxPreset.isActive = false
     }
-    
+
     // すべてに送信プリセット
     this.updateAllPreset(tempSettings)
-    
   }
-
-
 }

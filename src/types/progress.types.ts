@@ -13,19 +13,19 @@ export type SendProgressStatus = 'preparing' | 'sending' | 'completed' | 'error'
 export interface SendProgress {
   /** 送信先の総数 */
   total: number
-  
+
   /** 送信完了数 */
   sent: number
-  
+
   /** 送信失敗数 */
   failed: number
-  
+
   /** 現在送信中の宛先（並行送信時は複数） */
   currentRecipients: string[]
-  
+
   /** 進捗状態 */
   status: SendProgressStatus
-  
+
   /** 進捗率（0-100） */
   percentage: number
 }

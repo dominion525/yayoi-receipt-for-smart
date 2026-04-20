@@ -23,19 +23,19 @@ function init() {
   if (debugPanelContainer) {
     debugPanelContainer.innerHTML = debugPanelTemplate
   }
-  
+
   // 設定モーダルを挿入
   const settingsModalContainer = document.getElementById('settings-modal')
   if (settingsModalContainer) {
     settingsModalContainer.innerHTML = settingsModalTemplate
   }
-  
+
   // フッターを挿入
   const footerContainer = document.getElementById('footer')
   if (footerContainer) {
     footerContainer.innerHTML = footerTemplate
   }
-  
+
   // Alpine.jsを初期化
   Alpine.start()
 }

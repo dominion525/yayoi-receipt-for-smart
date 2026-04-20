@@ -27,7 +27,7 @@ describe('EmailSender', () => {
     it('setApiKeyでAPIキーを設定できる', () => {
       const apiKey = 're_test_123456'
       emailSender.setApiKey(apiKey)
-      
+
       expect(emailSender['apiKey']).toBe(apiKey)
       expect(emailSender['apiKey']).toBe(apiKey)
     })
@@ -40,7 +40,7 @@ describe('EmailSender', () => {
 
     it('APIキーが設定されていない場合はエラーを返す', async () => {
       const uninitializedSender = new EmailSender()
-      
+
       const result = await uninitializedSender.send({
         from: 'test@example.com',
         to: 'recipient@example.com',
@@ -56,9 +56,9 @@ describe('EmailSender', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ 
-          success: true, 
-          data: { id: 'msg_123456' } 
+        json: async () => ({
+          success: true,
+          data: { id: 'msg_123456' }
         })
       } as Response)
 
@@ -72,13 +72,13 @@ describe('EmailSender', () => {
       expect(result.success).toBe(true)
       expect(result.messageId).toBe('msg_123456')
       expect(result.error).toBeUndefined()
-      
+
       expect(fetch).toHaveBeenCalledWith(
         'http://localhost:3001/api/send-email',
         expect.objectContaining({
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             apiKey: 're_test_123456',
@@ -95,9 +95,9 @@ describe('EmailSender', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ 
-          success: true, 
-          data: { id: 'msg_789012' } 
+        json: async () => ({
+          success: true,
+          data: { id: 'msg_789012' }
         })
       } as Response)
 
@@ -110,7 +110,7 @@ describe('EmailSender', () => {
 
       expect(result.success).toBe(true)
       expect(result.messageId).toBe('msg_789012')
-      
+
       expect(fetch).toHaveBeenCalledWith(
         'http://localhost:3001/api/send-email',
         expect.objectContaining({
@@ -124,14 +124,14 @@ describe('EmailSender', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ 
-          success: true, 
-          data: { id: 'msg_multi_123' } 
+        json: async () => ({
+          success: true,
+          data: { id: 'msg_multi_123' }
         })
       } as Response)
 
       const recipients = ['user1@example.com', 'user2@example.com', 'user3@example.com']
-      
+
       const result = await emailSender.send({
         from: 'sender@example.com',
         to: recipients,
@@ -153,9 +153,9 @@ describe('EmailSender', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ 
-          success: true, 
-          data: { id: 'msg_default_123' } 
+        json: async () => ({
+          success: true,
+          data: { id: 'msg_default_123' }
         })
       } as Response)
 
@@ -184,17 +184,19 @@ describe('EmailSender', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ 
-          success: true, 
-          data: { id: 'msg_attach_123' } 
+        json: async () => ({
+          success: true,
+          data: { id: 'msg_attach_123' }
         })
       } as Response)
 
-      const attachments = [{
-        filename: 'test.pdf',
-        content: 'base64content',
-        contentType: 'application/pdf'
-      }]
+      const attachments = [
+        {
+          filename: 'test.pdf',
+          content: 'base64content',
+          contentType: 'application/pdf'
+        }
+      ]
 
       const result = await emailSender.send({
         from: 'sender@example.com',
@@ -218,7 +220,7 @@ describe('EmailSender', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 400,
-        json: async () => ({ 
+        json: async () => ({
           success: false,
           error: 'Invalid API key',
           details: {
@@ -247,7 +249,7 @@ describe('EmailSender', () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 400,
-        json: async () => ({ 
+        json: async () => ({
           success: false,
           details: { name: 'unknown_error' }
         })
@@ -295,14 +297,13 @@ describe('EmailSender', () => {
     })
   })
 
-
   describe('エッジケース', () => {
     it('空文字列の受信者でも配列に変換される', async () => {
       emailSender.setApiKey('re_test_key')
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 400,
-        json: async () => ({ 
+        json: async () => ({
           success: false,
           error: '必須パラメータが不足しています'
         })
@@ -332,13 +333,13 @@ describe('EmailSender', () => {
 
     it('プロキシURLが/apiで終わる場合は/send-emailを追加', async () => {
       emailSender.setProxyUrl('http://example.com/api')
-      
+
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ 
-          success: true, 
-          data: { id: 'endpoint_test_123' } 
+        json: async () => ({
+          success: true,
+          data: { id: 'endpoint_test_123' }
         })
       } as Response)
 
@@ -349,21 +350,18 @@ describe('EmailSender', () => {
         text: 'Test'
       })
 
-      expect(fetch).toHaveBeenCalledWith(
-        'http://example.com/api/send-email',
-        expect.any(Object)
-      )
+      expect(fetch).toHaveBeenCalledWith('http://example.com/api/send-email', expect.any(Object))
     })
 
     it('プロキシURLが/apiで終わらない場合は/api/send-emailを追加', async () => {
       emailSender.setProxyUrl('http://example.com')
-      
+
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: async () => ({ 
-          success: true, 
-          data: { id: 'endpoint_test_456' } 
+        json: async () => ({
+          success: true,
+          data: { id: 'endpoint_test_456' }
         })
       } as Response)
 
@@ -374,10 +372,7 @@ describe('EmailSender', () => {
         text: 'Test'
       })
 
-      expect(fetch).toHaveBeenCalledWith(
-        'http://example.com/api/send-email',
-        expect.any(Object)
-      )
+      expect(fetch).toHaveBeenCalledWith('http://example.com/api/send-email', expect.any(Object))
     })
   })
 
@@ -397,7 +392,9 @@ describe('EmailSender', () => {
       })
 
       expect(result.success).toBe(false)
-      expect(result.error).toBe('プロキシサーバーに接続できません。proxy-server.jsが起動していることを確認してください。')
+      expect(result.error).toBe(
+        'プロキシサーバーに接続できません。proxy-server.jsが起動していることを確認してください。'
+      )
       expect(result.details).toBeInstanceOf(Error)
     })
 
@@ -465,7 +462,7 @@ describe('EmailSender', () => {
         expect.objectContaining({
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: expect.stringContaining('"subject":"レシート画像 - 2024/01/15 14:30"')
         })
@@ -569,13 +566,16 @@ describe('EmailSender', () => {
         })
       } as Response)
 
-      const imageData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+      const imageData =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
       await emailSender.sendReceipt('test@example.com', imageData)
 
       const callArgs = vi.mocked(fetch).mock.calls[0]?.[1]
       const requestBody = JSON.parse(callArgs?.body as string)
 
-      expect(requestBody.attachments[0].content).toBe('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==')
+      expect(requestBody.attachments[0].content).toBe(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=='
+      )
       expect(requestBody.attachments[0].content).not.toContain('data:image')
     })
 
@@ -639,7 +639,7 @@ describe('EmailSender', () => {
 
     it('日時フォーマットが正しく動作する（異なる時刻）', async () => {
       vi.setSystemTime(new Date('2024-12-25T18:15:30.456+09:00'))
-      
+
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -712,10 +712,10 @@ describe('EmailSender', () => {
     it('環境変数VITE_PROXY_URLが設定されている場合はそれを使用', () => {
       // 環境変数を明示的に設定してテスト
       vi.stubEnv('VITE_PROXY_URL', 'https://api.example.com')
-      
+
       const testSender = new EmailSender()
       const proxyUrl = testSender['determineProxyUrl']()
-      
+
       expect(proxyUrl).toBe('https://api.example.com')
     })
 
@@ -723,12 +723,12 @@ describe('EmailSender', () => {
       // 環境変数をクリアして本番環境をテスト
       vi.stubEnv('VITE_PROXY_URL', undefined)
       vi.stubGlobal('window', { location: { hostname: 'receipt.dominion525.com' } })
-      
+
       const testSender = new EmailSender()
       const proxyUrl = testSender['determineProxyUrl']()
-      
+
       expect(proxyUrl).toBe('')
-      
+
       vi.unstubAllEnvs()
       vi.unstubAllGlobals()
     })
@@ -737,12 +737,12 @@ describe('EmailSender', () => {
       // 環境変数をクリアして他のホスト名をテスト
       vi.stubEnv('VITE_PROXY_URL', undefined)
       vi.stubGlobal('window', { location: { hostname: 'example.com' } })
-      
+
       const testSender = new EmailSender()
       const proxyUrl = testSender['determineProxyUrl']()
-      
+
       expect(proxyUrl).toBe('')
-      
+
       vi.unstubAllEnvs()
       vi.unstubAllGlobals()
     })
@@ -751,12 +751,12 @@ describe('EmailSender', () => {
       // 環境変数をクリアしてNode.js環境をテスト
       vi.stubEnv('VITE_PROXY_URL', undefined)
       vi.stubGlobal('window', undefined)
-      
+
       const testSender = new EmailSender()
       const proxyUrl = testSender['determineProxyUrl']()
-      
+
       expect(proxyUrl).toBe('http://localhost:3001')
-      
+
       vi.unstubAllEnvs()
       vi.unstubAllGlobals()
     })
@@ -765,12 +765,12 @@ describe('EmailSender', () => {
       // 環境変数をクリアしてlocalhost環境をテスト
       vi.stubEnv('VITE_PROXY_URL', undefined)
       vi.stubGlobal('window', { location: { hostname: 'localhost' } })
-      
+
       const testSender = new EmailSender()
       const proxyUrl = testSender['determineProxyUrl']()
-      
+
       expect(proxyUrl).toBe('http://localhost:3001')
-      
+
       vi.unstubAllEnvs()
       vi.unstubAllGlobals()
     })

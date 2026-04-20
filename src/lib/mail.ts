@@ -40,17 +40,16 @@ export class EmailSender {
   private determineProxyUrl(): string {
     // 環境変数が設定されている場合はそれを使用
     if (import.meta.env?.VITE_PROXY_URL) {
-      return import.meta.env.VITE_PROXY_URL;
+      return import.meta.env.VITE_PROXY_URL
     }
-    
+
     // 本番環境（receipt.dominion525.com）や他の環境では空文字列
-    if (typeof window !== 'undefined' && 
-        window.location.hostname !== 'localhost') {
-      return '';
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      return ''
     }
-    
+
     // 開発環境
-    return API.DEFAULT_PROXY_URL;
+    return API.DEFAULT_PROXY_URL
   }
 
   /**
@@ -88,15 +87,14 @@ export class EmailSender {
       }
 
       // プロキシサーバーにリクエスト（URLを正規化）
-      const endpoint = this.proxyUrl.endsWith('/api') 
-        ? `${this.proxyUrl}/send-email` 
+      const endpoint = this.proxyUrl.endsWith('/api')
+        ? `${this.proxyUrl}/send-email`
         : `${this.proxyUrl}${API.ENDPOINTS.SEND_EMAIL}`
-      
-      
+
       const response = await fetch(endpoint, {
         method: API.METHOD.POST,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           apiKey: this.apiKey,
@@ -105,7 +103,6 @@ export class EmailSender {
       })
 
       const result = await response.json()
-      
 
       if (!response.ok || !result.success) {
         return {
@@ -119,18 +116,18 @@ export class EmailSender {
         success: true,
         messageId: result.data?.id
       }
-
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
+      const errorMessage = getErrorMessage(error)
       // ネットワークエラーなどの場合
       if (errorMessage.includes('fetch')) {
         return {
           success: false,
-          error: 'プロキシサーバーに接続できません。proxy-server.jsが起動していることを確認してください。',
+          error:
+            'プロキシサーバーに接続できません。proxy-server.jsが起動していることを確認してください。',
           details: error
         }
       }
-      
+
       return {
         success: false,
         error: errorMessage,
@@ -139,12 +136,14 @@ export class EmailSender {
     }
   }
 
-
   /**
    * レシート画像を送信
    */
-  async sendReceipt(toEmail: string | string[], imageData: string, comment?: string): Promise<EmailResult> {
-    
+  async sendReceipt(
+    toEmail: string | string[],
+    imageData: string,
+    comment?: string
+  ): Promise<EmailResult> {
     const now = new Date()
     const dateStr = now.toLocaleDateString('ja-JP', {
       year: 'numeric',
@@ -158,9 +157,9 @@ export class EmailSender {
 
     // Base64画像データから添付ファイルを作成
     const base64Data = imageData.split(',')[1] // data:image/jpeg;base64, を除去
-    
+
     return await this.send({
-      from: this.fromEmail || '',  // 検証済みドメインの送信元アドレス
+      from: this.fromEmail || '', // 検証済みドメインの送信元アドレス
       to: toEmail,
       subject: `レシート画像 - ${dateStr} ${timeStr}`,
       html: `
@@ -177,11 +176,13 @@ ${comment ? `\nコメント: ${comment}` : ''}
 
 ----
 スマート レシート`,
-      attachments: [{
-        filename: `receipt_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.jpg`,
-        content: base64Data || '',
-        contentType: 'image/jpeg'
-      }]
+      attachments: [
+        {
+          filename: `receipt_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.jpg`,
+          content: base64Data || '',
+          contentType: 'image/jpeg'
+        }
+      ]
     })
   }
 }

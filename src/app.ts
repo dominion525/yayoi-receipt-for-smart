@@ -50,7 +50,7 @@ export function receiptApp(): CompleteAppData {
   // バージョン情報を取得
   const buildInfo = getBuildInfo()
   const shortVersion = getShortVersion()
-  
+
   return {
     // デバッグ機能を展開
     ...debug,
@@ -64,17 +64,17 @@ export function receiptApp(): CompleteAppData {
     ...messageHandler,
     // 初期化処理を展開
     ...initializer,
-    
+
     // アプリケーション状態
     isLoading: false,
     isSendingMail: false,
     sendProgress: null,
     completionMessage: null,
-    
+
     // バージョン情報
     appVersion: shortVersion,
     versionInfo: buildInfo,
-    
+
     async sendMail() {
       // 設定が完了しているか確認
       if (!SettingsService.isComplete(this.settings)) {
@@ -82,10 +82,10 @@ export function receiptApp(): CompleteAppData {
         this.openSettings()
         return
       }
-      
+
       this.isSendingMail = true
       this.sendProgress = null
-      
+
       try {
         const result = await EmailService.sendMail(
           this.photo!,
@@ -94,7 +94,7 @@ export function receiptApp(): CompleteAppData {
           this.handleEmailMessage.bind(this),
           this.handleEmailProgress.bind(this)
         )
-        
+
         if (result.shouldRetake) {
           // 完了メッセージを3秒間表示してから撮影画面に戻る
           this.completionMessage = '送信が完了しました'
@@ -114,17 +114,11 @@ export function receiptApp(): CompleteAppData {
             }
           }, 3000)
         }
-        
       } finally {
         this.isSendingMail = false
       }
     },
-    
-    
-    
-    
-    
-    
+
     // 共通進捗処理ハンドラー
     handleEmailProgress(progress: SendProgress) {
       this.sendProgress = progress
@@ -135,14 +129,12 @@ export function receiptApp(): CompleteAppData {
         }, TIMEOUTS.PROGRESS_CLEAR)
       }
     },
-    
 
-    
     // 複数宛先への送信
     async sendMailToPreset(presetId: string) {
       this.isSendingMail = true
       this.sendProgress = null
-      
+
       try {
         const result = await EmailService.sendMailToPreset(
           presetId,
@@ -152,7 +144,7 @@ export function receiptApp(): CompleteAppData {
           this.handleEmailMessage.bind(this),
           this.handleEmailProgress.bind(this)
         )
-        
+
         if (result.shouldRetake) {
           // 完了メッセージを3秒間表示してから撮影画面に戻る
           this.completionMessage = '送信が完了しました'
@@ -172,7 +164,6 @@ export function receiptApp(): CompleteAppData {
             }
           }, 3000)
         }
-        
       } finally {
         this.isSendingMail = false
       }
