@@ -44,3 +44,5 @@ coverage-report.json
 
 # Serena agent
 .serena/
+# ローカル作業用
+tasks/

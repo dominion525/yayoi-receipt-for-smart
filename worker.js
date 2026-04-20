@@ -24,6 +24,46 @@ function getCorsHeaders() {
 // 共通のCORSヘッダー
 const CORS_HEADERS = getCorsHeaders()
 
+// セキュリティヘッダー
+// 注: 'unsafe-eval' は Alpine.js 3.x が式評価に new Function() を使うため必要。
+//     CSP build への移行は別タスク。
+//     'unsafe-inline' (style-src) は Alpine.js の :style バインディング
+//     および offline.html の <style> ブロックのため必要。
+const SECURITY_HEADERS = {
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-eval'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    "img-src 'self' data: blob:",
+    "connect-src 'self'",
+    "worker-src 'self'",
+    "manifest-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+    "form-action 'self'"
+  ].join('; '),
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains'
+}
+
+// 応答にセキュリティヘッダーを付与
+function withSecurityHeaders(response) {
+  const headers = new Headers(response.headers)
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(key, value)
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  })
+}
+
 // ルーティング処理
 async function handleRequest(method, pathname, getBody, sendEmailFunc) {
   // OPTIONS request
@@ -196,14 +236,14 @@ async function sendEmailWithFetch({ apiKey, from, to, subject, text, html, attac
 }
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env) {
     const url = new URL(request.url)
-    
+
     // APIエンドポイントの処理
     if (url.pathname.startsWith('/api/')) {
       // リクエストボディを取得する関数
       const getBody = () => request.text()
-      
+
       // 共通ロジックを呼び出し
       const response = await handleRequest(
         request.method,
@@ -211,21 +251,21 @@ export default {
         getBody,
         sendEmailWithFetch
       )
-      
-      // レスポンスを返す
-      return new Response(response.body, {
+
+      // レスポンスを返す（セキュリティヘッダー付与）
+      return withSecurityHeaders(new Response(response.body, {
         status: response.status,
         headers: response.headers
-      })
+      }))
     }
-    
-    // 静的アセットの処理
-    // env.ASSETSが利用可能な場合はそれを使用
+
+    // 静的アセットの処理（セキュリティヘッダー付与）
     if (env.ASSETS) {
-      return env.ASSETS.fetch(request)
+      const assetResponse = await env.ASSETS.fetch(request)
+      return withSecurityHeaders(assetResponse)
     }
-    
+
     // フォールバック
-    return new Response('Not Found', { status: 404 })
+    return withSecurityHeaders(new Response('Not Found', { status: 404 }))
   }
 }

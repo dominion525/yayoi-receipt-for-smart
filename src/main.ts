@@ -39,3 +39,10 @@ function init() {
   // Alpine.jsを初期化
   Alpine.start()
 }
+
+// Service Worker登録
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+  })
+}

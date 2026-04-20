@@ -81,6 +81,18 @@ export default tseslint.config(
     }
   },
 
+  // publicディレクトリの静的JSファイル用設定（ブラウザ環境）
+  {
+    files: ['public/**/*.js'],
+    ignores: ['public/sw.js', 'public/service-worker.js'],
+    languageOptions: {
+      globals: {
+        window: 'readonly',
+        document: 'readonly'
+      }
+    }
+  },
+
   // Service Workerファイル用設定
   {
     files: ['**/sw.js', '**/service-worker.js', 'proxy-worker.js', 'public/sw.js'],
