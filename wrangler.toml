@@ -1,5 +1,5 @@
 name = "yayoi-receipt-for-smart"
-main = "worker.js"
+main = "worker.ts"
 compatibility_date = "2025-01-23"
 
 # カスタムドメインでのルーティング

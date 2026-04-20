@@ -11,11 +11,6 @@ export default tseslint.config(
       'dist/**',
       'node_modules/**',
       '*.min.js',
-      'worker.js',
-      'proxy-worker.js',
-      'proxy-core.cjs',
-      'proxy-core.mjs',
-      'simple-proxy.cjs',
       '.serena/**'
     ]
   },
@@ -30,7 +25,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['*.js', '*.mjs', '*.cjs', '*.config.ts']
+          allowDefaultProject: ['*.js', '*.config.ts', 'worker.ts']
         },
         tsconfigRootDir: import.meta.dirname
       },
@@ -95,7 +90,7 @@ export default tseslint.config(
 
   // Service Workerファイル用設定
   {
-    files: ['**/sw.js', '**/service-worker.js', 'proxy-worker.js', 'public/sw.js'],
+    files: ['**/sw.js', '**/service-worker.js', 'public/sw.js'],
     languageOptions: {
       globals: {
         self: 'readonly',
@@ -113,19 +108,12 @@ export default tseslint.config(
 
   // 設定ファイル用の設定（Node.js環境）
   {
-    files: ['*.config.js', '*.config.ts', '*.config.mjs', '*.cjs'],
+    files: ['*.config.js', '*.config.ts'],
     languageOptions: {
       globals: {
         process: 'readonly',
-        __dirname: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        global: 'readonly',
-        Buffer: 'readonly'
+        __dirname: 'readonly'
       }
-    },
-    rules: {
-      '@typescript-eslint/no-var-requires': 'off'
     }
   },
 

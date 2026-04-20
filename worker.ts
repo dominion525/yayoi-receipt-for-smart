@@ -1,10 +1,74 @@
+/// <reference types="@cloudflare/workers-types" />
+
+// 添付ファイル
+interface Attachment {
+  filename: string
+  content: string // Base64文字列
+  contentType?: string
+}
+
+// メール送信リクエスト（クライアント → Worker）
+interface SendEmailRequest {
+  apiKey: string
+  from: string
+  to: string | string[]
+  subject: string
+  text?: string
+  html?: string
+  attachments?: Attachment[]
+}
+
+// Resend API のエラー詳細
+interface ResendErrorDetails {
+  name?: string
+  message?: string
+  statusCode?: number
+}
+
+// Resend API 呼び出し結果
+interface SendEmailResult {
+  data?: unknown
+  error?: ResendErrorDetails | string | unknown
+  message?: string
+}
+
+// Resend API へ送信するペイロード
+interface ResendApiPayload {
+  from: string
+  to: string | string[]
+  subject: string
+  text?: string
+  html?: string
+  attachments?: Array<{
+    filename: string
+    content: string
+    content_type: string
+  }>
+}
+
+// ハンドラー戻り値
+interface HandleRequestResponse {
+  status: number
+  headers: Record<string, string>
+  body: string | null
+}
+
+// メール送信関数の型
+type SendEmailFunc = (params: SendEmailRequest) => Promise<SendEmailResult>
+
+// Cloudflare Workers 環境
+interface Env {
+  ASSETS?: Fetcher
+}
+
 // 環境に応じたCORSヘッダー
-function getCorsHeaders() {
+function getCorsHeaders(): Record<string, string> {
   // 本番環境（Cloudflare Workers）では特定ドメインのみ許可
-  const isProduction = typeof globalThis.ENVIRONMENT === 'undefined' && 
-                      typeof window === 'undefined' && 
-                      typeof process === 'undefined'
-  
+  const g = globalThis as { ENVIRONMENT?: unknown; window?: unknown; process?: unknown }
+  const isProduction = typeof g.ENVIRONMENT === 'undefined' &&
+                      typeof g.window === 'undefined' &&
+                      typeof g.process === 'undefined'
+
   if (isProduction) {
     return {
       'Access-Control-Allow-Origin': 'https://receipt.dominion525.com',
@@ -12,7 +76,7 @@ function getCorsHeaders() {
       'Access-Control-Allow-Headers': 'Content-Type'
     }
   }
-  
+
   // 開発環境では全て許可
   return {
     'Access-Control-Allow-Origin': '*',
@@ -29,7 +93,7 @@ const CORS_HEADERS = getCorsHeaders()
 //     CSP build への移行は別タスク。
 //     'unsafe-inline' (style-src) は Alpine.js の :style バインディング
 //     および offline.html の <style> ブロックのため必要。
-const SECURITY_HEADERS = {
+const SECURITY_HEADERS: Record<string, string> = {
   'Content-Security-Policy': [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval'",
@@ -52,7 +116,7 @@ const SECURITY_HEADERS = {
 }
 
 // 応答にセキュリティヘッダーを付与
-function withSecurityHeaders(response) {
+function withSecurityHeaders(response: Response): Response {
   const headers = new Headers(response.headers)
   for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
     headers.set(key, value)
@@ -64,8 +128,18 @@ function withSecurityHeaders(response) {
   })
 }
 
+// result.error が ResendErrorDetails 形式か判定
+function isResendErrorDetails(x: unknown): x is ResendErrorDetails {
+  return typeof x === 'object' && x !== null
+}
+
 // ルーティング処理
-async function handleRequest(method, pathname, getBody, sendEmailFunc) {
+async function handleRequest(
+  method: string,
+  pathname: string,
+  getBody: () => Promise<string>,
+  sendEmailFunc: SendEmailFunc
+): Promise<HandleRequestResponse> {
   // OPTIONS request
   if (method === 'OPTIONS') {
     return {
@@ -74,7 +148,7 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
       body: null
     }
   }
-  
+
   // Health check endpoint
   if ((pathname === '/health' || pathname === '/api/health') && method === 'GET') {
     return {
@@ -87,14 +161,14 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
       })
     }
   }
-  
+
   // Email sending endpoint (両方のパスに対応)
   if ((pathname === '/api/send-email' || pathname === '/send-email') && method === 'POST') {
     try {
       const body = await getBody()
-      const data = JSON.parse(body)
+      const data = JSON.parse(body) as Partial<SendEmailRequest>
       const { apiKey, from, to, subject, text, html, attachments } = data
-      
+
       // Validation
       if (!apiKey || !from || !to || !subject) {
         return {
@@ -106,7 +180,7 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
           })
         }
       }
-      
+
       // Send email
       const result = await sendEmailFunc({
         apiKey,
@@ -117,30 +191,30 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
         html,
         attachments
       })
-      
+
       if (result.error) {
         // 本番環境でも重要なエラーはログに残す（簡潔に）
         console.error('Email send error:', result.error)
-        
+
         // エラーメッセージを詳細に
         let errorMessage = 'メール送信でエラーが発生しました'
-        
+
         // エラーオブジェクトの様々なフィールドをチェック
-        if (result.error.message) {
+        if (isResendErrorDetails(result.error) && typeof result.error.message === 'string') {
           errorMessage = result.error.message
         } else if (typeof result.error === 'string') {
           errorMessage = result.error
-        } else if (result.message) {
+        } else if (typeof result.message === 'string') {
           errorMessage = result.message
-        } else if (result.error.name === 'validation_error') {
+        } else if (isResendErrorDetails(result.error) && result.error.name === 'validation_error') {
           errorMessage = 'メールアドレスまたはAPIキーが無効です'
-        } else if (result.error.name === 'invalid_to_address') {
+        } else if (isResendErrorDetails(result.error) && result.error.name === 'invalid_to_address') {
           errorMessage = '送信先メールアドレスが無効です'
         }
-        
+
         // 開発環境のみ詳細ログ
         // console.error('Parsed error message:', errorMessage)
-        
+
         return {
           status: 400,
           headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
@@ -151,7 +225,7 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
           })
         }
       }
-      
+
       return {
         status: 200,
         headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
@@ -160,22 +234,23 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
           data: result.data
         })
       }
-      
+
     } catch (error) {
       // 本番環境でも重要なエラーはログに残す（簡潔に）
-      console.error('Email send error:', error.message || error)
+      const message = error instanceof Error ? error.message : String(error)
+      console.error('Email send error:', message)
       return {
         status: 500,
         headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           success: false,
-          error: error.message || '予期しないエラーが発生しました',
+          error: error instanceof Error ? error.message : '予期しないエラーが発生しました',
           details: error
         })
       }
     }
   }
-  
+
   // 404 for other routes
   return {
     status: 404,
@@ -185,14 +260,22 @@ async function handleRequest(method, pathname, getBody, sendEmailFunc) {
 }
 
 // Cloudflare Workers用のメール送信関数（fetch API使用）
-async function sendEmailWithFetch({ apiKey, from, to, subject, text, html, attachments }) {
+async function sendEmailWithFetch({
+  apiKey,
+  from,
+  to,
+  subject,
+  text,
+  html,
+  attachments
+}: SendEmailRequest): Promise<SendEmailResult> {
   try {
-    const emailData = {
+    const emailData: ResendApiPayload = {
       from,
       to,
       subject
     }
-    
+
     // textまたはhtmlを設定（RESEND APIは少なくともどちらか1つが必要）
     if (html) {
       emailData.html = html
@@ -201,7 +284,7 @@ async function sendEmailWithFetch({ apiKey, from, to, subject, text, html, attac
     } else {
       emailData.text = subject // フォールバック
     }
-    
+
     // 添付ファイルがある場合の処理
     if (attachments && attachments.length > 0) {
       emailData.attachments = attachments.map(att => ({
@@ -210,10 +293,10 @@ async function sendEmailWithFetch({ apiKey, from, to, subject, text, html, attac
         content_type: att.contentType || 'application/octet-stream'
       }))
     }
-    
+
     // 開発環境のみログ出力
     // console.log('Sending to RESEND API:', JSON.stringify(emailData, null, 2))
-    
+
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -222,13 +305,13 @@ async function sendEmailWithFetch({ apiKey, from, to, subject, text, html, attac
       },
       body: JSON.stringify(emailData)
     })
-    
-    const data = await response.json()
-    
+
+    const data: unknown = await response.json()
+
     if (!response.ok) {
       return { error: data }
     }
-    
+
     return { data }
   } catch (error) {
     return { error }
@@ -236,13 +319,13 @@ async function sendEmailWithFetch({ apiKey, from, to, subject, text, html, attac
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
 
     // APIエンドポイントの処理
     if (url.pathname.startsWith('/api/')) {
       // リクエストボディを取得する関数
-      const getBody = () => request.text()
+      const getBody = (): Promise<string> => request.text()
 
       // 共通ロジックを呼び出し
       const response = await handleRequest(

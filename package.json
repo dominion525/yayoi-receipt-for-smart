@@ -5,17 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && npm run lint && vite build",
+    "build": "tsc && tsc -p tsconfig.worker.json && npm run lint && vite build",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "proxy": "node simple-proxy.cjs",
-    "dev:all": "npm run proxy & npm run dev"
+    "lint:fix": "eslint . --fix"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260420.1",
     "@eslint/js": "^9.38.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^22.10.7",
