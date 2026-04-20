@@ -3,6 +3,7 @@
 import eslint from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import vitest from 'eslint-plugin-vitest'
+import prettierConfig from 'eslint-config-prettier'
 
 export default tseslint.config(
   // 除外設定（最初に配置）
@@ -125,5 +126,8 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-redundant-type-constituents': 'off'
     }
-  }
+  },
+
+  // Prettier と衝突する ESLint ルールを無効化（最後に配置）
+  prettierConfig
 )
