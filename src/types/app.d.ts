@@ -31,6 +31,5 @@ export type CompleteAppData = DebugPanelData &
 
     // アプリケーション固有のメソッド
     sendMail(): Promise<void>
-    sendMailToPreset(presetId: string): Promise<void>
     handleEmailProgress(progress: SendProgress): void
   }

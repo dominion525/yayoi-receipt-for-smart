@@ -35,8 +35,7 @@ vi.mock('../services/debug.service', () => ({
 
 vi.mock('../services/email.service', () => ({
   EmailService: {
-    sendMail: vi.fn(),
-    sendMailToPreset: vi.fn()
+    sendMail: vi.fn()
   }
 }))
 
@@ -754,73 +753,6 @@ describe('receiptApp', () => {
     })
   })
 
-  describe('sendMailToPreset()メソッド', () => {
-    beforeEach(() => {
-      vi.useFakeTimers()
-      app.photo = 'data:image/jpeg;base64,testImageData'
-    })
-
-    afterEach(() => {
-      vi.useRealTimers()
-    })
-
-    it('指定されたプリセットでメール送信する', async () => {
-      vi.mocked(EmailService.sendMailToPreset).mockResolvedValue({
-        success: true,
-        shouldRetake: true
-      })
-
-      const retakeSpy = vi.spyOn(app, 'retake')
-      const showSuccessSpy = vi.spyOn(app, 'showSuccess')
-
-      await app.sendMailToPreset('main')
-
-      expect(EmailService.sendMailToPreset).toHaveBeenCalledWith(
-        'main',
-        'data:image/jpeg;base64,testImageData',
-        mockSettings,
-        expect.any(Function),
-        expect.any(Function),
-        expect.any(Function)
-      )
-
-      // 完了メッセージが設定される
-      expect(app.completionMessage).toBe('送信が完了しました')
-
-      // まだretakeは呼ばれていない
-      expect(retakeSpy).not.toHaveBeenCalled()
-
-      // 3秒後にretakeが呼ばれ、その後成功メッセージが表示される
-      vi.advanceTimersByTime(3000)
-      expect(app.completionMessage).toBe(null)
-      expect(retakeSpy).toHaveBeenCalledOnce()
-
-      // $nextTickの処理を待つ
-      if (app.$nextTick) {
-        await new Promise<void>((resolve) => app.$nextTick!(() => resolve()))
-      } else {
-        vi.advanceTimersByTime(100)
-      }
-
-      expect(showSuccessSpy).toHaveBeenCalledWith('レシートを送信しました')
-    })
-
-    it('送信状態が正しく管理される', async () => {
-      vi.mocked(EmailService.sendMailToPreset).mockResolvedValue({
-        success: true,
-        shouldRetake: false
-      })
-
-      expect(app.isSendingMail).toBe(false)
-
-      const sendPromise = app.sendMailToPreset('dropbox')
-      expect(app.isSendingMail).toBe(true)
-
-      await sendPromise
-      expect(app.isSendingMail).toBe(false)
-    })
-  })
-
   describe('設定管理機能', () => {
     describe('openSettings()メソッド', () => {
       it('設定モーダルを開く', () => {
@@ -1024,33 +956,6 @@ describe('receiptApp', () => {
 
       app.photo = 'data:image/jpeg;base64,test'
       await app.sendMail()
-
-      // 3秒経過して、メイン画面に戻った後
-      vi.advanceTimersByTime(3000)
-
-      // $nextTickの処理を待つ
-      if (app.$nextTick) {
-        await new Promise<void>((resolve) => app.$nextTick!(() => resolve()))
-      } else {
-        vi.advanceTimersByTime(100)
-      }
-
-      expect(app.successMessage).toBe('レシートを送信しました')
-      expect(app.error).toBe(null)
-
-      // 5秒経過
-      vi.advanceTimersByTime(5000)
-      expect(app.successMessage).toBe(null)
-    })
-
-    it('sendMailToPreset内での成功メッセージ自動クリア', async () => {
-      vi.mocked(EmailService.sendMailToPreset).mockResolvedValue({
-        success: true,
-        shouldRetake: true
-      })
-
-      app.photo = 'data:image/jpeg;base64,test'
-      await app.sendMailToPreset('main')
 
       // 3秒経過して、メイン画面に戻った後
       vi.advanceTimersByTime(3000)
@@ -1507,44 +1412,5 @@ describe('receiptApp', () => {
       expect(showSuccessSpy).toHaveBeenCalledWith('レシートを送信しました')
     })
 
-    it('$nextTickが存在しない場合、setTimeoutで成功メッセージを表示する（sendMailToPreset・169-172行目カバー）', async () => {
-      const mockLoadedSettings = {
-        email: 'test@example.com',
-        apiKey: 'test-api-key',
-        fromEmail: 'sender@example.com',
-        sendPresets: [
-          {
-            id: 'main',
-            name: 'メイン',
-            recipients: ['main@example.com'],
-            isActive: true
-          }
-        ]
-      }
-
-      vi.mocked(SettingsService.load).mockReturnValue(mockLoadedSettings)
-      vi.mocked(SettingsService.isComplete).mockReturnValue(true)
-
-      const app = receiptApp()
-      app.photo = 'data:image/jpeg;base64,test-photo'
-
-      // showSuccessをスパイ
-      const showSuccessSpy = vi.spyOn(app, 'showSuccess')
-
-      // $nextTickを無効化
-      app.$nextTick = undefined
-
-      vi.mocked(EmailService.sendMailToPreset).mockResolvedValue({
-        success: true,
-        shouldRetake: true
-      })
-
-      await app.sendMailToPreset('main')
-
-      // 3秒 + 100msのsetTimeoutを進める
-      vi.advanceTimersByTime(3100)
-
-      expect(showSuccessSpy).toHaveBeenCalledWith('レシートを送信しました')
-    })
   })
 })

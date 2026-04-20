@@ -128,45 +128,6 @@ export function receiptApp(): CompleteAppData {
           this.sendProgress = null
         }, TIMEOUTS.PROGRESS_CLEAR)
       }
-    },
-
-    // 複数宛先への送信
-    async sendMailToPreset(presetId: string) {
-      this.isSendingMail = true
-      this.sendProgress = null
-
-      try {
-        const result = await EmailService.sendMailToPreset(
-          presetId,
-          this.photo!,
-          this.settings,
-          this.addDebugLog.bind(this),
-          this.handleEmailMessage.bind(this),
-          this.handleEmailProgress.bind(this)
-        )
-
-        if (result.shouldRetake) {
-          // 完了メッセージを3秒間表示してから撮影画面に戻る
-          this.completionMessage = '送信が完了しました'
-          setTimeout(() => {
-            this.completionMessage = null
-            this.retake()
-            // DOM更新後に成功メッセージを表示
-            if (this.$nextTick) {
-              this.$nextTick(() => {
-                this.showSuccess('レシートを送信しました')
-              })
-            } else {
-              // $nextTickが使えない場合は少し遅延させて表示
-              setTimeout(() => {
-                this.showSuccess('レシートを送信しました')
-              }, 100)
-            }
-          }, 3000)
-        }
-      } finally {
-        this.isSendingMail = false
-      }
     }
   }
 }
