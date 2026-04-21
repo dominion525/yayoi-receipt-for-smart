@@ -1,6 +1,7 @@
 import { emailSender } from '../lib/mail'
 import { AppSettings } from './settings.service'
 import { getErrorMessage } from '../utils/error'
+import { maskApiKey } from '../utils/mask'
 import { ProgressCallback } from '../types/progress.types'
 
 export interface EmailResult {
@@ -36,11 +37,16 @@ export class EmailService {
       return { success: false, shouldRetake: false }
     }
 
-    // 送信先を収集（アクティブなプリセットの全宛先）
+    // 送信先を収集（アクティブなプリセットの全宛先、空文字・空白除外）
     const recipients: string[] = []
     for (const preset of settings.sendPresets) {
       if (preset.isActive && preset.recipients.length > 0) {
-        recipients.push(...preset.recipients)
+        for (const recipient of preset.recipients) {
+          const trimmed = recipient.trim()
+          if (trimmed !== '') {
+            recipients.push(trimmed)
+          }
+        }
       }
     }
 
@@ -106,6 +112,9 @@ export class EmailService {
           }
         }
 
+        // BYOK: エラー文中に APIキー が紛れた場合の漏洩防止
+        errorMsg = maskApiKey(errorMsg)
+
         addDebugLog(errorMsg, 'error')
 
         // 最終進捗状態を通知
@@ -124,7 +133,8 @@ export class EmailService {
         return { success: false, shouldRetake: false }
       }
     } catch (error) {
-      const errorMessage = getErrorMessage(error)
+      // BYOK: 予期しないエラーにも APIキー が紛れ込む可能性があるためマスク
+      const errorMessage = maskApiKey(getErrorMessage(error))
       addDebugLog(`予期しないエラー: ${errorMessage}`, 'error')
 
       // 最終進捗状態を通知

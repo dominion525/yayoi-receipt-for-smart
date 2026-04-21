@@ -134,6 +134,28 @@ function isResendErrorDetails(x: unknown): x is ResendErrorDetails {
   return typeof x === 'object' && x !== null
 }
 
+// BYOK: レスポンス・ログに含まれうる Resend API キー (re_...) を末尾 4 文字を除いてマスク
+function maskApiKey(value: unknown): string {
+  const text = typeof value === 'string' ? value : JSON.stringify(value)
+  return text.replace(/re_[A-Za-z0-9_]{4,}/g, (match) => {
+    const last4 = match.slice(-4)
+    return `re_••••${last4}`
+  })
+}
+
+// details に含まれ得る API キー文字列をマスクしつつ、構造は保つ
+function sanitizeDetails(value: unknown): unknown {
+  if (value === null || value === undefined) return value
+  if (typeof value === 'string') return maskApiKey(value)
+  if (typeof value !== 'object') return value
+  if (Array.isArray(value)) return value.map(sanitizeDetails)
+  const result: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    result[k] = sanitizeDetails(v)
+  }
+  return result
+}
+
 // ルーティング処理
 async function handleRequest(
   method: string,
@@ -194,8 +216,8 @@ async function handleRequest(
       })
 
       if (result.error) {
-        // 本番環境でも重要なエラーはログに残す（簡潔に）
-        console.error('Email send error:', result.error)
+        // 本番環境でも重要なエラーはログに残す（簡潔に、APIキーはマスク）
+        console.error('Email send error:', maskApiKey(result.error))
 
         // エラーメッセージを詳細に
         let errorMessage = 'メール送信でエラーが発生しました'
@@ -216,16 +238,14 @@ async function handleRequest(
           errorMessage = '送信先メールアドレスが無効です'
         }
 
-        // 開発環境のみ詳細ログ
-        // console.error('Parsed error message:', errorMessage)
-
+        // BYOK: クライアントに返す前に APIキー を含む文字列をマスク
         return {
           status: 400,
           headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             success: false,
-            error: errorMessage,
-            details: result.error
+            error: maskApiKey(errorMessage),
+            details: sanitizeDetails(result.error)
           })
         }
       }
@@ -239,16 +259,17 @@ async function handleRequest(
         })
       }
     } catch (error) {
-      // 本番環境でも重要なエラーはログに残す（簡潔に）
-      const message = error instanceof Error ? error.message : String(error)
+      // 本番環境でも重要なエラーはログに残す（簡潔に、APIキーはマスク）
+      const rawMessage = error instanceof Error ? error.message : String(error)
+      const message = maskApiKey(rawMessage)
       console.error('Email send error:', message)
       return {
         status: 500,
         headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           success: false,
-          error: error instanceof Error ? error.message : '予期しないエラーが発生しました',
-          details: error
+          error: error instanceof Error ? maskApiKey(error.message) : '予期しないエラーが発生しました',
+          details: sanitizeDetails(error instanceof Error ? { message: error.message, name: error.name } : error)
         })
       }
     }

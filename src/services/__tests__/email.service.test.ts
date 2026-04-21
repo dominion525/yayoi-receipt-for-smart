@@ -143,6 +143,110 @@ describe('EmailService', () => {
       expect(mockErrorDisplayer).toHaveBeenCalledWith('送信先が設定されていません')
     })
 
+    it('空文字・空白のみの宛先を除外して送信する', async () => {
+      const settingsWithBlanks: AppSettings = {
+        ...mockSettings,
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['valid@example.com', '', '   ', '\t\n'],
+            isActive: true
+          }
+        ]
+      }
+
+      vi.mocked(emailSender).sendReceipt.mockResolvedValue({
+        success: true,
+        messageId: 'msg-123'
+      })
+
+      const result = await EmailService.sendMail(
+        'data:image/jpeg;base64,test-photo',
+        settingsWithBlanks,
+        mockDebugLogger,
+        mockErrorDisplayer
+      )
+
+      expect(result).toEqual({
+        success: true,
+        shouldRetake: true
+      })
+
+      // 空文字・空白のみの要素が除外されて、有効な宛先のみ送信される
+      expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledWith(
+        ['valid@example.com'],
+        'data:image/jpeg;base64,test-photo'
+      )
+    })
+
+    it('有効な宛先が全て空白のみならエラーを返す', async () => {
+      const settingsWithAllBlanks: AppSettings = {
+        ...mockSettings,
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['', '   ', '\t'],
+            isActive: true
+          }
+        ]
+      }
+
+      const result = await EmailService.sendMail(
+        'data:image/jpeg;base64,test-photo',
+        settingsWithAllBlanks,
+        mockDebugLogger,
+        mockErrorDisplayer
+      )
+
+      expect(result).toEqual({
+        success: false,
+        shouldRetake: false
+      })
+      expect(mockErrorDisplayer).toHaveBeenCalledWith('送信先が設定されていません')
+    })
+
+    it('BYOK: エラー文言中の APIキー (re_...) をマスクして表示する', async () => {
+      vi.mocked(emailSender).sendReceipt.mockResolvedValue({
+        success: false,
+        error: 'Authentication failed with key re_abc123def456ghi789jk',
+        details: {
+          name: 'authentication_error',
+          message: 'Invalid api_key re_abc123def456ghi789jk supplied'
+        }
+      })
+
+      await EmailService.sendMail(
+        'data:image/jpeg;base64,test-photo',
+        mockSettings,
+        mockDebugLogger,
+        mockErrorDisplayer
+      )
+
+      // APIキー がマスクされていること
+      const displayCall = vi.mocked(mockErrorDisplayer).mock.calls[0]![0]
+      expect(displayCall).not.toContain('re_abc123def456ghi789jk')
+      expect(displayCall).toContain('re_••••89jk')
+    })
+
+    it('BYOK: 予期しないエラー文中の APIキー もマスクする', async () => {
+      vi.mocked(emailSender).sendReceipt.mockRejectedValue(
+        new Error('Network failed for Bearer re_supersecret1234abcd')
+      )
+
+      await EmailService.sendMail(
+        'data:image/jpeg;base64,test-photo',
+        mockSettings,
+        mockDebugLogger,
+        mockErrorDisplayer
+      )
+
+      const displayCall = vi.mocked(mockErrorDisplayer).mock.calls[0]![0]
+      expect(displayCall).not.toContain('re_supersecret1234abcd')
+      expect(displayCall).toContain('re_••••abcd')
+    })
+
     it('重複する宛先を排除して送信する', async () => {
       const settingsWithDuplicates: AppSettings = {
         ...mockSettings,

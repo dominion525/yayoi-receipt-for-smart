@@ -17,5 +17,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["worker.ts"]
+  "include": ["worker.ts", "worker.test.ts"]
 }
