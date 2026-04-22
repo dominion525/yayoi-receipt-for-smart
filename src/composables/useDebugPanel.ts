@@ -65,12 +65,14 @@ export function useDebugPanel(): DebugPanelData {
     // デバッグログのクリップボードへのコピー
     async copyDebugLogs() {
       this.isCopyingLogs = true
-      await DebugService.copyToClipboard()
-
-      // 成功/失敗に関わらず、視覚的フィードバックのために一定時間待つ
-      setTimeout(() => {
-        this.isCopyingLogs = false
-      }, TIMEOUTS.COPY_FEEDBACK)
+      try {
+        await DebugService.copyToClipboard()
+      } finally {
+        // 成功/失敗に関わらず、視覚的フィードバックのために一定時間待つ
+        setTimeout(() => {
+          this.isCopyingLogs = false
+        }, TIMEOUTS.COPY_FEEDBACK)
+      }
     }
   }
 }
