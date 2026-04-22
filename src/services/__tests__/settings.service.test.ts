@@ -741,62 +741,44 @@ describe('SettingsService', () => {
       expect(SettingsService.isComplete(completeSettings)).toBe(true)
     })
 
-    it('dropboxPresetがisActive=falseの場合の修正処理（160行目分岐テスト）', () => {
-      const settings: AppSettings = {
-        email: 'main@example.com',
-        apiKey: 'test-key',
-        dropboxEmail: 'dropbox@example.com',
-        fromEmail: '',
-        sendPresets: [
-          {
-            id: 'main',
-            name: 'メインアドレス',
-            recipients: ['main@example.com'],
-            isActive: true
-          },
-          {
-            id: 'dropbox',
-            name: 'Dropbox',
-            recipients: ['dropbox@example.com'],
-            isActive: false // isActive = false の場合
-          }
-        ]
+    it.each([
+      {
+        label: 'isActive=false',
+        dropboxPresetOverride: { recipients: ['dropbox@example.com'], isActive: false }
+      },
+      {
+        label: 'recipients=[]',
+        dropboxPresetOverride: { recipients: [], isActive: true }
       }
+    ])(
+      'dropboxPreset の $label の場合に dropboxEmail で有効化・同期される',
+      ({ dropboxPresetOverride }) => {
+        const settings: AppSettings = {
+          email: 'main@example.com',
+          apiKey: 'test-key',
+          dropboxEmail: 'dropbox@example.com',
+          fromEmail: '',
+          sendPresets: [
+            {
+              id: 'main',
+              name: 'メインアドレス',
+              recipients: ['main@example.com'],
+              isActive: true
+            },
+            {
+              id: 'dropbox',
+              name: 'Dropbox',
+              ...dropboxPresetOverride
+            }
+          ]
+        }
 
-      SettingsService.syncPresetsWithEmails(settings)
+        SettingsService.syncPresetsWithEmails(settings)
 
-      const dropboxPreset = settings.sendPresets.find((p) => p.id === 'dropbox')
-      expect(dropboxPreset?.isActive).toBe(true) // 修正されることを確認
-      expect(dropboxPreset?.recipients).toEqual(['dropbox@example.com'])
-    })
-
-    it('dropboxPresetのrecipientsが空の場合の修正処理（160行目分岐テスト）', () => {
-      const settings: AppSettings = {
-        email: 'main@example.com',
-        apiKey: 'test-key',
-        dropboxEmail: 'dropbox@example.com',
-        fromEmail: '',
-        sendPresets: [
-          {
-            id: 'main',
-            name: 'メインアドレス',
-            recipients: ['main@example.com'],
-            isActive: true
-          },
-          {
-            id: 'dropbox',
-            name: 'Dropbox',
-            recipients: [], // 空の受信者配列
-            isActive: true
-          }
-        ]
+        const dropboxPreset = settings.sendPresets.find((p) => p.id === 'dropbox')
+        expect(dropboxPreset?.isActive).toBe(true)
+        expect(dropboxPreset?.recipients).toEqual(['dropbox@example.com'])
       }
-
-      SettingsService.syncPresetsWithEmails(settings)
-
-      const dropboxPreset = settings.sendPresets.find((p) => p.id === 'dropbox')
-      expect(dropboxPreset?.recipients).toEqual(['dropbox@example.com']) // 修正されることを確認
-      expect(dropboxPreset?.isActive).toBe(true)
-    })
+    )
   })
 })

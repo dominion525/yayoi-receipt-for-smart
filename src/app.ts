@@ -133,6 +133,7 @@ export function receiptApp(): CompleteAppData {
 }
 
 // Alpine.jsにコンポーネントを登録
+/* v8 ignore next 3 -- Alpine ランタイムでのみ発火する初期化コードのためテストから到達不可 */
 document.addEventListener('alpine:init', () => {
   Alpine.data('receiptApp', receiptApp)
 })

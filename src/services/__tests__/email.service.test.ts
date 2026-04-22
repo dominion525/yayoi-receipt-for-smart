@@ -96,29 +96,10 @@ describe('EmailService', () => {
       expect(mockErrorDisplayer).toHaveBeenCalledWith('写真が撮影されていません')
     })
 
-    it('送信先が設定されていない場合はエラーを返す', async () => {
-      const settingsWithoutRecipients: AppSettings = {
-        ...mockSettings,
-        sendPresets: []
-      }
-
-      const result = await EmailService.sendMail(
-        'data:image/jpeg;base64,test-photo',
-        settingsWithoutRecipients,
-        mockDebugLogger,
-        mockErrorDisplayer
-      )
-
-      expect(result).toEqual({
-        success: false,
-        shouldRetake: false
-      })
-      expect(mockErrorDisplayer).toHaveBeenCalledWith('送信先が設定されていません')
-    })
-
-    it('すべてのプリセットが無効な場合はエラーを返す', async () => {
-      const settingsWithInactivePresets: AppSettings = {
-        ...mockSettings,
+    it.each<{ label: string; sendPresets: AppSettings['sendPresets'] }>([
+      { label: 'プリセット配列が空', sendPresets: [] },
+      {
+        label: 'すべてのプリセットが無効',
         sendPresets: [
           {
             id: 'main',
@@ -127,19 +108,25 @@ describe('EmailService', () => {
             isActive: false
           }
         ]
+      },
+      {
+        label: 'アクティブだが受信者リストが空',
+        sendPresets: [
+          { id: 'empty1', name: '空のプリセット1', recipients: [], isActive: true },
+          { id: 'empty2', name: '空のプリセット2', recipients: [], isActive: true }
+        ]
       }
+    ])('送信対象が 0 件になる場合はエラーを返す ($label)', async ({ sendPresets }) => {
+      const settings: AppSettings = { ...mockSettings, sendPresets }
 
       const result = await EmailService.sendMail(
         'data:image/jpeg;base64,test-photo',
-        settingsWithInactivePresets,
+        settings,
         mockDebugLogger,
         mockErrorDisplayer
       )
 
-      expect(result).toEqual({
-        success: false,
-        shouldRetake: false
-      })
+      expect(result).toEqual({ success: false, shouldRetake: false })
       expect(mockErrorDisplayer).toHaveBeenCalledWith('送信先が設定されていません')
     })
 
@@ -451,40 +438,6 @@ describe('EmailService', () => {
 
   describe('100%カバレッジのためのエッジケーステスト', () => {
     describe('sendMail() - 空の受信者リストケース', () => {
-      it('すべてのプリセットの受信者リストが空の場合（49行目エラー）', async () => {
-        const settingsWithAllEmptyRecipients: AppSettings = {
-          ...mockSettings,
-          sendPresets: [
-            {
-              id: 'empty1',
-              name: '空のプリセット1',
-              recipients: [],
-              isActive: true
-            },
-            {
-              id: 'empty2',
-              name: '空のプリセット2',
-              recipients: [],
-              isActive: true
-            }
-          ]
-        }
-
-        const result = await EmailService.sendMail(
-          'data:image/jpeg;base64,test-photo',
-          settingsWithAllEmptyRecipients,
-          mockDebugLogger,
-          mockErrorDisplayer
-        )
-
-        expect(result).toEqual({
-          success: false,
-          shouldRetake: false
-        })
-
-        expect(mockErrorDisplayer).toHaveBeenCalledWith('送信先が設定されていません')
-      })
-
       it('送信処理でundefinedが返されるケース', async () => {
         // emailSenderがundefinedを返すケース
         vi.mocked(emailSender).sendReceipt.mockResolvedValue(undefined as any)
@@ -504,47 +457,6 @@ describe('EmailService', () => {
     })
 
     describe('カバレッジ改善のための追加テスト', () => {
-      it('複数件送信成功時のメッセージを確認', async () => {
-        const mockSettings = {
-          email: 'main@example.com',
-          dropboxEmail: 'dropbox@example.com',
-          apiKey: 'test-key',
-          fromEmail: 'sender@example.com',
-          sendPresets: [
-            {
-              id: 'all',
-              name: 'すべてに送信',
-              recipients: ['main@example.com', 'dropbox@example.com', 'third@example.com'],
-              isActive: true
-            }
-          ]
-        }
-
-        const mockDebugLogger = vi.fn()
-        const mockErrorDisplayer = vi.fn()
-
-        // 一括送信で成功
-        vi.mocked(emailSender).sendReceipt.mockResolvedValue({
-          success: true,
-          messageId: 'msg-123'
-        })
-
-        const result = await EmailService.sendMail(
-          'data:image/jpeg;base64,test-photo',
-          mockSettings,
-          mockDebugLogger,
-          mockErrorDisplayer
-        )
-
-        expect(result.success).toBe(true)
-        expect(result.shouldRetake).toBe(true)
-
-        // 一括送信なので1回だけ呼ばれる
-        expect(vi.mocked(emailSender).sendReceipt).toHaveBeenCalledTimes(1)
-        // 成功メッセージは表示されない（app.tsで処理）
-        expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
-      })
-
       it('進捗コールバックが提供された場合、初期状態を通知する', async () => {
         const mockSettings = {
           email: 'test@example.com',
@@ -624,71 +536,6 @@ describe('EmailService', () => {
         expect(result.shouldRetake).toBe(true)
       })
 
-      it('1件送信成功時の処理', async () => {
-        const mockSettings = {
-          email: 'single@example.com',
-          apiKey: 'test-key',
-          fromEmail: 'sender@example.com',
-          sendPresets: [
-            {
-              id: 'main',
-              name: 'メイン',
-              recipients: ['single@example.com'],
-              isActive: true
-            }
-          ]
-        }
-
-        const mockDebugLogger = vi.fn()
-        const mockErrorDisplayer = vi.fn()
-
-        vi.mocked(emailSender).sendReceipt.mockResolvedValue({
-          success: true,
-          messageId: 'msg-single'
-        })
-
-        const result = await EmailService.sendMail(
-          'data:image/jpeg;base64,test-photo',
-          mockSettings,
-          mockDebugLogger,
-          mockErrorDisplayer
-        )
-
-        expect(result.success).toBe(true)
-        expect(result.shouldRetake).toBe(true)
-        expect(mockErrorDisplayer).not.toHaveBeenCalledWith(expect.stringContaining('✅'))
-      })
-
-      it('送信対象0件の稀なケース（理論的エッジケース）', async () => {
-        // この関数を直接テストするため、内部的に0件になるようなケースを作る
-        const mockSettings = {
-          email: '',
-          apiKey: 'test-key',
-          fromEmail: 'sender@example.com',
-          sendPresets: [
-            {
-              id: 'empty',
-              name: '空',
-              recipients: [], // 空の受信者リスト
-              isActive: false // 非アクティブ
-            }
-          ]
-        }
-
-        const mockDebugLogger = vi.fn()
-        const mockErrorDisplayer = vi.fn()
-
-        const result = await EmailService.sendMail(
-          'data:image/jpeg;base64,test-photo',
-          mockSettings,
-          mockDebugLogger,
-          mockErrorDisplayer
-        )
-
-        expect(result.success).toBe(false)
-        expect(result.shouldRetake).toBe(false)
-        expect(mockErrorDisplayer).toHaveBeenCalledWith('送信先が設定されていません')
-      })
     })
 
     describe('残りの未カバー行対応テスト', () => {

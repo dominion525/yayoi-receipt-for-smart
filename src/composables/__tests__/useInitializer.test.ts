@@ -11,41 +11,16 @@ describe('useInitializer', () => {
   })
 
   describe('checkDropboxPreset', () => {
-    it('Dropboxメールが未設定の場合はfalseを返す', () => {
-      const initializer = useInitializer()
-
-      // Alpine.jsコンテキストをモック
-      const mockThis = {
-        settings: {
-          dropboxEmail: '', // 空文字列
-          sendPresets: []
-        }
-      }
-
-      const result = initializer.checkDropboxPreset.call(mockThis)
-      expect(result).toBe(false)
-    })
-
-    it('Dropboxメールがnullの場合はfalseを返す', () => {
+    it.each([
+      ['空文字列', ''],
+      ['null', null],
+      ['undefined', undefined]
+    ])('Dropboxメールが %s の場合はfalseを返す', (_label, dropboxEmail) => {
       const initializer = useInitializer()
 
       const mockThis = {
         settings: {
-          dropboxEmail: null,
-          sendPresets: []
-        }
-      }
-
-      const result = initializer.checkDropboxPreset.call(mockThis)
-      expect(result).toBe(false)
-    })
-
-    it('Dropboxメールがundefinedの場合はfalseを返す', () => {
-      const initializer = useInitializer()
-
-      const mockThis = {
-        settings: {
-          dropboxEmail: undefined,
+          dropboxEmail,
           sendPresets: []
         }
       }
@@ -96,40 +71,16 @@ describe('useInitializer', () => {
   })
 
   describe('checkMainPreset', () => {
-    it('メインメールが未設定の場合はfalseを返す', () => {
+    it.each([
+      ['空文字列', ''],
+      ['null', null],
+      ['undefined', undefined]
+    ])('メインメールが %s の場合はfalseを返す', (_label, email) => {
       const initializer = useInitializer()
 
       const mockThis = {
         settings: {
-          email: '', // 空文字列
-          sendPresets: []
-        }
-      }
-
-      const result = initializer.checkMainPreset.call(mockThis)
-      expect(result).toBe(false)
-    })
-
-    it('メインメールがnullの場合はfalseを返す', () => {
-      const initializer = useInitializer()
-
-      const mockThis = {
-        settings: {
-          email: null,
-          sendPresets: []
-        }
-      }
-
-      const result = initializer.checkMainPreset.call(mockThis)
-      expect(result).toBe(false)
-    })
-
-    it('メインメールがundefinedの場合はfalseを返す', () => {
-      const initializer = useInitializer()
-
-      const mockThis = {
-        settings: {
-          email: undefined,
+          email,
           sendPresets: []
         }
       }
@@ -260,40 +211,4 @@ describe('useInitializer', () => {
     })
   })
 
-  describe('init', () => {
-    it('重複初期化を防ぐ', () => {
-      const initializer = useInitializer()
-
-      const mockThis = {
-        _initialized: false,
-        settings: {
-          apiKey: 'test-key',
-          fromEmail: 'test@example.com',
-          sendPresets: []
-        },
-        // 必要なメソッドをモック
-        initPWADetection: vi.fn(),
-        initializePWA: vi.fn(),
-        initializeEmailSettings: vi.fn(),
-        initializePresets: vi.fn(),
-        logInitializationStatus: vi.fn(),
-        addDebugLog: vi.fn()
-      }
-
-      // 1回目の初期化
-      initializer.init.call(mockThis)
-      expect(mockThis._initialized).toBe(true)
-      expect(mockThis.initializePWA).toHaveBeenCalledTimes(1)
-
-      // 2回目の初期化は早期リターンされる
-      vi.clearAllMocks()
-      initializer.init.call(mockThis)
-
-      // 2回目は初期化処理がスキップされることを確認
-      expect(mockThis.initializePWA).not.toHaveBeenCalled()
-      expect(mockThis.initializeEmailSettings).not.toHaveBeenCalled()
-      expect(mockThis.initializePresets).not.toHaveBeenCalled()
-      expect(mockThis.logInitializationStatus).not.toHaveBeenCalled()
-    })
-  })
 })

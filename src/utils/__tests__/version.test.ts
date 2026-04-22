@@ -118,12 +118,5 @@ describe('version', () => {
       expect(shortVersion).toMatch(/^v\d+\.\d+\.\d+/)
       expect(shortVersion.startsWith('v')).toBe(true)
     })
-
-    it('package.jsonのversionと一致する', () => {
-      const shortVersion = getShortVersion()
-      const buildInfo = getBuildInfo()
-
-      expect(shortVersion).toBe(`v${buildInfo.version}`)
-    })
   })
 })

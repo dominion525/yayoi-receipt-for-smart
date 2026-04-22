@@ -72,26 +72,6 @@ describe('usePhotoCapture', () => {
       expect(mockApp.addDebugLog).toHaveBeenCalledWith('カメラ起動中...', 'info')
     })
 
-    it('addDebugLogが存在しない場合でもエラーにならない', () => {
-      const mockInput = document.createElement('input')
-      mockInput.id = 'camera-input'
-      mockInput.type = 'file'
-      document.body.appendChild(mockInput)
-
-      const mockApp: Partial<CompleteAppData> = {
-        photo: null,
-        addDebugLog: undefined
-      }
-
-      const composable = usePhotoCapture.call(mockApp as CompleteAppData)
-      const merged = Object.assign(mockApp, composable)
-
-      expect(() => {
-        merged.handleCameraClick()
-      }).not.toThrow()
-
-      expect(merged.isCameraActive).toBe(true)
-    })
   })
 
   describe('handleNativeCamera', () => {

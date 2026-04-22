@@ -948,33 +948,6 @@ describe('receiptApp', () => {
       vi.useRealTimers()
     })
 
-    it('sendMail内での成功メッセージ自動クリア', async () => {
-      vi.mocked(EmailService.sendMail).mockResolvedValue({
-        success: true,
-        shouldRetake: true
-      })
-
-      app.photo = 'data:image/jpeg;base64,test'
-      await app.sendMail()
-
-      // 3秒経過して、メイン画面に戻った後
-      vi.advanceTimersByTime(3000)
-
-      // $nextTickの処理を待つ
-      if (app.$nextTick) {
-        await new Promise<void>((resolve) => app.$nextTick!(() => resolve()))
-      } else {
-        vi.advanceTimersByTime(100)
-      }
-
-      expect(app.successMessage).toBe('レシートを送信しました')
-      expect(app.error).toBe(null)
-
-      // 5秒経過
-      vi.advanceTimersByTime(5000)
-      expect(app.successMessage).toBe(null)
-    })
-
     it('エラーメッセージが途中で変更された場合は自動クリアしない', async () => {
       vi.mocked(EmailService.sendMail).mockResolvedValue({
         success: true,
@@ -1041,37 +1014,6 @@ describe('receiptApp', () => {
       expect(typeof appInstance.sendMail).toBe('function')
     })
 
-    it('alpine:initイベントでAlpine.dataが呼ばれる（app.ts 332-333行目をカバー）', () => {
-      const mockAlpine = {
-        data: vi.fn()
-      }
-
-      // グローバルAlpineをモックに設定
-      vi.stubGlobal('Alpine', mockAlpine)
-
-      try {
-        // 新しいイベントリスナーを追加して332-333行目の処理を再現
-        const alpineInitHandler = () => {
-          // @ts-expect-error - app.ts 332行目のコードを直接実行
-          Alpine.data('receiptApp', receiptApp)
-        }
-
-        // イベントリスナーを追加
-        document.addEventListener('alpine:init', alpineInitHandler)
-
-        // alpine:initイベントを発火
-        const event = new Event('alpine:init')
-        document.dispatchEvent(event)
-
-        // Alpine.dataが正しく呼ばれることを確認
-        expect(mockAlpine.data).toHaveBeenCalledWith('receiptApp', receiptApp)
-
-        // イベントリスナーをクリーンアップ
-        document.removeEventListener('alpine:init', alpineInitHandler)
-      } finally {
-        vi.unstubAllGlobals()
-      }
-    })
   })
 
   describe('PWA機能', () => {

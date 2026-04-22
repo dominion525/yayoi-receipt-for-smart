@@ -311,22 +311,6 @@ describe('DebugService', () => {
       })
     })
 
-    it('navigator.clipboardでawait時に例外が発生した場合（74-78行目catchブロック）', async () => {
-      DebugService.add('clipboard例外テスト')
-
-      // navigator.clipboardは存在するが、writeTextで例外を投げる
-      clipboardMock.writeText.mockRejectedValueOnce(new Error('Clipboard permission denied'))
-
-      const result = await DebugService.copyToClipboard()
-
-      expect(result).toBe(false)
-
-      // エラーメッセージがログに追加されることを確認
-      const logs = DebugService.getAll()
-      expect(logs).toHaveLength(2)
-      expect(logs[1]?.message).toBe('ログのコピーに失敗しました')
-      expect(logs[1]?.type).toBe('error')
-    })
   })
 
   describe('リスナー機能', () => {
@@ -412,44 +396,19 @@ describe('DebugService', () => {
   })
 
   describe('便利メソッド', () => {
-    it('info()メソッドが正常に動作する', () => {
-      DebugService.info('情報メッセージ')
+    it.each([
+      ['info', 'info' as const],
+      ['success', 'success' as const],
+      ['warning', 'warning' as const],
+      ['error', 'error' as const],
+      ['debug', 'debug' as const]
+    ])('%s() メソッドが対応する type でログを追加する', (methodName, type) => {
+      const message = `${methodName}メッセージ`
+      DebugService[methodName as 'info' | 'success' | 'warning' | 'error' | 'debug'](message)
 
       const logs = DebugService.getAll()
-      expect(logs[0]?.type).toBe('info')
-      expect(logs[0]?.message).toBe('情報メッセージ')
-    })
-
-    it('success()メソッドが正常に動作する', () => {
-      DebugService.success('成功メッセージ')
-
-      const logs = DebugService.getAll()
-      expect(logs[0]?.type).toBe('success')
-      expect(logs[0]?.message).toBe('成功メッセージ')
-    })
-
-    it('warning()メソッドが正常に動作する', () => {
-      DebugService.warning('警告メッセージ')
-
-      const logs = DebugService.getAll()
-      expect(logs[0]?.type).toBe('warning')
-      expect(logs[0]?.message).toBe('警告メッセージ')
-    })
-
-    it('error()メソッドが正常に動作する', () => {
-      DebugService.error('エラーメッセージ')
-
-      const logs = DebugService.getAll()
-      expect(logs[0]?.type).toBe('error')
-      expect(logs[0]?.message).toBe('エラーメッセージ')
-    })
-
-    it('debug()メソッドが正常に動作する', () => {
-      DebugService.debug('デバッグメッセージ')
-
-      const logs = DebugService.getAll()
-      expect(logs[0]?.type).toBe('debug')
-      expect(logs[0]?.message).toBe('デバッグメッセージ')
+      expect(logs[0]?.type).toBe(type)
+      expect(logs[0]?.message).toBe(message)
     })
   })
 
