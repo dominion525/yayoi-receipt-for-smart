@@ -51,13 +51,13 @@ describe('useInitializer', () => {
       expect(result).toBe(true)
     })
 
-    it('Dropboxプリセットが無効な場合はtrueを返し、修正する', () => {
+    it('Dropboxプリセットが無効な場合はtrueを返す（mutationなし）', () => {
       const initializer = useInitializer()
 
       const dropboxPreset = {
         id: 'dropbox',
         name: 'Dropbox',
-        recipients: [],
+        recipients: [] as string[],
         isActive: false
       }
 
@@ -71,8 +71,9 @@ describe('useInitializer', () => {
       const result = initializer.checkDropboxPreset.call(mockThis)
 
       expect(result).toBe(true)
-      expect(dropboxPreset.isActive).toBe(true)
-      expect(dropboxPreset.recipients).toEqual(['dropbox@example.com'])
+      // checkDropboxPreset は pure 化されたため、引数のプリセットは変更されない
+      expect(dropboxPreset.isActive).toBe(false)
+      expect(dropboxPreset.recipients).toEqual([])
     })
   })
 
@@ -95,7 +96,7 @@ describe('useInitializer', () => {
       expect(result).toBe(false)
     })
 
-    it('メインプリセットの宛先が異なる場合はtrueを返し、修正する', () => {
+    it('メインプリセットの宛先が異なる場合はtrueを返す（mutationなし）', () => {
       const initializer = useInitializer()
 
       const mainPreset = {
@@ -115,7 +116,8 @@ describe('useInitializer', () => {
       const result = initializer.checkMainPreset.call(mockThis)
 
       expect(result).toBe(true)
-      expect(mainPreset.recipients).toEqual(['new@example.com'])
+      // checkMainPreset は pure 化されたため、引数のプリセットは変更されない
+      expect(mainPreset.recipients).toEqual(['old@example.com'])
     })
 
     it('メインプリセットが存在しない場合はfalseを返す', () => {

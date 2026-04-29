@@ -94,7 +94,9 @@ export function useInitializer(): InitializerComposable {
       return false
     },
 
-    // Dropboxプリセットのチェック
+    // Dropboxプリセットの整合性チェック（pure: 状態は変更しない）
+    // 修正が必要な場合は true を返し、実際の修正は initializePresets 経由で
+    // SettingsService.syncPresetsWithEmails に委譲する。
     checkDropboxPreset(): boolean {
       const app = this as CompleteAppData
       const settings = app.settings
@@ -112,17 +114,12 @@ export function useInitializer(): InitializerComposable {
       }
 
       // プリセットが無効または宛先が空の場合
-      if (!dropboxPreset.isActive || dropboxPreset.recipients.length === 0) {
-        // 直接修正（Alpine.jsコンテキストで動作）
-        dropboxPreset.isActive = true
-        dropboxPreset.recipients = [settings.dropboxEmail]
-        return true
-      }
-
-      return false
+      return !dropboxPreset.isActive || dropboxPreset.recipients.length === 0
     },
 
-    // メインプリセットのチェック
+    // メインプリセットの整合性チェック（pure: 状態は変更しない）
+    // 修正が必要な場合は true を返し、実際の修正は initializePresets 経由で
+    // SettingsService.syncPresetsWithEmails に委譲する。
     checkMainPreset(): boolean {
       const app = this as CompleteAppData
       const settings = app.settings
@@ -135,12 +132,7 @@ export function useInitializer(): InitializerComposable {
       const mainPreset = settings.sendPresets.find((p) => p.id === 'main')
 
       // プリセットが存在し、宛先が異なる場合
-      if (mainPreset && mainPreset.recipients[0] !== settings.email) {
-        mainPreset.recipients = [settings.email]
-        return true
-      }
-
-      return false
+      return !!mainPreset && mainPreset.recipients[0] !== settings.email
     },
 
     // 初期化状態のログ出力
