@@ -71,6 +71,16 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Check bundle size
+        run: |
+          MAX_BYTES=500000
+          ACTUAL_BYTES=$(du -sb dist | awk '{print $1}')
+          echo "dist size: ${ACTUAL_BYTES} bytes (limit: ${MAX_BYTES} bytes)"
+          if [ "${ACTUAL_BYTES}" -gt "${MAX_BYTES}" ]; then
+            echo "::error::dist directory size ${ACTUAL_BYTES} bytes exceeds limit ${MAX_BYTES} bytes"
+            exit 1
+          fi
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
