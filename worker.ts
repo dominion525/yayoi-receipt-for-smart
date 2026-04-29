@@ -59,35 +59,20 @@ type SendEmailFunc = (params: SendEmailRequest) => Promise<SendEmailResult>
 // Cloudflare Workers 環境
 interface Env {
   ASSETS?: Fetcher
+  /** 本番環境で許可する CORS Origin。wrangler.toml の `[env.production.vars]` で定義 */
+  ALLOWED_ORIGIN?: string
 }
 
 // 環境に応じたCORSヘッダー
-function getCorsHeaders(): Record<string, string> {
-  // 本番環境（Cloudflare Workers）では特定ドメインのみ許可
-  const g = globalThis as { ENVIRONMENT?: unknown; window?: unknown; process?: unknown }
-  const isProduction =
-    typeof g.ENVIRONMENT === 'undefined' &&
-    typeof g.window === 'undefined' &&
-    typeof g.process === 'undefined'
-
-  if (isProduction) {
-    return {
-      'Access-Control-Allow-Origin': 'https://receipt.dominion525.com',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    }
-  }
-
-  // 開発環境では全て許可
+function getCorsHeaders(env?: Env): Record<string, string> {
+  // wrangler.toml で ALLOWED_ORIGIN が定義されていればそれを使い、未定義（開発・テスト）なら全て許可
+  const allowedOrigin = env?.ALLOWED_ORIGIN ?? '*'
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
   }
 }
-
-// 共通のCORSヘッダー
-const CORS_HEADERS = getCorsHeaders()
 
 // セキュリティヘッダー
 // 注: 'unsafe-eval' は Alpine.js 3.x が式評価に new Function() を使うため必要。
@@ -161,8 +146,11 @@ async function handleRequest(
   method: string,
   pathname: string,
   getBody: () => Promise<string>,
-  sendEmailFunc: SendEmailFunc
+  sendEmailFunc: SendEmailFunc,
+  env?: Env
 ): Promise<HandleRequestResponse> {
+  const CORS_HEADERS = getCorsHeaders(env)
+
   // OPTIONS request
   if (method === 'OPTIONS') {
     return {
@@ -356,7 +344,8 @@ export default {
         request.method,
         url.pathname,
         getBody,
-        sendEmailWithFetch
+        sendEmailWithFetch,
+        env
       )
 
       // レスポンスを返す（セキュリティヘッダー付与）

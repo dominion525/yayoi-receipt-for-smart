@@ -49,6 +49,21 @@ describe('worker.fetch', () => {
       expect(res.headers.get('X-Frame-Options')).toBe('DENY')
       expect(res.headers.get('Strict-Transport-Security')).toContain('max-age=')
     })
+
+    it('env.ALLOWED_ORIGIN が設定されていればその値を Access-Control-Allow-Origin に使う', async () => {
+      const req = new Request('https://example.com/api/send-email', { method: 'OPTIONS' })
+      const env = makeEnv({ ALLOWED_ORIGIN: 'https://prod.example.com' } as never)
+      const res = await worker.fetch(req, env)
+
+      expect(res.headers.get('Access-Control-Allow-Origin')).toBe('https://prod.example.com')
+    })
+
+    it('env.ALLOWED_ORIGIN が未設定なら * を使う（開発・テスト環境向け）', async () => {
+      const req = new Request('https://example.com/api/send-email', { method: 'OPTIONS' })
+      const res = await worker.fetch(req, makeEnv())
+
+      expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*')
+    })
   })
 
   describe('GET /api/health', () => {
