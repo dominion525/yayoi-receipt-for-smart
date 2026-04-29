@@ -3,11 +3,12 @@ import worker from './worker'
 
 // globalThis.fetch をモックして Resend API 呼び出しをキャプチャ
 let fetchMock: ReturnType<typeof vi.fn>
+let consoleErrorSpy: ReturnType<typeof vi.spyOn>
 
 beforeEach(() => {
   fetchMock = vi.fn()
   vi.stubGlobal('fetch', fetchMock)
-  vi.spyOn(console, 'error').mockImplementation(() => {})
+  consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 
 afterEach(() => {
@@ -305,6 +306,66 @@ describe('worker.fetch', () => {
 
       const rawBody = await res.text()
       expect(rawBody).not.toContain('re_crash1234abcd')
+    })
+
+    it('Resend API エラー時、サーバーログ (console.error) にも APIキー が露出しない', async () => {
+      fetchMock.mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            name: 'authentication_error',
+            message: 'Invalid api_key re_logleak1234abcd supplied'
+          }),
+          { status: 401 }
+        )
+      )
+
+      const req = new Request('https://example.com/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: 're_logleak1234abcd',
+          from: 'sender@example.com',
+          to: 'recipient@example.com',
+          subject: 'テスト',
+          text: '本文'
+        })
+      })
+      await worker.fetch(req, makeEnv())
+
+      expect(consoleErrorSpy).toHaveBeenCalled()
+      const loggedText = consoleErrorSpy.mock.calls
+        .flat()
+        .map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
+        .join(' ')
+      expect(loggedText).not.toContain('re_logleak1234abcd')
+      expect(loggedText).toContain('re_••••abcd')
+    })
+
+    it('Resend API 呼び出し例外時、サーバーログ (console.error) にも APIキー が露出しない', async () => {
+      fetchMock.mockRejectedValueOnce(new Error('Connection failed to Bearer re_logcrash1234efgh'))
+
+      const req = new Request('https://example.com/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          apiKey: 're_logcrash1234efgh',
+          from: 'sender@example.com',
+          to: 'recipient@example.com',
+          subject: 'テスト',
+          text: '本文'
+        })
+      })
+      await worker.fetch(req, makeEnv())
+
+      expect(consoleErrorSpy).toHaveBeenCalled()
+      const loggedText = consoleErrorSpy.mock.calls
+        .flat()
+        .map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
+        .join(' ')
+      // 生の APIキー がログに混入しないことだけを保証する。
+      // fetch 例外は sendEmailWithFetch の内部 catch で Error オブジェクトとして
+      // 包まれ、JSON.stringify で本文が消失するため、マスク表記の混入までは検証しない。
+      expect(loggedText).not.toContain('re_logcrash1234efgh')
     })
   })
 
