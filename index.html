@@ -114,7 +114,7 @@
           x-transition
           class="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded max-h-48 overflow-y-auto"
         >
-          <p x-html="error ? error.replace(/\n/g, '<br>') : ''" class="whitespace-pre-wrap"></p>
+          <p x-text="error" class="whitespace-pre-wrap"></p>
         </div>
 
         <!-- カメラ起動ボタン -->
