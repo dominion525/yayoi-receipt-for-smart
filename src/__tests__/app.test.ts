@@ -5,6 +5,7 @@ import { SettingsService } from '../services/settings.service'
 import { DebugService } from '../services/debug.service'
 import { EmailService } from '../services/email.service'
 import { emailSender } from '../lib/mail'
+import { mockSettings, setupAppDom, makeApp } from './__fixtures__/receiptApp'
 
 // モック設定
 vi.mock('../lib/mail', () => ({
@@ -42,28 +43,6 @@ vi.mock('../services/email.service', () => ({
 describe('receiptApp', () => {
   let app: CompleteAppData
 
-  // デフォルト設定
-  const mockSettings = {
-    email: 'test@example.com',
-    apiKey: 'test-api-key',
-    dropboxEmail: 'dropbox@getdropbox.com',
-    fromEmail: 'from@example.com',
-    sendPresets: [
-      {
-        id: 'main',
-        name: 'メインアドレス',
-        recipients: ['test@example.com'],
-        isActive: true
-      },
-      {
-        id: 'dropbox',
-        name: 'Dropbox',
-        recipients: ['dropbox@getdropbox.com'],
-        isActive: true
-      }
-    ]
-  }
-
   beforeEach(() => {
     vi.clearAllMocks()
 
@@ -72,21 +51,8 @@ describe('receiptApp', () => {
     vi.mocked(SettingsService.isComplete).mockReturnValue(true)
     vi.mocked(SettingsService.save).mockReturnValue(true)
 
-    // DOM環境のセットアップ
-    document.body.innerHTML = `
-      <div id="debug-panel">
-        <div class="bg-black"></div>
-      </div>
-    `
-
-    // 新しいアプリインスタンスを作成
-    app = receiptApp()
-
-    // Alpine.jsの$nextTickをモック
-    app.$nextTick = vi.fn((callback: () => void) => {
-      // 即座にコールバックを実行（同期的に）
-      callback()
-    })
+    setupAppDom()
+    app = makeApp()
   })
 
   afterEach(() => {
@@ -132,7 +98,7 @@ describe('receiptApp', () => {
         apiKey: 're_savedkey1234abcd'
       })
 
-      app = receiptApp()
+      app = makeApp()
 
       expect(app.maskedSavedApiKey).toBe('re_••••abcd')
     })
@@ -143,7 +109,7 @@ describe('receiptApp', () => {
         apiKey: ''
       })
 
-      app = receiptApp()
+      app = makeApp()
 
       expect(app.maskedSavedApiKey).toBe('')
     })
@@ -163,7 +129,7 @@ describe('receiptApp', () => {
         apiKey: ''
       })
 
-      app = receiptApp()
+      app = makeApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
 
@@ -176,7 +142,7 @@ describe('receiptApp', () => {
         fromEmail: ''
       })
 
-      app = receiptApp()
+      app = makeApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
 
@@ -189,7 +155,7 @@ describe('receiptApp', () => {
         sendPresets: []
       })
 
-      app = receiptApp()
+      app = makeApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
 
@@ -204,7 +170,7 @@ describe('receiptApp', () => {
 
       vi.mocked(SettingsService.load).mockReturnValue(settingsWithNullPresets)
 
-      app = receiptApp()
+      app = makeApp()
       // $nextTickをモック（再設定）
       app.$nextTick = vi.fn((callback: () => void) => callback())
 
@@ -228,7 +194,7 @@ describe('receiptApp', () => {
 
       vi.mocked(SettingsService.load).mockReturnValue(settingsWithoutDropboxPreset)
 
-      app = receiptApp()
+      app = makeApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
 
@@ -256,7 +222,7 @@ describe('receiptApp', () => {
 
       vi.mocked(SettingsService.load).mockReturnValue(settingsWithInactiveDropbox)
 
-      app = receiptApp()
+      app = makeApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
 
@@ -285,7 +251,7 @@ describe('receiptApp', () => {
 
       vi.mocked(SettingsService.load).mockReturnValue(settingsWithMismatchedEmail)
 
-      app = receiptApp()
+      app = makeApp()
       app.$nextTick = vi.fn((callback: () => void) => callback())
       app.init()
 
@@ -1050,7 +1016,7 @@ describe('receiptApp', () => {
     })
 
     it('receiptApp関数が適切なオブジェクトを返す', () => {
-      const appInstance = receiptApp()
+      const appInstance = makeApp()
 
       // 基本プロパティの存在確認
       expect(appInstance).toHaveProperty('init')
@@ -1068,7 +1034,7 @@ describe('receiptApp', () => {
   describe('PWA機能', () => {
     describe('detectPWAMode()メソッド', () => {
       beforeEach(() => {
-        app = receiptApp()
+        app = makeApp()
         // $nextTickをモック
         app.$nextTick = vi.fn((cb) => cb())
         // addDebugLogをspy
@@ -1147,7 +1113,7 @@ describe('receiptApp', () => {
         originalBuildRevision = (global as any).__BUILD_REVISION__
         originalBuildTime = (global as any).__BUILD_TIME__
 
-        app = receiptApp()
+        app = makeApp()
         // $nextTickをモック
         app.$nextTick = vi.fn((cb) => cb())
         // addDebugLogとdetectPWAModeをspy
@@ -1297,7 +1263,7 @@ describe('receiptApp', () => {
     })
 
     it('進捗状態を設定する', () => {
-      const app = receiptApp()
+      const app = makeApp()
       const progress = {
         total: 3,
         sent: 1,
@@ -1313,7 +1279,7 @@ describe('receiptApp', () => {
     })
 
     it('completed時に3秒後にクリアする', () => {
-      const app = receiptApp()
+      const app = makeApp()
       const progress = {
         total: 2,
         sent: 2,
@@ -1332,7 +1298,7 @@ describe('receiptApp', () => {
     })
 
     it('error時に3秒後にクリアする', () => {
-      const app = receiptApp()
+      const app = makeApp()
       const progress = {
         total: 2,
         sent: 1,
@@ -1351,7 +1317,7 @@ describe('receiptApp', () => {
     })
 
     it('sending時は自動クリアしない', () => {
-      const app = receiptApp()
+      const app = makeApp()
       const progress = {
         total: 3,
         sent: 1,
@@ -1370,7 +1336,7 @@ describe('receiptApp', () => {
     })
 
     it('completedクリアタイマー進行中に新しいsendingが来ても最新progressを消さない', () => {
-      const app = receiptApp()
+      const app = makeApp()
 
       const completedProgress = {
         total: 2,
@@ -1424,7 +1390,7 @@ describe('receiptApp', () => {
       vi.mocked(SettingsService.load).mockReturnValue(mockLoadedSettings)
       vi.mocked(SettingsService.isComplete).mockReturnValue(true)
 
-      const app = receiptApp()
+      const app = makeApp()
       app.photo = 'data:image/jpeg;base64,test-photo'
 
       // showSuccessをスパイ
