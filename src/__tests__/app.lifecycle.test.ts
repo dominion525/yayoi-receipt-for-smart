@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { receiptApp } from '../app'
 import { CompleteAppData } from '../types/app'
 import { SettingsService } from '../services/settings.service'
-import { DebugService } from '../services/debug.service'
 import { emailSender } from '../lib/mail'
 import { mockSettings, setupAppDom, makeApp } from './__fixtures__/receiptApp'
 
@@ -39,7 +38,7 @@ vi.mock('../services/email.service', () => ({
   }
 }))
 
-describe('receiptApp', () => {
+describe('receiptApp - lifecycle', () => {
   let app: CompleteAppData
 
   beforeEach(() => {
@@ -297,12 +296,6 @@ describe('receiptApp', () => {
       expect(app.error).toBe(null)
     })
   })
-
-
-
-
-
-
 
   describe('Alpine.js統合', () => {
     it('receiptApp関数が適切にエクスポートされている', () => {
