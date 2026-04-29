@@ -97,7 +97,14 @@
           style="touch-action: manipulation; -webkit-appearance: none"
           required
         />
-        <p class="mt-1 text-xs text-gray-500">RESENDのAPIキーを入力してください</p>
+        <p class="mt-1 text-xs text-gray-500">
+          <template x-if="settings.apiKey">
+            <span>保存済み: <span x-text="maskedSavedApiKey" class="font-mono"></span></span>
+          </template>
+          <template x-if="!settings.apiKey">
+            <span>RESENDのAPIキーを入力してください</span>
+          </template>
+        </p>
       </div>
 
       <!-- 認証済みメールアドレス -->

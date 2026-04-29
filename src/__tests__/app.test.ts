@@ -125,6 +125,28 @@ describe('receiptApp', () => {
       expect(app.isSettingsComplete).toBe(true)
       expect(SettingsService.isComplete).toHaveBeenCalledWith(mockSettings)
     })
+
+    it('maskedSavedApiKey ゲッターが保存済みキーをマスクして返す', () => {
+      vi.mocked(SettingsService.load).mockReturnValue({
+        ...mockSettings,
+        apiKey: 're_savedkey1234abcd'
+      })
+
+      app = receiptApp()
+
+      expect(app.maskedSavedApiKey).toBe('re_••••abcd')
+    })
+
+    it('maskedSavedApiKey ゲッターは未保存時に空文字を返す', () => {
+      vi.mocked(SettingsService.load).mockReturnValue({
+        ...mockSettings,
+        apiKey: ''
+      })
+
+      app = receiptApp()
+
+      expect(app.maskedSavedApiKey).toBe('')
+    })
   })
 
   describe('init()メソッド', () => {

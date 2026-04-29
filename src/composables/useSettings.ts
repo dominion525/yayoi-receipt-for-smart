@@ -2,12 +2,14 @@ import { SettingsService, AppSettings } from '../services/settings.service'
 import { emailSender } from '../lib/mail'
 import { CompleteAppData } from '../types/app'
 import { isValidApiKeyFormat } from '../utils/validation'
+import { maskApiKey } from '../utils/mask'
 
 export interface SettingsComposable {
   showSettings: boolean
   settings: AppSettings
   tempSettings: AppSettings
   isSettingsComplete: boolean
+  maskedSavedApiKey: string
   openSettings: () => void
   closeSettings: () => void
   saveSettings: () => Promise<boolean>
@@ -29,6 +31,11 @@ export function useSettings(): SettingsComposable {
     // 設定が完了しているかチェック
     get isSettingsComplete() {
       return SettingsService.isComplete(this.settings)
+    },
+
+    // 保存済み APIキーのマスク表示（例: re_••••1234）。未保存なら空文字
+    get maskedSavedApiKey() {
+      return this.settings.apiKey ? maskApiKey(this.settings.apiKey) : ''
     },
 
     // 設定モーダルを開く
