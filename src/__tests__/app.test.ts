@@ -1320,6 +1320,49 @@ describe('receiptApp', () => {
       expect(app.sendProgress).toBe(progress)
     })
 
+    it('completedクリアタイマー進行中に新しいsendingが来ても最新progressを消さない', () => {
+      const app = receiptApp()
+
+      const completedProgress = {
+        total: 2,
+        sent: 2,
+        failed: 0,
+        currentRecipients: [],
+        status: 'completed' as const,
+        percentage: 100
+      }
+
+      const nextSendingProgress = {
+        total: 3,
+        sent: 1,
+        failed: 0,
+        currentRecipients: ['next@example.com'],
+        status: 'sending' as const,
+        percentage: 33
+      }
+
+      // completedを投入。3秒のクリアタイマーが開始される
+      app.handleEmailProgress(completedProgress)
+      expect(app.sendProgress).toBe(completedProgress)
+
+      // 1秒経過（クリアタイマーは未発火）
+      vi.advanceTimersByTime(1000)
+      expect(app.sendProgress).toBe(completedProgress)
+
+      // 新しいsendingが到来。前のクリアタイマーはキャンセルされる
+      app.handleEmailProgress(nextSendingProgress)
+      expect(app.sendProgress).toBe(nextSendingProgress)
+
+      // さらに2秒経過（completed投入から合計3秒）。
+      // タイマー管理がなければここで sendProgress が null になってしまう
+      vi.advanceTimersByTime(2000)
+      expect(app.sendProgress).toBe(nextSendingProgress)
+
+      // さらに2秒経過（sending投入から3秒）。sendingは自動クリアしない
+      vi.advanceTimersByTime(2000)
+      expect(app.sendProgress).toBe(nextSendingProgress)
+    })
+
     it('$nextTickが存在しない場合、setTimeoutで成功メッセージを表示する（sendMail・111-114行目カバー）', async () => {
       const mockLoadedSettings = {
         email: 'test@example.com',
@@ -1354,5 +1397,66 @@ describe('receiptApp', () => {
       expect(showSuccessSpy).toHaveBeenCalledWith('レシートを送信しました')
     })
 
+  })
+
+  describe('ユーザーフロー統合', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('設定不完全エラー → モーダル誘導 → 設定修正・保存 → 再送信成功', async () => {
+      // 初期状態: 設定が不完全
+      vi.mocked(SettingsService.isComplete).mockReturnValue(false)
+      app.photo = 'data:image/jpeg;base64,testImageData'
+
+      const showErrorSpy = vi.spyOn(app, 'showError')
+      const openSettingsSpy = vi.spyOn(app, 'openSettings')
+
+      // 1回目の送信試行 → エラー表示 + 設定モーダルへ誘導
+      await app.sendMail()
+
+      expect(showErrorSpy).toHaveBeenCalledWith(
+        'メール設定が完了していません。設定を行ってください。'
+      )
+      expect(openSettingsSpy).toHaveBeenCalledOnce()
+      expect(app.showSettings).toBe(true)
+      expect(EmailService.sendMail).not.toHaveBeenCalled()
+
+      // ユーザーが設定を入力
+      app.tempSettings = {
+        email: 'fixed@example.com',
+        apiKey: 'fixed-api-key',
+        dropboxEmail: '',
+        fromEmail: '',
+        sendPresets: []
+      }
+
+      // 保存後は設定が完了状態となる
+      vi.mocked(SettingsService.isComplete).mockReturnValue(true)
+      vi.mocked(SettingsService.save).mockReturnValue(true)
+
+      // 設定保存 → モーダルが閉じる
+      await app.saveSettings()
+
+      expect(SettingsService.save).toHaveBeenCalled()
+      expect(app.showSettings).toBe(false)
+      expect(app.settings.email).toBe('fixed@example.com')
+      expect(app.settings.apiKey).toBe('fixed-api-key')
+
+      // 再送信が成功
+      vi.mocked(EmailService.sendMail).mockResolvedValue({
+        success: true,
+        shouldRetake: true
+      })
+
+      await app.sendMail()
+
+      expect(EmailService.sendMail).toHaveBeenCalledOnce()
+      expect(app.completionMessage).toBe('送信が完了しました')
+    })
   })
 })

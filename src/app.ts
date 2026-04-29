@@ -69,6 +69,7 @@ export function receiptApp(): CompleteAppData {
     isLoading: false,
     isSendingMail: false,
     sendProgress: null,
+    progressClearTimer: null as number | null,
     completionMessage: null,
 
     // バージョン情報
@@ -121,11 +122,19 @@ export function receiptApp(): CompleteAppData {
 
     // 共通進捗処理ハンドラー
     handleEmailProgress(progress: SendProgress) {
+      // 既存のクリアタイマーが残っていればキャンセル（前回 completed/error の3秒タイマーが
+      // 新しい sending progress を消してしまうのを防ぐ）
+      if (this.progressClearTimer !== null) {
+        clearTimeout(this.progressClearTimer)
+        this.progressClearTimer = null
+      }
+
       this.sendProgress = progress
       // 完了時は3秒後に進捗表示をクリア
       if (progress.status === 'completed' || progress.status === 'error') {
-        setTimeout(() => {
+        this.progressClearTimer = window.setTimeout(() => {
           this.sendProgress = null
+          this.progressClearTimer = null
         }, TIMEOUTS.PROGRESS_CLEAR)
       }
     }

@@ -1,9 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { useInitializer } from '../useInitializer'
+import { emailSender } from '../../lib/mail'
 
 // モック設定
 vi.mock('../../services/settings.service')
-vi.mock('../../lib/mail')
+vi.mock('../../lib/mail', () => ({
+  emailSender: {
+    setApiKey: vi.fn(),
+    setFromEmail: vi.fn()
+  }
+}))
 
 describe('useInitializer', () => {
   beforeEach(() => {
@@ -147,6 +153,46 @@ describe('useInitializer', () => {
 
       const result = initializer.checkMainPreset.call(mockThis)
       expect(result).toBe(false)
+    })
+  })
+
+  describe('initializeEmailSettings', () => {
+    it.each([
+      ['半角スペース', '   '],
+      ['タブ文字', '\t'],
+      ['改行', '\n']
+    ])('apiKey が %s のみの場合は setApiKey を呼ばない', (_label, apiKey) => {
+      const initializer = useInitializer()
+
+      const mockThis = {
+        settings: {
+          apiKey,
+          fromEmail: ''
+        }
+      }
+
+      initializer.initializeEmailSettings.call(mockThis)
+
+      expect(vi.mocked(emailSender).setApiKey).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['半角スペース', '   '],
+      ['タブ文字', '\t'],
+      ['改行', '\n']
+    ])('fromEmail が %s のみの場合は setFromEmail を呼ばない', (_label, fromEmail) => {
+      const initializer = useInitializer()
+
+      const mockThis = {
+        settings: {
+          apiKey: '',
+          fromEmail
+        }
+      }
+
+      initializer.initializeEmailSettings.call(mockThis)
+
+      expect(vi.mocked(emailSender).setFromEmail).not.toHaveBeenCalled()
     })
   })
 

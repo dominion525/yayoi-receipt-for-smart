@@ -20,6 +20,7 @@ export type CompleteAppData = DebugPanelData &
     isLoading: boolean
     isSendingMail: boolean
     sendProgress: SendProgress | null
+    progressClearTimer: number | null
     completionMessage: string | null
 
     // バージョン情報

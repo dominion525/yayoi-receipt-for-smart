@@ -48,13 +48,13 @@ export function useInitializer(): InitializerComposable {
       const app = this as CompleteAppData
       const settings = app.settings
 
-      // APIキーの設定
-      if (settings.apiKey) {
+      // APIキーの設定（空白のみの値は無効として扱う）
+      if (settings.apiKey?.trim()) {
         emailSender.setApiKey(settings.apiKey)
       }
 
-      // 送信元アドレスの設定
-      if (settings.fromEmail) {
+      // 送信元アドレスの設定（空白のみの値は無効として扱う）
+      if (settings.fromEmail?.trim()) {
         emailSender.setFromEmail(settings.fromEmail)
       }
     },
