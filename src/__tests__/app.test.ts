@@ -844,7 +844,7 @@ describe('receiptApp', () => {
       beforeEach(() => {
         app.tempSettings = {
           email: '  new@example.com  ',
-          apiKey: '  new-api-key  ',
+          apiKey: '  re_newapikey1234  ',
           dropboxEmail: '  new@dropbox.com  ',
           fromEmail: '  new@from.com  ',
           sendPresets: [
@@ -861,7 +861,7 @@ describe('receiptApp', () => {
 
         expect(SettingsService.updatePresetsFromTempSettings).toHaveBeenCalledWith({
           email: '  new@example.com  ',
-          apiKey: '  new-api-key  ',
+          apiKey: '  re_newapikey1234  ',
           dropboxEmail: '  new@dropbox.com  ',
           fromEmail: '  new@from.com  ',
           sendPresets: [
@@ -870,7 +870,7 @@ describe('receiptApp', () => {
         })
         expect(SettingsService.save).toHaveBeenCalledWith({
           email: 'new@example.com',
-          apiKey: 'new-api-key',
+          apiKey: 're_newapikey1234',
           dropboxEmail: 'new@dropbox.com',
           fromEmail: 'new@from.com',
           sendPresets: [
@@ -886,7 +886,7 @@ describe('receiptApp', () => {
         await app.saveSettings()
 
         expect(app.settings.email).toBe('new@example.com')
-        expect(app.settings.apiKey).toBe('new-api-key')
+        expect(app.settings.apiKey).toBe('re_newapikey1234')
         expect(app.settings.dropboxEmail).toBe('new@dropbox.com')
         expect(app.settings.fromEmail).toBe('new@from.com')
       })
@@ -933,6 +933,33 @@ describe('receiptApp', () => {
         await app.saveSettings()
 
         expect(app.settings).toEqual(originalSettings)
+      })
+
+      it('APIキー形式が不正な場合は保存を拒否する', async () => {
+        app.tempSettings.apiKey = 'invalid-api-key'
+        const showErrorSpy = vi.spyOn(app, 'showError')
+        const addDebugLogSpy = vi.spyOn(app, 'addDebugLog')
+
+        const result = await app.saveSettings()
+
+        expect(result).toBe(false)
+        expect(showErrorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('APIキーの形式が正しくありません')
+        )
+        expect(addDebugLogSpy).toHaveBeenCalledWith('APIキー形式エラー', 'error')
+        expect(SettingsService.save).not.toHaveBeenCalled()
+      })
+
+      it('APIキーが空白のみの場合は形式チェックをスキップする', async () => {
+        app.tempSettings.apiKey = '   '
+        vi.mocked(SettingsService.save).mockReturnValue(true)
+        const showErrorSpy = vi.spyOn(app, 'showError')
+
+        await app.saveSettings()
+
+        expect(showErrorSpy).not.toHaveBeenCalled()
+        expect(SettingsService.save).toHaveBeenCalled()
+        expect(app.settings.apiKey).toBe('')
       })
     })
   })
@@ -1429,7 +1456,7 @@ describe('receiptApp', () => {
       // ユーザーが設定を入力
       app.tempSettings = {
         email: 'fixed@example.com',
-        apiKey: 'fixed-api-key',
+        apiKey: 're_fixedapikey1234',
         dropboxEmail: '',
         fromEmail: '',
         sendPresets: []
@@ -1445,7 +1472,7 @@ describe('receiptApp', () => {
       expect(SettingsService.save).toHaveBeenCalled()
       expect(app.showSettings).toBe(false)
       expect(app.settings.email).toBe('fixed@example.com')
-      expect(app.settings.apiKey).toBe('fixed-api-key')
+      expect(app.settings.apiKey).toBe('re_fixedapikey1234')
 
       // 再送信が成功
       vi.mocked(EmailService.sendMail).mockResolvedValue({

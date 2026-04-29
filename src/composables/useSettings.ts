@@ -1,6 +1,7 @@
 import { SettingsService, AppSettings } from '../services/settings.service'
 import { emailSender } from '../lib/mail'
 import { CompleteAppData } from '../types/app'
+import { isValidApiKeyFormat } from '../utils/validation'
 
 export interface SettingsComposable {
   showSettings: boolean
@@ -72,6 +73,19 @@ export function useSettings(): SettingsComposable {
 
       // Alpine.jsコンテキストへの参照を取得
       const app = this as CompleteAppData
+
+      // APIキーの形式チェック（値が入力されている場合のみ）
+      if (newSettings.apiKey && !isValidApiKeyFormat(newSettings.apiKey)) {
+        if (app.showError) {
+          app.showError(
+            'APIキーの形式が正しくありません。Resend の APIキー（re_ で始まる文字列）を入力してください。'
+          )
+        }
+        if (app.addDebugLog) {
+          app.addDebugLog('APIキー形式エラー', 'error')
+        }
+        return false
+      }
 
       // localStorageに保存
       if (SettingsService.save(newSettings)) {
