@@ -1,5 +1,6 @@
 import { DebugService, DebugLog } from '../services/debug.service'
 import { TIMEOUTS } from '../constants/timeouts'
+import { UI } from '../constants/ui'
 import { CompleteAppData } from '../types/app'
 
 export interface DebugPanelData {
@@ -38,8 +39,8 @@ export function useDebugPanel(): DebugPanelData {
       // DebugServiceにも記録
       DebugService.add(message, type)
 
-      // 最大100件に制限
-      if (this.debugLogs.length > 100) {
+      // 最大件数を超えたら古いログから削除
+      if (this.debugLogs.length > UI.DEBUG_LOG_MAX_COUNT) {
         this.debugLogs.shift()
       }
 
