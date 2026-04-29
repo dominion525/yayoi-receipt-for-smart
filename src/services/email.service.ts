@@ -23,7 +23,16 @@ export interface ErrorDisplayer {
  */
 export class EmailService {
   /**
-   * レシート画像を全アクティブプリセットに送信
+   * レシート画像を全アクティブプリセットの宛先に一括送信する。
+   *
+   * - `settings.sendPresets` のうち `isActive=true` かつ `recipients` が空でないものを集約し、
+   *   重複を除去した上で 1 回の Resend 送信にまとめる。
+   * - 送信先が 0 件なら `showError` を呼んで早期 return する。
+   * - `onProgress` は最低 2 回呼ばれる: 開始時に `status='sending'`、終了時に `status='completed'` か `'error'`。
+   * - エラーメッセージは BYOK 観点でクライアントに渡す前に `maskApiKey` を必ず適用する
+   *   （Resend レスポンスや例外オブジェクトに APIキー文字列が紛れる可能性があるため）。
+   *
+   * @returns `success`: 送信成功フラグ、`shouldRetake`: 成功時のみ true（呼び出し元で撮影画面に戻すか判断する）
    */
   static async sendMail(
     photo: string,
