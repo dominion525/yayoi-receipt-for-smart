@@ -9,6 +9,7 @@
   x-transition:leave-end="opacity-0"
   class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 pt-10 pb-10 overflow-y-auto"
   @click.self="closeSettings"
+  @keydown.escape.window="showSettings && closeSettings()"
   role="dialog"
   aria-modal="true"
   aria-labelledby="settings-title"
