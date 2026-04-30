@@ -259,4 +259,26 @@ describe('useInitializer', () => {
     })
   })
 
+  describe('init', () => {
+    it('init() を複数回呼んでも各初期化処理は1回のみ実行される', () => {
+      const initializer = useInitializer()
+
+      const mockThis = {
+        _initialized: false,
+        initializePWA: vi.fn(),
+        initializeEmailSettings: vi.fn(),
+        initializePresets: vi.fn(),
+        logInitializationStatus: vi.fn()
+      }
+
+      initializer.init.call(mockThis)
+      initializer.init.call(mockThis)
+      initializer.init.call(mockThis)
+
+      expect(mockThis.initializePWA).toHaveBeenCalledOnce()
+      expect(mockThis.initializeEmailSettings).toHaveBeenCalledOnce()
+      expect(mockThis.initializePresets).toHaveBeenCalledOnce()
+      expect(mockThis.logInitializationStatus).toHaveBeenCalledOnce()
+    })
+  })
 })

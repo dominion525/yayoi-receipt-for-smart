@@ -680,6 +680,29 @@ describe('SettingsService', () => {
       })
     })
 
+    it('既存 Dropbox プリセットがある状態で dropboxEmail を変更した場合は recipients を新値で上書きする', () => {
+      const tempSettings: AppSettings = {
+        email: 'main@example.com',
+        apiKey: 'test-key',
+        dropboxEmail: '  new@dropbox.com  ',
+        fromEmail: '',
+        sendPresets: [
+          {
+            id: 'dropbox',
+            name: 'バックアップ（Dropbox）',
+            recipients: ['old@dropbox.com'],
+            isActive: true
+          }
+        ]
+      }
+
+      SettingsService.updatePresetsFromTempSettings(tempSettings)
+
+      const dropboxPreset = tempSettings.sendPresets.find((p) => p.id === 'dropbox')
+      expect(dropboxPreset?.recipients).toEqual(['new@dropbox.com'])
+      expect(dropboxPreset?.isActive).toBe(true)
+    })
+
     it('Dropboxメールが空の場合は既存プリセットを無効化する', () => {
       const tempSettings: AppSettings = {
         email: 'main@example.com',
