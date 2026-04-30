@@ -3,21 +3,12 @@
 import eslint from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import vitest from 'eslint-plugin-vitest'
+import prettierConfig from 'eslint-config-prettier'
 
 export default tseslint.config(
   // 除外設定（最初に配置）
   {
-    ignores: [
-      'dist/**',
-      'node_modules/**',
-      '*.min.js',
-      'worker.js',
-      'proxy-worker.js',
-      'proxy-core.cjs',
-      'proxy-core.mjs',
-      'simple-proxy.cjs',
-      '.serena/**'
-    ]
+    ignores: ['dist/**', 'node_modules/**', '*.min.js', '.serena/**']
   },
 
   // 基本設定
@@ -30,7 +21,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['*.js', '*.mjs', '*.cjs', '*.config.ts']
+          allowDefaultProject: ['*.js', '*.config.ts', 'worker.ts', 'worker.test.ts']
         },
         tsconfigRootDir: import.meta.dirname
       },
@@ -45,13 +36,16 @@ export default tseslint.config(
     rules: {
       // 既存のコード品質に合わせた設定
       '@typescript-eslint/no-explicit-any': 'warn', // 段階的に改善
-      '@typescript-eslint/no-unused-vars': ['error', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        caughtErrorsIgnorePattern: '^_',
-        destructuredArrayIgnorePattern: '^_'
-      }],
-      
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+          destructuredArrayIgnorePattern: '^_'
+        }
+      ],
+
       // TypeScript用のno-undefは不要
       'no-undef': 'off'
     }
@@ -81,9 +75,21 @@ export default tseslint.config(
     }
   },
 
+  // publicディレクトリの静的JSファイル用設定（ブラウザ環境）
+  {
+    files: ['public/**/*.js'],
+    ignores: ['public/sw.js', 'public/service-worker.js'],
+    languageOptions: {
+      globals: {
+        window: 'readonly',
+        document: 'readonly'
+      }
+    }
+  },
+
   // Service Workerファイル用設定
   {
-    files: ['**/sw.js', '**/service-worker.js', 'proxy-worker.js', 'public/sw.js'],
+    files: ['**/sw.js', '**/service-worker.js', 'public/sw.js'],
     languageOptions: {
       globals: {
         self: 'readonly',
@@ -101,19 +107,12 @@ export default tseslint.config(
 
   // 設定ファイル用の設定（Node.js環境）
   {
-    files: ['*.config.js', '*.config.ts', '*.config.mjs', '*.cjs'],
+    files: ['*.config.js', '*.config.ts'],
     languageOptions: {
       globals: {
         process: 'readonly',
-        __dirname: 'readonly',
-        module: 'readonly',
-        require: 'readonly',
-        global: 'readonly',
-        Buffer: 'readonly'
+        __dirname: 'readonly'
       }
-    },
-    rules: {
-      '@typescript-eslint/no-var-requires': 'off'
     }
   },
 
@@ -125,5 +124,8 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-redundant-type-constituents': 'off'
     }
-  }
+  },
+
+  // Prettier と衝突する ESLint ルールを無効化（最後に配置）
+  prettierConfig
 )

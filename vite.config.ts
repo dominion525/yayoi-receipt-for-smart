@@ -49,8 +49,8 @@ const buildInfo = getBuildInfo()
 
 export default defineConfig({
   define: {
-    '__BUILD_REVISION__': JSON.stringify(buildInfo.revision),
-    '__BUILD_TIME__': JSON.stringify(buildInfo.buildTimeJP),
+    __BUILD_REVISION__: JSON.stringify(buildInfo.revision),
+    __BUILD_TIME__: JSON.stringify(buildInfo.buildTimeJP)
   },
   envPrefix: ['VITE_'],
   server: {
@@ -61,10 +61,7 @@ export default defineConfig({
       clientPort: process.env.NODE_ENV === 'production' || process.env.HTTPS ? 443 : undefined
     },
     // ngrok経由のアクセスを許可
-    allowedHosts: [
-      '.ngrok-free.app',
-      '.ngrok.app'
-    ]
+    allowedHosts: ['.ngrok-free.app', '.ngrok.app']
   },
   plugins: [
     {
@@ -72,10 +69,7 @@ export default defineConfig({
       closeBundle() {
         // ビルド完了後にterm.htmlをdistにコピー
         try {
-          copyFileSync(
-            resolve(__dirname, 'term.html'),
-            resolve(__dirname, 'dist', 'term.html')
-          )
+          copyFileSync(resolve(__dirname, 'term.html'), resolve(__dirname, 'dist', 'term.html'))
           console.log('✓ term.html copied to dist/')
         } catch (err) {
           console.error('Failed to copy term.html:', err)

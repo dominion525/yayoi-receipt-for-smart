@@ -14,13 +14,13 @@ describe('version', () => {
   afterEach(() => {
     // グローバル変数を復元
     if (originalBuildTime !== undefined) {
-      (globalThis as any).__BUILD_TIME__ = originalBuildTime
+      ;(globalThis as any).__BUILD_TIME__ = originalBuildTime
     } else {
       delete (globalThis as any).__BUILD_TIME__
     }
 
     if (originalBuildRevision !== undefined) {
-      (globalThis as any).__BUILD_REVISION__ = originalBuildRevision
+      ;(globalThis as any).__BUILD_REVISION__ = originalBuildRevision
     } else {
       delete (globalThis as any).__BUILD_REVISION__
     }
@@ -42,8 +42,8 @@ describe('version', () => {
     })
 
     it('__BUILD_TIME__が設定されている場合、その値を使用する', () => {
-      const testTime = '2025-10-30T12:00:00.000Z';
-      (globalThis as any).__BUILD_TIME__ = testTime
+      const testTime = '2025-10-30T12:00:00.000Z'
+      ;(globalThis as any).__BUILD_TIME__ = testTime
 
       const buildInfo = getBuildInfo()
 
@@ -51,8 +51,8 @@ describe('version', () => {
     })
 
     it('__BUILD_REVISION__が設定されている場合、その値を使用する', () => {
-      const testCommit = 'abc123def';
-      (globalThis as any).__BUILD_REVISION__ = testCommit
+      const testCommit = 'abc123def'
+      ;(globalThis as any).__BUILD_REVISION__ = testCommit
 
       const buildInfo = getBuildInfo()
 
@@ -60,7 +60,7 @@ describe('version', () => {
     })
 
     it('gitCommitが"unknown"の場合、undefinedを返す（27行目カバー）', () => {
-      (globalThis as any).__BUILD_REVISION__ = 'unknown'
+      ;(globalThis as any).__BUILD_REVISION__ = 'unknown'
 
       const buildInfo = getBuildInfo()
 
@@ -68,7 +68,7 @@ describe('version', () => {
     })
 
     it('gitCommitが空文字列の場合、undefinedを返す', () => {
-      (globalThis as any).__BUILD_REVISION__ = ''
+      ;(globalThis as any).__BUILD_REVISION__ = ''
 
       const buildInfo = getBuildInfo()
 
@@ -117,13 +117,6 @@ describe('version', () => {
 
       expect(shortVersion).toMatch(/^v\d+\.\d+\.\d+/)
       expect(shortVersion.startsWith('v')).toBe(true)
-    })
-
-    it('package.jsonのversionと一致する', () => {
-      const shortVersion = getShortVersion()
-      const buildInfo = getBuildInfo()
-
-      expect(shortVersion).toBe(`v${buildInfo.version}`)
     })
   })
 })

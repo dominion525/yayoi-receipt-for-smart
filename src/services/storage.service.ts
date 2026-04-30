@@ -87,7 +87,11 @@ export class StorageService {
    * @returns 使用可能なバイト数（推定値）
    */
   static async getAvailableSpace(): Promise<number> {
-    if (typeof navigator !== 'undefined' && 'storage' in navigator && 'estimate' in navigator.storage) {
+    if (
+      typeof navigator !== 'undefined' &&
+      'storage' in navigator &&
+      'estimate' in navigator.storage
+    ) {
       try {
         const estimate = await navigator.storage.estimate()
         return (estimate.quota || 0) - (estimate.usage || 0)

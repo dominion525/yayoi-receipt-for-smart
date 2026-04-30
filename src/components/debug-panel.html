@@ -2,6 +2,7 @@
 <div
   x-show="showDebug"
   x-transition
+  @keydown.escape.window="showDebug && (showDebug = false)"
   class="fixed inset-x-0 bottom-0 bg-gray-900 text-white p-4 max-h-96 overflow-y-auto overflow-x-hidden z-40"
 >
   <div class="flex items-center justify-between mb-4">
@@ -12,11 +13,16 @@
       title="閉じる"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M6 18L18 6M6 6l12 12"
+        ></path>
       </svg>
     </button>
   </div>
-  
+
   <!-- 動作環境情報 -->
   <div class="mb-6">
     <h4 class="text-sm font-semibold mb-2 text-blue-400">動作環境</h4>
@@ -24,16 +30,24 @@
       <div class="ml-2">
         <span class="text-gray-400">バージョン:</span>
         <span x-text="versionInfo?.version || '0.3.0'" class="text-green-400 font-bold"></span>
-        <span x-text="`(${versionInfo?.environment || 'unknown'})`" class="text-gray-500 ml-1"></span>
+        <span
+          x-text="`(${versionInfo?.environment || 'unknown'})`"
+          class="text-gray-500 ml-1"
+        ></span>
       </div>
       <div class="ml-2">
         <span class="text-gray-400">動作モード:</span>
-        <span x-text="isPWAMode ? '🎯 PWAモード' : '🌐 ブラウザモード'" 
-              :class="isPWAMode ? 'text-green-400 font-bold' : 'text-yellow-400'"></span>
+        <span
+          x-text="isPWAMode ? '🎯 PWAモード' : '🌐 ブラウザモード'"
+          :class="isPWAMode ? 'text-green-400 font-bold' : 'text-yellow-400'"
+        ></span>
       </div>
       <div class="ml-2" x-show="versionInfo?.gitCommit">
         <span class="text-gray-400">コミット:</span>
-        <span x-text="versionInfo?.gitCommit || buildRevision" class="text-cyan-400 font-mono"></span>
+        <span
+          x-text="versionInfo?.gitCommit || buildRevision"
+          class="text-cyan-400 font-mono"
+        ></span>
       </div>
       <div class="ml-2">
         <span class="text-gray-400">ビルド日時:</span>
@@ -53,7 +67,7 @@
       </div>
     </div>
   </div>
-  
+
   <!-- 送信プリセット情報 -->
   <div class="mb-6">
     <h4 class="text-sm font-semibold mb-2 text-yellow-400">送信プリセット</h4>
@@ -76,19 +90,22 @@
       </div>
     </div>
   </div>
-  
+
   <!-- デバッグログ -->
   <div class="mb-4">
     <h4 class="text-sm font-semibold mb-2">デバッグログ</h4>
     <div class="bg-black rounded p-2 max-h-48 overflow-y-auto overflow-x-hidden font-mono text-xs">
       <template x-for="(log, index) in debugLogs" :key="index">
-        <div class="py-0.5 break-all" :class="{
+        <div
+          class="py-0.5 break-all"
+          :class="{
           'text-green-400': log.type === 'success',
           'text-red-400': log.type === 'error',
           'text-yellow-400': log.type === 'warning',
           'text-blue-400': log.type === 'info',
           'text-gray-400': log.type === 'debug'
-        }">
+        }"
+        >
           <span class="text-gray-500" x-text="log.time"></span>
           <span x-text="' ' + log.message"></span>
         </div>
@@ -103,9 +120,7 @@
         :class="isCopyingLogs ? 'bg-green-600' : 'bg-blue-700 hover:bg-blue-600'"
       >
         <span x-show="!isCopyingLogs">ログをコピー</span>
-        <span x-show="isCopyingLogs" class="flex items-center">
-          ✅ コピー完了！
-        </span>
+        <span x-show="isCopyingLogs" class="flex items-center"> ✅ コピー完了！ </span>
       </button>
       <button
         @click="clearDebugLogs"

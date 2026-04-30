@@ -40,28 +40,30 @@ export class EmailSender {
   private determineProxyUrl(): string {
     // 環境変数が設定されている場合はそれを使用
     if (import.meta.env?.VITE_PROXY_URL) {
-      return import.meta.env.VITE_PROXY_URL;
+      return import.meta.env.VITE_PROXY_URL
     }
-    
+
     // 本番環境（receipt.dominion525.com）や他の環境では空文字列
-    if (typeof window !== 'undefined' && 
-        window.location.hostname !== 'localhost') {
-      return '';
+    if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      return ''
     }
-    
+
     // 開発環境
-    return API.DEFAULT_PROXY_URL;
+    return API.DEFAULT_PROXY_URL
   }
 
   /**
-   * APIキーを設定
+   * APIキーをインスタンスに保持する。BYOK モデルではユーザー入力のキーを
+   * シングルトン (`emailSender`) に都度書き換える前提のため、複数の `EmailSender`
+   * インスタンスを共存させない。送信時は `send()` 内でリクエストボディに含めて
+   * Worker に渡される（Worker から先で Resend に Bearer 認証として転送）。
    */
   setApiKey(apiKey: string): void {
     this.apiKey = apiKey
   }
 
   /**
-   * 送信元メールアドレスを設定
+   * 送信元メールアドレス（Resend 側で検証済みのドメインのアドレス）を保持する。
    */
   setFromEmail(fromEmail: string): void {
     this.fromEmail = fromEmail
@@ -75,7 +77,13 @@ export class EmailSender {
   }
 
   /**
-   * メールを送信
+   * Worker の `/api/send-email` 経由で Resend にメールを送信する。
+   *
+   * - `apiKey` は `setApiKey` 経由で事前にインスタンスへ設定する必要がある（未設定なら即座に失敗）。
+   * - 戻り値 `EmailResult.details` には Resend API のエラー詳細オブジェクトがそのまま入る
+   *   ことがあり、APIキー文字列が紛れる可能性がある。呼び出し元でクライアント表示や
+   *   ログ出力する前に `maskApiKey` 適用が必須。
+   * - ネットワーク到達不能（fetch 失敗）は固有のエラーメッセージで分岐する。
    */
   async send(options: Omit<EmailOptions, 'apiKey'>): Promise<EmailResult> {
     try {
@@ -88,15 +96,14 @@ export class EmailSender {
       }
 
       // プロキシサーバーにリクエスト（URLを正規化）
-      const endpoint = this.proxyUrl.endsWith('/api') 
-        ? `${this.proxyUrl}/send-email` 
+      const endpoint = this.proxyUrl.endsWith('/api')
+        ? `${this.proxyUrl}/send-email`
         : `${this.proxyUrl}${API.ENDPOINTS.SEND_EMAIL}`
-      
-      
+
       const response = await fetch(endpoint, {
         method: API.METHOD.POST,
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           apiKey: this.apiKey,
@@ -105,7 +112,6 @@ export class EmailSender {
       })
 
       const result = await response.json()
-      
 
       if (!response.ok || !result.success) {
         return {
@@ -119,18 +125,18 @@ export class EmailSender {
         success: true,
         messageId: result.data?.id
       }
-
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
+      const errorMessage = getErrorMessage(error)
       // ネットワークエラーなどの場合
       if (errorMessage.includes('fetch')) {
         return {
           success: false,
-          error: 'プロキシサーバーに接続できません。proxy-server.jsが起動していることを確認してください。',
+          error:
+            'プロキシサーバーに接続できません。proxy-server.jsが起動していることを確認してください。',
           details: error
         }
       }
-      
+
       return {
         success: false,
         error: errorMessage,
@@ -139,12 +145,21 @@ export class EmailSender {
     }
   }
 
-
   /**
-   * レシート画像を送信
+   * レシート画像を 1 通のメールにまとめて送信する。
+   *
+   * - `imageData` は `data:image/jpeg;base64,...` 形式の data URI を必須とする。
+   *   先頭の MIME 部分は内部で剥がされて Base64 部分のみを添付ファイル本体に流し込む。
+   *   data URI 以外（生 Base64 や URL）を渡した場合の挙動は未定義。
+   * - 件名・本文には現在時刻（JST 表示）が含まれる。テスト時に時刻を固定したい場合は
+   *   `vi.useFakeTimers()` 等で `Date` を制御する。
+   * - 添付ファイル名はタイムスタンプから生成され、コロン・スラッシュをハイフンに置換する。
    */
-  async sendReceipt(toEmail: string | string[], imageData: string, comment?: string): Promise<EmailResult> {
-    
+  async sendReceipt(
+    toEmail: string | string[],
+    imageData: string,
+    comment?: string
+  ): Promise<EmailResult> {
     const now = new Date()
     const dateStr = now.toLocaleDateString('ja-JP', {
       year: 'numeric',
@@ -158,9 +173,9 @@ export class EmailSender {
 
     // Base64画像データから添付ファイルを作成
     const base64Data = imageData.split(',')[1] // data:image/jpeg;base64, を除去
-    
+
     return await this.send({
-      from: this.fromEmail || '',  // 検証済みドメインの送信元アドレス
+      from: this.fromEmail || '', // 検証済みドメインの送信元アドレス
       to: toEmail,
       subject: `レシート画像 - ${dateStr} ${timeStr}`,
       html: `
@@ -177,11 +192,13 @@ ${comment ? `\nコメント: ${comment}` : ''}
 
 ----
 スマート レシート`,
-      attachments: [{
-        filename: `receipt_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.jpg`,
-        content: base64Data || '',
-        contentType: 'image/jpeg'
-      }]
+      attachments: [
+        {
+          filename: `receipt_${dateStr.replace(/\//g, '-')}_${timeStr.replace(/:/g, '-')}.jpg`,
+          content: base64Data || '',
+          contentType: 'image/jpeg'
+        }
+      ]
     })
   }
 }

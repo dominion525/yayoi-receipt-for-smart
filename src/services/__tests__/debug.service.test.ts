@@ -48,7 +48,7 @@ describe('DebugService', () => {
   describe('add()', () => {
     it('正常にログを追加できる', () => {
       DebugService.add('テストメッセージ', 'info')
-      
+
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(1)
       expect(logs[0]).toMatchObject({
@@ -60,25 +60,25 @@ describe('DebugService', () => {
 
     it('デフォルトのタイプはinfoである', () => {
       DebugService.add('デフォルトメッセージ')
-      
+
       const logs = DebugService.getAll()
       expect(logs[0]?.type).toBe('info')
     })
 
     it('時刻フォーマットが正しい', () => {
       DebugService.add('時刻テスト')
-      
+
       const logs = DebugService.getAll()
       expect(logs[0]?.time).toBe('21:30:45.123') // JST時刻
     })
 
     it('異なるログタイプを正常に処理する', () => {
       const types: DebugLog['type'][] = ['info', 'success', 'warning', 'error', 'debug']
-      
-      types.forEach(type => {
+
+      types.forEach((type) => {
         DebugService.add(`${type}メッセージ`, type)
       })
-      
+
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(5)
       types.forEach((type, index) => {
@@ -90,12 +90,12 @@ describe('DebugService', () => {
     it('最大ログ数を超えると古いログが削除される', () => {
       // 最大ログ数を3に設定
       DebugService.setMaxLogs(3)
-      
+
       // 5つのログを追加
       for (let i = 1; i <= 5; i++) {
         DebugService.add(`ログ${i}`)
       }
-      
+
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(3)
       expect(logs[0]?.message).toBe('ログ3')
@@ -113,7 +113,7 @@ describe('DebugService', () => {
     it('追加されたログをすべて返す', () => {
       DebugService.add('ログ1')
       DebugService.add('ログ2')
-      
+
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
       expect(logs[0]?.message).toBe('ログ1')
@@ -122,14 +122,14 @@ describe('DebugService', () => {
 
     it('配列のコピーを返す（元の配列を変更しても影響されない）', () => {
       DebugService.add('元のログ')
-      
+
       const logs = DebugService.getAll()
       logs.push({
         time: '00:00:00.000',
         type: 'info',
         message: '追加されたログ'
       })
-      
+
       const newLogs = DebugService.getAll()
       expect(newLogs).toHaveLength(1)
       expect(newLogs[0]?.message).toBe('元のログ')
@@ -140,9 +140,9 @@ describe('DebugService', () => {
     it('すべてのログをクリアする', () => {
       DebugService.add('ログ1')
       DebugService.add('ログ2')
-      
+
       DebugService.clear()
-      
+
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(0)
     })
@@ -157,10 +157,10 @@ describe('DebugService', () => {
     it('ログをテキスト形式でエクスポートする', () => {
       DebugService.add('エラーメッセージ', 'error')
       DebugService.add('成功メッセージ', 'success')
-      
+
       const exported = DebugService.export()
       const lines = exported.split('\n')
-      
+
       expect(lines).toHaveLength(2)
       expect(lines[0]).toMatch(/^\[21:30:45\.123\] ERROR: エラーメッセージ$/)
       expect(lines[1]).toMatch(/^\[21:30:45\.123\] SUCCESS: 成功メッセージ$/)
@@ -169,9 +169,9 @@ describe('DebugService', () => {
     it('タイプが大文字に変換される', () => {
       DebugService.add('デバッグ', 'debug')
       DebugService.add('警告', 'warning')
-      
+
       const exported = DebugService.export()
-      
+
       expect(exported).toContain('DEBUG: デバッグ')
       expect(exported).toContain('WARNING: 警告')
     })
@@ -181,12 +181,12 @@ describe('DebugService', () => {
     it('navigator.clipboardが利用可能な場合は正常にコピーする', async () => {
       DebugService.add('コピーテスト')
       clipboardMock.writeText.mockResolvedValueOnce(undefined)
-      
+
       const result = await DebugService.copyToClipboard()
-      
+
       expect(result).toBe(true)
       expect(clipboardMock.writeText).toHaveBeenCalledWith('[21:30:45.123] INFO: コピーテスト')
-      
+
       // 成功メッセージがログに追加されることを確認
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
@@ -197,11 +197,11 @@ describe('DebugService', () => {
     it('navigator.clipboardが失敗した場合はfalseを返す', async () => {
       DebugService.add('失敗テスト')
       clipboardMock.writeText.mockRejectedValueOnce(new Error('Clipboard access denied'))
-      
+
       const result = await DebugService.copyToClipboard()
-      
+
       expect(result).toBe(false)
-      
+
       // エラーメッセージがログに追加されることを確認
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
@@ -211,14 +211,14 @@ describe('DebugService', () => {
 
     it('navigator.clipboardが利用できない場合はフォールバックを使用する', async () => {
       DebugService.add('フォールバックテスト')
-      
+
       // navigator.clipboardを無効にする
       const originalNavigator = global.navigator
       Object.defineProperty(global, 'navigator', {
         value: {},
         writable: true
       })
-      
+
       // textareaエレメントのモック
       const textareaMock = {
         value: '',
@@ -227,16 +227,16 @@ describe('DebugService', () => {
       }
       documentMock.createElement.mockReturnValueOnce(textareaMock)
       documentMock.execCommand.mockReturnValueOnce(true)
-      
+
       const result = await DebugService.copyToClipboard()
-      
+
       expect(result).toBe(true)
       expect(documentMock.createElement).toHaveBeenCalledWith('textarea')
       expect(textareaMock.select).toHaveBeenCalled()
       expect(documentMock.execCommand).toHaveBeenCalledWith('copy')
       expect(documentMock.body.appendChild).toHaveBeenCalledWith(textareaMock)
       expect(documentMock.body.removeChild).toHaveBeenCalledWith(textareaMock)
-      
+
       // 元に戻す
       Object.defineProperty(global, 'navigator', {
         value: originalNavigator,
@@ -246,14 +246,14 @@ describe('DebugService', () => {
 
     it('フォールバックのexecCommandが失敗した場合', async () => {
       DebugService.add('フォールバック失敗テスト')
-      
+
       // navigator.clipboardを無効にする
       const originalNavigator = global.navigator
       Object.defineProperty(global, 'navigator', {
         value: {},
         writable: true
       })
-      
+
       const textareaMock = {
         value: '',
         style: {},
@@ -261,18 +261,18 @@ describe('DebugService', () => {
       }
       documentMock.createElement.mockReturnValueOnce(textareaMock)
       documentMock.execCommand.mockReturnValueOnce(false)
-      
+
       const result = await DebugService.copyToClipboard()
-      
+
       expect(result).toBe(false)
       expect(documentMock.body.removeChild).toHaveBeenCalledWith(textareaMock)
-      
+
       // エラーメッセージがログに追加されることを確認
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
       expect(logs[1]?.message).toBe('ログのコピーに失敗しました')
       expect(logs[1]?.type).toBe('error')
-      
+
       // 元に戻す
       Object.defineProperty(global, 'navigator', {
         value: originalNavigator,
@@ -282,14 +282,14 @@ describe('DebugService', () => {
 
     it('フォールバックで例外が発生した場合', async () => {
       DebugService.add('フォールバック例外テスト')
-      
+
       // navigator.clipboardを無効にする
       const originalNavigator = global.navigator
       Object.defineProperty(global, 'navigator', {
         value: {},
         writable: true
       })
-      
+
       const textareaMock = {
         value: '',
         style: {},
@@ -298,34 +298,17 @@ describe('DebugService', () => {
         })
       }
       documentMock.createElement.mockReturnValueOnce(textareaMock)
-      
+
       const result = await DebugService.copyToClipboard()
-      
+
       expect(result).toBe(false)
       expect(documentMock.body.removeChild).toHaveBeenCalledWith(textareaMock)
-      
+
       // 元に戻す
       Object.defineProperty(global, 'navigator', {
         value: originalNavigator,
         writable: true
       })
-    })
-
-    it('navigator.clipboardでawait時に例外が発生した場合（74-78行目catchブロック）', async () => {
-      DebugService.add('clipboard例外テスト')
-      
-      // navigator.clipboardは存在するが、writeTextで例外を投げる
-      clipboardMock.writeText.mockRejectedValueOnce(new Error('Clipboard permission denied'))
-      
-      const result = await DebugService.copyToClipboard()
-      
-      expect(result).toBe(false)
-      
-      // エラーメッセージがログに追加されることを確認
-      const logs = DebugService.getAll()
-      expect(logs).toHaveLength(2)
-      expect(logs[1]?.message).toBe('ログのコピーに失敗しました')
-      expect(logs[1]?.type).toBe('error')
     })
 
   })
@@ -334,12 +317,12 @@ describe('DebugService', () => {
     it('リスナーを追加・削除できる', () => {
       const listener1 = vi.fn()
       const listener2 = vi.fn()
-      
+
       DebugService.addListener(listener1)
       DebugService.addListener(listener2)
-      
+
       DebugService.add('リスナーテスト')
-      
+
       expect(listener1).toHaveBeenCalledWith([
         expect.objectContaining({
           message: 'リスナーテスト'
@@ -350,12 +333,12 @@ describe('DebugService', () => {
           message: 'リスナーテスト'
         })
       ])
-      
+
       // リスナーを削除
       DebugService.removeListener(listener1)
-      
+
       DebugService.add('リスナーテスト2')
-      
+
       expect(listener1).toHaveBeenCalledTimes(1) // 最初の呼び出しのみ
       expect(listener2).toHaveBeenCalledTimes(2) // 2回呼び出される
     })
@@ -363,20 +346,20 @@ describe('DebugService', () => {
     it('clearでもリスナーが呼ばれる', () => {
       const listener = vi.fn()
       DebugService.addListener(listener)
-      
+
       DebugService.add('テスト')
       DebugService.clear()
-      
+
       expect(listener).toHaveBeenCalledTimes(2)
       expect(listener).toHaveBeenLastCalledWith([])
     })
 
     it('存在しないリスナーを削除しても何も起こらない', () => {
       const listener = vi.fn()
-      
+
       // 追加していないリスナーを削除
       DebugService.removeListener(listener)
-      
+
       DebugService.add('テスト')
       expect(listener).not.toHaveBeenCalled()
     })
@@ -385,11 +368,11 @@ describe('DebugService', () => {
   describe('setMaxLogs()', () => {
     it('最大ログ数を設定できる', () => {
       DebugService.setMaxLogs(2)
-      
+
       DebugService.add('ログ1')
       DebugService.add('ログ2')
       DebugService.add('ログ3')
-      
+
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
       expect(logs[0]?.message).toBe('ログ2')
@@ -401,10 +384,10 @@ describe('DebugService', () => {
       for (let i = 1; i <= 5; i++) {
         DebugService.add(`既存ログ${i}`)
       }
-      
+
       // 最大数を2に変更
       DebugService.setMaxLogs(2)
-      
+
       const logs = DebugService.getAll()
       expect(logs).toHaveLength(2)
       expect(logs[0]?.message).toBe('既存ログ4')
@@ -413,44 +396,19 @@ describe('DebugService', () => {
   })
 
   describe('便利メソッド', () => {
-    it('info()メソッドが正常に動作する', () => {
-      DebugService.info('情報メッセージ')
-      
-      const logs = DebugService.getAll()
-      expect(logs[0]?.type).toBe('info')
-      expect(logs[0]?.message).toBe('情報メッセージ')
-    })
+    it.each([
+      ['info', 'info' as const],
+      ['success', 'success' as const],
+      ['warning', 'warning' as const],
+      ['error', 'error' as const],
+      ['debug', 'debug' as const]
+    ])('%s() メソッドが対応する type でログを追加する', (methodName, type) => {
+      const message = `${methodName}メッセージ`
+      DebugService[methodName as 'info' | 'success' | 'warning' | 'error' | 'debug'](message)
 
-    it('success()メソッドが正常に動作する', () => {
-      DebugService.success('成功メッセージ')
-      
       const logs = DebugService.getAll()
-      expect(logs[0]?.type).toBe('success')
-      expect(logs[0]?.message).toBe('成功メッセージ')
-    })
-
-    it('warning()メソッドが正常に動作する', () => {
-      DebugService.warning('警告メッセージ')
-      
-      const logs = DebugService.getAll()
-      expect(logs[0]?.type).toBe('warning')
-      expect(logs[0]?.message).toBe('警告メッセージ')
-    })
-
-    it('error()メソッドが正常に動作する', () => {
-      DebugService.error('エラーメッセージ')
-      
-      const logs = DebugService.getAll()
-      expect(logs[0]?.type).toBe('error')
-      expect(logs[0]?.message).toBe('エラーメッセージ')
-    })
-
-    it('debug()メソッドが正常に動作する', () => {
-      DebugService.debug('デバッグメッセージ')
-      
-      const logs = DebugService.getAll()
-      expect(logs[0]?.type).toBe('debug')
-      expect(logs[0]?.message).toBe('デバッグメッセージ')
+      expect(logs[0]?.type).toBe(type)
+      expect(logs[0]?.message).toBe(message)
     })
   })
 
@@ -461,10 +419,10 @@ describe('DebugService', () => {
       DebugService.warning('警告')
       DebugService.error('エラー')
       DebugService.debug('デバッグ')
-      
+
       const exported = DebugService.export()
       const lines = exported.split('\n')
-      
+
       expect(lines).toHaveLength(5)
       expect(lines[0]).toContain('INFO: 情報')
       expect(lines[1]).toContain('SUCCESS: 成功')
@@ -477,11 +435,11 @@ describe('DebugService', () => {
       const listener = vi.fn()
       DebugService.addListener(listener)
       DebugService.setMaxLogs(2)
-      
+
       DebugService.add('ログ1')
       DebugService.add('ログ2')
       DebugService.add('ログ3')
-      
+
       // 最後のリスナー呼び出しでは、古いログが削除されて2つのログのみになっている
       expect(listener).toHaveBeenLastCalledWith([
         expect.objectContaining({ message: 'ログ2' }),

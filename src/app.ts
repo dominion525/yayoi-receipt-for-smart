@@ -50,7 +50,7 @@ export function receiptApp(): CompleteAppData {
   // バージョン情報を取得
   const buildInfo = getBuildInfo()
   const shortVersion = getShortVersion()
-  
+
   return {
     // デバッグ機能を展開
     ...debug,
@@ -64,17 +64,18 @@ export function receiptApp(): CompleteAppData {
     ...messageHandler,
     // 初期化処理を展開
     ...initializer,
-    
+
     // アプリケーション状態
     isLoading: false,
     isSendingMail: false,
     sendProgress: null,
+    progressClearTimer: null as number | null,
     completionMessage: null,
-    
+
     // バージョン情報
     appVersion: shortVersion,
     versionInfo: buildInfo,
-    
+
     async sendMail() {
       // 設定が完了しているか確認
       if (!SettingsService.isComplete(this.settings)) {
@@ -82,10 +83,10 @@ export function receiptApp(): CompleteAppData {
         this.openSettings()
         return
       }
-      
+
       this.isSendingMail = true
       this.sendProgress = null
-      
+
       try {
         const result = await EmailService.sendMail(
           this.photo!,
@@ -94,7 +95,7 @@ export function receiptApp(): CompleteAppData {
           this.handleEmailMessage.bind(this),
           this.handleEmailProgress.bind(this)
         )
-        
+
         if (result.shouldRetake) {
           // 完了メッセージを3秒間表示してから撮影画面に戻る
           this.completionMessage = '送信が完了しました'
@@ -114,73 +115,34 @@ export function receiptApp(): CompleteAppData {
             }
           }, 3000)
         }
-        
       } finally {
         this.isSendingMail = false
       }
     },
-    
-    
-    
-    
-    
-    
+
     // 共通進捗処理ハンドラー
     handleEmailProgress(progress: SendProgress) {
+      // 既存のクリアタイマーが残っていればキャンセル（前回 completed/error の3秒タイマーが
+      // 新しい sending progress を消してしまうのを防ぐ）
+      if (this.progressClearTimer !== null) {
+        clearTimeout(this.progressClearTimer)
+        this.progressClearTimer = null
+      }
+
       this.sendProgress = progress
       // 完了時は3秒後に進捗表示をクリア
       if (progress.status === 'completed' || progress.status === 'error') {
-        setTimeout(() => {
+        this.progressClearTimer = window.setTimeout(() => {
           this.sendProgress = null
+          this.progressClearTimer = null
         }, TIMEOUTS.PROGRESS_CLEAR)
-      }
-    },
-    
-
-    
-    // 複数宛先への送信
-    async sendMailToPreset(presetId: string) {
-      this.isSendingMail = true
-      this.sendProgress = null
-      
-      try {
-        const result = await EmailService.sendMailToPreset(
-          presetId,
-          this.photo!,
-          this.settings,
-          this.addDebugLog.bind(this),
-          this.handleEmailMessage.bind(this),
-          this.handleEmailProgress.bind(this)
-        )
-        
-        if (result.shouldRetake) {
-          // 完了メッセージを3秒間表示してから撮影画面に戻る
-          this.completionMessage = '送信が完了しました'
-          setTimeout(() => {
-            this.completionMessage = null
-            this.retake()
-            // DOM更新後に成功メッセージを表示
-            if (this.$nextTick) {
-              this.$nextTick(() => {
-                this.showSuccess('レシートを送信しました')
-              })
-            } else {
-              // $nextTickが使えない場合は少し遅延させて表示
-              setTimeout(() => {
-                this.showSuccess('レシートを送信しました')
-              }, 100)
-            }
-          }, 3000)
-        }
-        
-      } finally {
-        this.isSendingMail = false
       }
     }
   }
 }
 
 // Alpine.jsにコンポーネントを登録
+/* v8 ignore next 3 -- Alpine ランタイムでのみ発火する初期化コードのためテストから到達不可 */
 document.addEventListener('alpine:init', () => {
   Alpine.data('receiptApp', receiptApp)
 })

@@ -9,6 +9,7 @@
   x-transition:leave-end="opacity-0"
   class="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 pt-10 pb-10 overflow-y-auto"
   @click.self="closeSettings"
+  @keydown.escape.window="showSettings && closeSettings()"
   role="dialog"
   aria-modal="true"
   aria-labelledby="settings-title"
@@ -32,8 +33,19 @@
         title="閉じる"
         aria-label="設定を閉じる"
       >
-        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        <svg
+          class="w-6 h-6 text-gray-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M6 18L18 6M6 6l12 12"
+          ></path>
         </svg>
       </button>
     </div>
@@ -51,9 +63,9 @@
           x-model="tempSettings.email"
           placeholder="example@example.com"
           class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-          style="touch-action: manipulation; -webkit-appearance: none;"
+          style="touch-action: manipulation; -webkit-appearance: none"
           required
-        >
+        />
       </div>
 
       <!-- Dropboxメールアドレス -->
@@ -67,11 +79,9 @@
           x-model="tempSettings.dropboxEmail"
           placeholder="xxxx@getdropbox.com"
           class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-          style="touch-action: manipulation; -webkit-appearance: none;"
-        >
-        <p class="mt-1 text-xs text-gray-500">
-          Dropboxの専用メールアドレス（オプション）
-        </p>
+          style="touch-action: manipulation; -webkit-appearance: none"
+        />
+        <p class="mt-1 text-xs text-gray-500">Dropboxの専用メールアドレス（オプション）</p>
       </div>
 
       <!-- RESEND APIキー -->
@@ -85,11 +95,16 @@
           x-model="tempSettings.apiKey"
           placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx"
           class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-          style="touch-action: manipulation; -webkit-appearance: none;"
+          style="touch-action: manipulation; -webkit-appearance: none"
           required
-        >
+        />
         <p class="mt-1 text-xs text-gray-500">
-          RESENDのAPIキーを入力してください
+          <template x-if="settings.apiKey">
+            <span>保存済み: <span x-text="maskedSavedApiKey" class="font-mono"></span></span>
+          </template>
+          <template x-if="!settings.apiKey">
+            <span>RESENDのAPIキーを入力してください</span>
+          </template>
         </p>
       </div>
 
@@ -104,12 +119,10 @@
           x-model="tempSettings.fromEmail"
           placeholder="your-email@yourdomain.com"
           class="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
-          style="touch-action: manipulation; -webkit-appearance: none;"
+          style="touch-action: manipulation; -webkit-appearance: none"
           required
-        >
-        <p class="mt-1 text-xs text-gray-500">
-          RESENDで認証済みのドメインのメールアドレス
-        </p>
+        />
+        <p class="mt-1 text-xs text-gray-500">RESENDで認証済みのドメインのメールアドレス</p>
       </div>
 
       <!-- アクションボタン -->
@@ -118,14 +131,14 @@
           type="button"
           @click="closeSettings"
           class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-base font-medium"
-          style="touch-action: manipulation;"
+          style="touch-action: manipulation"
         >
           キャンセル
         </button>
         <button
           type="submit"
           class="flex-1 px-4 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-base font-medium"
-          style="touch-action: manipulation;"
+          style="touch-action: manipulation"
         >
           保存
         </button>

@@ -32,25 +32,27 @@ describe('SettingsService', () => {
   describe('getDefaultSettings()', () => {
     it('デフォルト設定を正しく返す', () => {
       const defaultSettings = SettingsService.getDefaultSettings()
-      
+
       expect(defaultSettings).toEqual({
         email: '',
         apiKey: '',
         dropboxEmail: '',
         fromEmail: '',
-        sendPresets: [{
-          id: 'main',
-          name: 'メインアドレス',
-          recipients: [],
-          isActive: true
-        }]
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: [],
+            isActive: true
+          }
+        ]
       })
     })
 
     it('デフォルト設定は毎回新しいオブジェクトを返す', () => {
       const settings1 = SettingsService.getDefaultSettings()
       const settings2 = SettingsService.getDefaultSettings()
-      
+
       expect(settings1).not.toBe(settings2)
       expect(settings1.sendPresets).not.toBe(settings2.sendPresets)
       expect(settings1).toEqual(settings2)
@@ -66,12 +68,12 @@ describe('SettingsService', () => {
         fromEmail: 'from@example.com',
         sendPresets: []
       }
-      
+
       vi.mocked(StorageService.get).mockReturnValueOnce(mockSettings)
       vi.mocked(StorageService.set).mockReturnValueOnce(true)
-      
+
       const result = SettingsService.load()
-      
+
       expect(StorageService.get).toHaveBeenCalledWith(
         'yayoi-receipt-settings',
         SettingsService.getDefaultSettings()
@@ -87,12 +89,12 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       vi.mocked(StorageService.get).mockReturnValueOnce(mockSettings)
       vi.mocked(StorageService.set).mockReturnValueOnce(true)
-      
+
       SettingsService.load()
-      
+
       expect(vi.mocked(emailSender).setApiKey).toHaveBeenCalledWith('test-api-key')
     })
 
@@ -104,12 +106,12 @@ describe('SettingsService', () => {
         fromEmail: 'from@example.com',
         sendPresets: []
       }
-      
+
       vi.mocked(StorageService.get).mockReturnValueOnce(mockSettings)
       vi.mocked(StorageService.set).mockReturnValueOnce(true)
-      
+
       SettingsService.load()
-      
+
       expect(vi.mocked(emailSender).setFromEmail).toHaveBeenCalledWith('from@example.com')
     })
 
@@ -121,12 +123,12 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       vi.mocked(StorageService.get).mockReturnValueOnce(mockSettings)
       vi.mocked(StorageService.set).mockReturnValueOnce(true)
-      
+
       SettingsService.load()
-      
+
       expect(vi.mocked(emailSender).setApiKey).not.toHaveBeenCalled()
     })
   })
@@ -140,11 +142,11 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       vi.mocked(StorageService.set).mockReturnValueOnce(true)
-      
+
       const result = SettingsService.save(settings)
-      
+
       expect(StorageService.set).toHaveBeenCalledWith('yayoi-receipt-settings', settings)
       expect(result).toBe(true)
     })
@@ -157,11 +159,11 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       vi.mocked(StorageService.set).mockReturnValueOnce(true)
-      
+
       SettingsService.save(settings)
-      
+
       expect(vi.mocked(emailSender).setApiKey).toHaveBeenCalledWith('test-api-key')
     })
 
@@ -173,11 +175,11 @@ describe('SettingsService', () => {
         fromEmail: 'from@example.com',
         sendPresets: []
       }
-      
+
       vi.mocked(StorageService.set).mockReturnValueOnce(true)
-      
+
       SettingsService.save(settings)
-      
+
       expect(vi.mocked(emailSender).setFromEmail).toHaveBeenCalledWith('from@example.com')
     })
 
@@ -189,11 +191,11 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       vi.mocked(StorageService.set).mockReturnValueOnce(false)
-      
+
       const result = SettingsService.save(settings)
-      
+
       expect(result).toBe(false)
     })
   })
@@ -207,7 +209,7 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       const result = SettingsService.isComplete(settings)
       expect(result).toBe(true)
     })
@@ -220,7 +222,7 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       const result = SettingsService.isComplete(settings)
       expect(result).toBe(false)
     })
@@ -233,7 +235,7 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       const result = SettingsService.isComplete(settings)
       expect(result).toBe(false)
     })
@@ -246,7 +248,7 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       const result = SettingsService.isComplete(settings)
       expect(result).toBe(false)
     })
@@ -259,7 +261,7 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       const result = SettingsService.isComplete(settings)
       expect(result).toBe(false)
     })
@@ -278,9 +280,9 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       SettingsService.syncPresetsWithEmails(settings)
-      
+
       expect(settings.sendPresets).toHaveLength(1)
       expect(settings.sendPresets[0]).toEqual({
         id: 'main',
@@ -298,25 +300,25 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       SettingsService.syncPresetsWithEmails(settings)
-      
+
       expect(settings.sendPresets).toHaveLength(3)
-      
+
       expect(settings.sendPresets[0]).toEqual({
         id: 'main',
         name: 'メインアドレス',
         recipients: ['main@example.com'],
         isActive: true
       })
-      
+
       expect(settings.sendPresets[1]).toEqual({
         id: 'dropbox',
         name: 'バックアップ（Dropbox）',
         recipients: ['dropbox@example.com'],
         isActive: true
       })
-      
+
       expect(settings.sendPresets[2]).toEqual({
         id: 'all',
         name: 'すべてに送信',
@@ -333,9 +335,9 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       SettingsService.syncPresetsWithEmails(settings)
-      
+
       expect(settings.sendPresets).toHaveLength(0)
     })
 
@@ -345,18 +347,20 @@ describe('SettingsService', () => {
         apiKey: 'test-key',
         dropboxEmail: 'dropbox@example.com',
         fromEmail: '',
-        sendPresets: [{
-          id: 'main',
-          name: 'メインアドレス',
-          recipients: ['old@example.com'],
-          isActive: true
-        }]
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['old@example.com'],
+            isActive: true
+          }
+        ]
       }
-      
+
       SettingsService.syncPresetsWithEmails(settings)
-      
+
       // メインプリセットが更新されることを確認
-      const mainPreset = settings.sendPresets.find(p => p.id === 'main')
+      const mainPreset = settings.sendPresets.find((p) => p.id === 'main')
       expect(mainPreset?.recipients).toEqual(['main@example.com'])
     })
   })
@@ -370,9 +374,9 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       SettingsService.updatePresetsWithCurrentEmails(settings)
-      
+
       expect(settings.sendPresets).toHaveLength(0)
     })
 
@@ -382,17 +386,19 @@ describe('SettingsService', () => {
         apiKey: 'test-key',
         dropboxEmail: 'dropbox@example.com',
         fromEmail: '',
-        sendPresets: [{
-          id: 'main',
-          name: 'メインアドレス',
-          recipients: ['main@example.com'],
-          isActive: true
-        }]
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['main@example.com'],
+            isActive: true
+          }
+        ]
       }
-      
+
       SettingsService.updatePresetsWithCurrentEmails(settings)
-      
-      const dropboxPreset = settings.sendPresets.find(p => p.id === 'dropbox')
+
+      const dropboxPreset = settings.sendPresets.find((p) => p.id === 'dropbox')
       expect(dropboxPreset).toEqual({
         id: 'dropbox',
         name: 'バックアップ（Dropbox）',
@@ -407,24 +413,56 @@ describe('SettingsService', () => {
         apiKey: 'test-key',
         dropboxEmail: 'dropbox@example.com',
         fromEmail: '',
-        sendPresets: [{
-          id: 'main',
-          name: 'メインアドレス',
-          recipients: ['main@example.com'],
-          isActive: true
-        }, {
-          id: 'dropbox',
-          name: 'バックアップ（Dropbox）',
-          recipients: [],
-          isActive: false
-        }]
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['main@example.com'],
+            isActive: true
+          },
+          {
+            id: 'dropbox',
+            name: 'バックアップ（Dropbox）',
+            recipients: [],
+            isActive: false
+          }
+        ]
       }
-      
+
       SettingsService.updatePresetsWithCurrentEmails(settings)
-      
-      const dropboxPreset = settings.sendPresets.find(p => p.id === 'dropbox')
+
+      const dropboxPreset = settings.sendPresets.find((p) => p.id === 'dropbox')
       expect(dropboxPreset?.isActive).toBe(true)
       expect(dropboxPreset?.recipients).toEqual(['dropbox@example.com'])
+    })
+
+    it('dropboxEmailが変更され既存プリセットが無効な場合、recipientsを新値で置き換えて有効化する', () => {
+      const settings: AppSettings = {
+        email: 'main@example.com',
+        apiKey: 'test-key',
+        dropboxEmail: 'new@dropbox.com',
+        fromEmail: '',
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['main@example.com'],
+            isActive: true
+          },
+          {
+            id: 'dropbox',
+            name: 'バックアップ（Dropbox）',
+            recipients: ['old@dropbox.com'],
+            isActive: false
+          }
+        ]
+      }
+
+      SettingsService.updatePresetsWithCurrentEmails(settings)
+
+      const dropboxPreset = settings.sendPresets.find((p) => p.id === 'dropbox')
+      expect(dropboxPreset?.recipients).toEqual(['new@dropbox.com'])
+      expect(dropboxPreset?.isActive).toBe(true)
     })
 
     it('メインプリセットのメールアドレスを更新する', () => {
@@ -433,17 +471,19 @@ describe('SettingsService', () => {
         apiKey: 'test-key',
         dropboxEmail: '',
         fromEmail: '',
-        sendPresets: [{
-          id: 'main',
-          name: 'メインアドレス',
-          recipients: ['old-main@example.com'],
-          isActive: true
-        }]
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['old-main@example.com'],
+            isActive: true
+          }
+        ]
       }
-      
+
       SettingsService.updatePresetsWithCurrentEmails(settings)
-      
-      const mainPreset = settings.sendPresets.find(p => p.id === 'main')
+
+      const mainPreset = settings.sendPresets.find((p) => p.id === 'main')
       expect(mainPreset?.recipients).toEqual(['new-main@example.com'])
     })
 
@@ -453,18 +493,20 @@ describe('SettingsService', () => {
         apiKey: 'test-key',
         dropboxEmail: '',
         fromEmail: '',
-        sendPresets: [{
-          id: 'other',
-          name: 'その他',
-          recipients: ['other@example.com'],
-          isActive: true
-        }]
+        sendPresets: [
+          {
+            id: 'other',
+            name: 'その他',
+            recipients: ['other@example.com'],
+            isActive: true
+          }
+        ]
       }
-      
+
       SettingsService.updatePresetsWithCurrentEmails(settings)
-      
+
       // メインプリセットは追加されない
-      const mainPreset = settings.sendPresets.find(p => p.id === 'main')
+      const mainPreset = settings.sendPresets.find((p) => p.id === 'main')
       expect(mainPreset).toBeUndefined()
     })
   })
@@ -478,10 +520,10 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       SettingsService.updateAllPreset(settings)
-      
-      const allPreset = settings.sendPresets.find(p => p.id === 'all')
+
+      const allPreset = settings.sendPresets.find((p) => p.id === 'all')
       expect(allPreset).toEqual({
         id: 'all',
         name: 'すべてに送信',
@@ -496,17 +538,19 @@ describe('SettingsService', () => {
         apiKey: 'test-key',
         dropboxEmail: 'new-dropbox@example.com',
         fromEmail: '',
-        sendPresets: [{
-          id: 'all',
-          name: 'すべてに送信',
-          recipients: ['old-main@example.com', 'old-dropbox@example.com'],
-          isActive: true
-        }]
+        sendPresets: [
+          {
+            id: 'all',
+            name: 'すべてに送信',
+            recipients: ['old-main@example.com', 'old-dropbox@example.com'],
+            isActive: true
+          }
+        ]
       }
-      
+
       SettingsService.updateAllPreset(settings)
-      
-      const allPreset = settings.sendPresets.find(p => p.id === 'all')
+
+      const allPreset = settings.sendPresets.find((p) => p.id === 'all')
       expect(allPreset?.recipients).toEqual(['new-main@example.com', 'new-dropbox@example.com'])
       expect(allPreset?.isActive).toBe(true)
     })
@@ -517,17 +561,19 @@ describe('SettingsService', () => {
         apiKey: 'test-key',
         dropboxEmail: '',
         fromEmail: '',
-        sendPresets: [{
-          id: 'all',
-          name: 'すべてに送信',
-          recipients: ['main@example.com', 'dropbox@example.com'],
-          isActive: true
-        }]
+        sendPresets: [
+          {
+            id: 'all',
+            name: 'すべてに送信',
+            recipients: ['main@example.com', 'dropbox@example.com'],
+            isActive: true
+          }
+        ]
       }
-      
+
       SettingsService.updateAllPreset(settings)
-      
-      const allPreset = settings.sendPresets.find(p => p.id === 'all')
+
+      const allPreset = settings.sendPresets.find((p) => p.id === 'all')
       expect(allPreset?.isActive).toBe(false)
     })
 
@@ -539,11 +585,11 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       SettingsService.updateAllPreset(settings)
-      
+
       // メールアドレスが1つしかないので、「すべてに送信」プリセットは作られない
-      const allPreset = settings.sendPresets.find(p => p.id === 'all')
+      const allPreset = settings.sendPresets.find((p) => p.id === 'all')
       expect(allPreset).toBeUndefined()
     })
   })
@@ -557,10 +603,10 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       SettingsService.updatePresetsFromTempSettings(tempSettings)
-      
-      const mainPreset = tempSettings.sendPresets.find(p => p.id === 'main')
+
+      const mainPreset = tempSettings.sendPresets.find((p) => p.id === 'main')
       expect(mainPreset).toEqual({
         id: 'main',
         name: 'メインアドレス',
@@ -575,17 +621,19 @@ describe('SettingsService', () => {
         apiKey: 'test-key',
         dropboxEmail: '',
         fromEmail: '',
-        sendPresets: [{
-          id: 'main',
-          name: 'メインアドレス',
-          recipients: ['old@example.com'],
-          isActive: true
-        }]
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['old@example.com'],
+            isActive: true
+          }
+        ]
       }
-      
+
       SettingsService.updatePresetsFromTempSettings(tempSettings)
-      
-      const mainPreset = tempSettings.sendPresets.find(p => p.id === 'main')
+
+      const mainPreset = tempSettings.sendPresets.find((p) => p.id === 'main')
       expect(mainPreset?.recipients).toEqual(['updated@example.com'])
     })
 
@@ -595,17 +643,19 @@ describe('SettingsService', () => {
         apiKey: 'test-key',
         dropboxEmail: '',
         fromEmail: '',
-        sendPresets: [{
-          id: 'main',
-          name: 'メインアドレス',
-          recipients: ['old@example.com'],
-          isActive: true
-        }]
+        sendPresets: [
+          {
+            id: 'main',
+            name: 'メインアドレス',
+            recipients: ['old@example.com'],
+            isActive: true
+          }
+        ]
       }
-      
+
       SettingsService.updatePresetsFromTempSettings(tempSettings)
-      
-      const mainPreset = tempSettings.sendPresets.find(p => p.id === 'main')
+
+      const mainPreset = tempSettings.sendPresets.find((p) => p.id === 'main')
       expect(mainPreset?.recipients).toEqual([])
       expect(mainPreset?.isActive).toBe(false)
     })
@@ -618,10 +668,10 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       SettingsService.updatePresetsFromTempSettings(tempSettings)
-      
-      const dropboxPreset = tempSettings.sendPresets.find(p => p.id === 'dropbox')
+
+      const dropboxPreset = tempSettings.sendPresets.find((p) => p.id === 'dropbox')
       expect(dropboxPreset).toEqual({
         id: 'dropbox',
         name: 'バックアップ（Dropbox）',
@@ -630,23 +680,48 @@ describe('SettingsService', () => {
       })
     })
 
+    it('既存 Dropbox プリセットがある状態で dropboxEmail を変更した場合は recipients を新値で上書きする', () => {
+      const tempSettings: AppSettings = {
+        email: 'main@example.com',
+        apiKey: 'test-key',
+        dropboxEmail: '  new@dropbox.com  ',
+        fromEmail: '',
+        sendPresets: [
+          {
+            id: 'dropbox',
+            name: 'バックアップ（Dropbox）',
+            recipients: ['old@dropbox.com'],
+            isActive: true
+          }
+        ]
+      }
+
+      SettingsService.updatePresetsFromTempSettings(tempSettings)
+
+      const dropboxPreset = tempSettings.sendPresets.find((p) => p.id === 'dropbox')
+      expect(dropboxPreset?.recipients).toEqual(['new@dropbox.com'])
+      expect(dropboxPreset?.isActive).toBe(true)
+    })
+
     it('Dropboxメールが空の場合は既存プリセットを無効化する', () => {
       const tempSettings: AppSettings = {
         email: 'main@example.com',
         apiKey: 'test-key',
         dropboxEmail: '',
         fromEmail: '',
-        sendPresets: [{
-          id: 'dropbox',
-          name: 'バックアップ（Dropbox）',
-          recipients: ['old-dropbox@example.com'],
-          isActive: true
-        }]
+        sendPresets: [
+          {
+            id: 'dropbox',
+            name: 'バックアップ（Dropbox）',
+            recipients: ['old-dropbox@example.com'],
+            isActive: true
+          }
+        ]
       }
-      
+
       SettingsService.updatePresetsFromTempSettings(tempSettings)
-      
-      const dropboxPreset = tempSettings.sendPresets.find(p => p.id === 'dropbox')
+
+      const dropboxPreset = tempSettings.sendPresets.find((p) => p.id === 'dropbox')
       expect(dropboxPreset?.recipients).toEqual([])
       expect(dropboxPreset?.isActive).toBe(false)
     })
@@ -659,10 +734,10 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       SettingsService.updatePresetsFromTempSettings(tempSettings)
-      
-      const allPreset = tempSettings.sendPresets.find(p => p.id === 'all')
+
+      const allPreset = tempSettings.sendPresets.find((p) => p.id === 'all')
       expect(allPreset).toEqual({
         id: 'all',
         name: 'すべてに送信',
@@ -681,17 +756,17 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       vi.mocked(StorageService.get).mockReturnValueOnce(mockLoadedSettings)
       vi.mocked(StorageService.set).mockReturnValue(true)
-      
+
       // load
       const loadedSettings = SettingsService.load()
-      
+
       // save
       loadedSettings.email = 'updated@example.com'
       const saveResult = SettingsService.save(loadedSettings)
-      
+
       expect(loadedSettings.email).toBe('updated@example.com')
       expect(saveResult).toBe(true)
       expect(StorageService.set).toHaveBeenCalledWith('yayoi-receipt-settings', loadedSettings)
@@ -705,7 +780,7 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       const completeSettings: AppSettings = {
         email: 'test@example.com',
         apiKey: 'test-key',
@@ -713,67 +788,49 @@ describe('SettingsService', () => {
         fromEmail: '',
         sendPresets: []
       }
-      
+
       expect(SettingsService.isComplete(incompleteSettings)).toBe(false)
       expect(SettingsService.isComplete(completeSettings)).toBe(true)
     })
 
-    it('dropboxPresetがisActive=falseの場合の修正処理（160行目分岐テスト）', () => {
-      const settings: AppSettings = {
-        email: 'main@example.com',
-        apiKey: 'test-key',
-        dropboxEmail: 'dropbox@example.com',
-        fromEmail: '',
-        sendPresets: [
-          {
-            id: 'main',
-            name: 'メインアドレス',
-            recipients: ['main@example.com'],
-            isActive: true
-          },
-          {
-            id: 'dropbox',
-            name: 'Dropbox',
-            recipients: ['dropbox@example.com'],
-            isActive: false // isActive = false の場合
-          }
-        ]
+    it.each([
+      {
+        label: 'isActive=false',
+        dropboxPresetOverride: { recipients: ['dropbox@example.com'], isActive: false }
+      },
+      {
+        label: 'recipients=[]',
+        dropboxPresetOverride: { recipients: [], isActive: true }
       }
+    ])(
+      'dropboxPreset の $label の場合に dropboxEmail で有効化・同期される',
+      ({ dropboxPresetOverride }) => {
+        const settings: AppSettings = {
+          email: 'main@example.com',
+          apiKey: 'test-key',
+          dropboxEmail: 'dropbox@example.com',
+          fromEmail: '',
+          sendPresets: [
+            {
+              id: 'main',
+              name: 'メインアドレス',
+              recipients: ['main@example.com'],
+              isActive: true
+            },
+            {
+              id: 'dropbox',
+              name: 'Dropbox',
+              ...dropboxPresetOverride
+            }
+          ]
+        }
 
-      SettingsService.syncPresetsWithEmails(settings)
+        SettingsService.syncPresetsWithEmails(settings)
 
-      const dropboxPreset = settings.sendPresets.find(p => p.id === 'dropbox')
-      expect(dropboxPreset?.isActive).toBe(true) // 修正されることを確認
-      expect(dropboxPreset?.recipients).toEqual(['dropbox@example.com'])
-    })
-
-    it('dropboxPresetのrecipientsが空の場合の修正処理（160行目分岐テスト）', () => {
-      const settings: AppSettings = {
-        email: 'main@example.com',
-        apiKey: 'test-key',
-        dropboxEmail: 'dropbox@example.com',
-        fromEmail: '',
-        sendPresets: [
-          {
-            id: 'main',
-            name: 'メインアドレス',
-            recipients: ['main@example.com'],
-            isActive: true
-          },
-          {
-            id: 'dropbox',
-            name: 'Dropbox',
-            recipients: [], // 空の受信者配列
-            isActive: true
-          }
-        ]
+        const dropboxPreset = settings.sendPresets.find((p) => p.id === 'dropbox')
+        expect(dropboxPreset?.isActive).toBe(true)
+        expect(dropboxPreset?.recipients).toEqual(['dropbox@example.com'])
       }
-
-      SettingsService.syncPresetsWithEmails(settings)
-
-      const dropboxPreset = settings.sendPresets.find(p => p.id === 'dropbox')
-      expect(dropboxPreset?.recipients).toEqual(['dropbox@example.com']) // 修正されることを確認
-      expect(dropboxPreset?.isActive).toBe(true)
-    })
+    )
   })
 })

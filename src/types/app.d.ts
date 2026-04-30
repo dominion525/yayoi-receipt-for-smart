@@ -10,27 +10,27 @@ import { BuildInfo } from '../utils/version'
 /**
  * 全てのComposableを統合したAlpine.jsアプリケーション型
  */
-export type CompleteAppData = DebugPanelData & 
-                              SettingsComposable & 
-                              PWADetectionComposable & 
-                              PhotoCaptureComposable & 
-                              MessageComposable & 
-                              InitializerComposable & {
-  // アプリケーション固有の状態
-  isLoading: boolean
-  isSendingMail: boolean
-  sendProgress: SendProgress | null
-  completionMessage: string | null
-  
-  // バージョン情報
-  appVersion: string
-  versionInfo: BuildInfo
-  
-  // Alpine.js固有のメソッド
-  $nextTick?: (callback: () => void) => void
-  
-  // アプリケーション固有のメソッド
-  sendMail(): Promise<void>
-  sendMailToPreset(presetId: string): Promise<void>
-  handleEmailProgress(progress: SendProgress): void
-}
+export type CompleteAppData = DebugPanelData &
+  SettingsComposable &
+  PWADetectionComposable &
+  PhotoCaptureComposable &
+  MessageComposable &
+  InitializerComposable & {
+    // アプリケーション固有の状態
+    isLoading: boolean
+    isSendingMail: boolean
+    sendProgress: SendProgress | null
+    progressClearTimer: number | null
+    completionMessage: string | null
+
+    // バージョン情報
+    appVersion: string
+    versionInfo: BuildInfo
+
+    // Alpine.js固有のメソッド
+    $nextTick?: (callback: () => void) => void
+
+    // アプリケーション固有のメソッド
+    sendMail(): Promise<void>
+    handleEmailProgress(progress: SendProgress): void
+  }

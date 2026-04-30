@@ -1,5 +1,5 @@
 name = "yayoi-receipt-for-smart"
-main = "worker.js"
+main = "worker.ts"
 compatibility_date = "2025-01-23"
 
 # カスタムドメインでのルーティング
@@ -12,12 +12,17 @@ routes = [
 command = "npm run build"
 
 # 静的アセットの設定
+# binding と run_worker_first を設定することで、静的アセットのレスポンスにも
+# Worker 側で定義したセキュリティヘッダーを付与できる
 [assets]
 directory = "./dist"
+binding = "ASSETS"
+run_worker_first = true
 
 [env.production]
 workers_dev = false
 
-# 環境変数（必要に応じて）
-# [env.production.vars]
-# SOME_VAR = "value"
+# 環境変数（公開情報のみ。APIキー等の秘匿情報はここに置かない）
+[env.production.vars]
+# 本番環境で許可する CORS Origin（worker.ts:getCorsHeaders で参照）
+ALLOWED_ORIGIN = "https://receipt.dominion525.com"
