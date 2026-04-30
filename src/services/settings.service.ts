@@ -18,11 +18,55 @@ export interface AppSettings {
 
 const STORAGE_KEY = 'yayoi-receipt-settings'
 
+/** プリセット ID（保存・参照用、UI には出さない） */
+const PRESET_IDS = {
+  MAIN: 'main',
+  DROPBOX: 'dropbox',
+  ALL: 'all'
+} as const
+
+/** プリセットの表示名（UI に出る） */
+const PRESET_NAMES = {
+  MAIN: 'メインアドレス',
+  DROPBOX: 'バックアップ（Dropbox）',
+  ALL: 'すべてに送信'
+} as const
+
 /**
  * 設定管理サービス
  * アプリケーションの設定の読み込み、保存、更新を管理
  */
 export class SettingsService {
+  /** メインプリセットを生成 */
+  private static createMainPreset(email: string): SendPreset {
+    return {
+      id: PRESET_IDS.MAIN,
+      name: PRESET_NAMES.MAIN,
+      recipients: email ? [email] : [],
+      isActive: true
+    }
+  }
+
+  /** Dropbox プリセットを生成 */
+  private static createDropboxPreset(email: string): SendPreset {
+    return {
+      id: PRESET_IDS.DROPBOX,
+      name: PRESET_NAMES.DROPBOX,
+      recipients: [email],
+      isActive: true
+    }
+  }
+
+  /** 「すべてに送信」プリセットを生成 */
+  private static createAllPreset(recipients: string[]): SendPreset {
+    return {
+      id: PRESET_IDS.ALL,
+      name: PRESET_NAMES.ALL,
+      recipients,
+      isActive: true
+    }
+  }
+
   /**
    * デフォルト設定を取得
    */
@@ -32,14 +76,7 @@ export class SettingsService {
       apiKey: '',
       dropboxEmail: '',
       fromEmail: '',
-      sendPresets: [
-        {
-          id: 'main',
-          name: 'メインアドレス',
-          recipients: [],
-          isActive: true
-        }
-      ]
+      sendPresets: [SettingsService.createMainPreset('')]
     }
   }
 
@@ -96,24 +133,12 @@ export class SettingsService {
       // プリセットが空の場合は新規生成
       const presets: SendPreset[] = []
 
-      // メインアドレス
       if (settings.email) {
-        presets.push({
-          id: 'main',
-          name: 'メインアドレス',
-          recipients: [settings.email],
-          isActive: true
-        })
+        presets.push(SettingsService.createMainPreset(settings.email))
       }
 
-      // Dropboxアドレス
       if (settings.dropboxEmail) {
-        presets.push({
-          id: 'dropbox',
-          name: 'バックアップ（Dropbox）',
-          recipients: [settings.dropboxEmail],
-          isActive: true
-        })
+        presets.push(SettingsService.createDropboxPreset(settings.dropboxEmail))
       }
 
       // すべてに送信
@@ -121,12 +146,7 @@ export class SettingsService {
         (email): email is string => !!email
       )
       if (allRecipients.length > 1) {
-        presets.push({
-          id: 'all',
-          name: 'すべてに送信',
-          recipients: allRecipients,
-          isActive: true
-        })
+        presets.push(SettingsService.createAllPreset(allRecipients))
       }
 
       settings.sendPresets = presets
@@ -148,15 +168,10 @@ export class SettingsService {
     }
 
     // Dropboxプリセットの更新
-    const dropboxPreset = settings.sendPresets.find((p) => p.id === 'dropbox')
+    const dropboxPreset = settings.sendPresets.find((p) => p.id === PRESET_IDS.DROPBOX)
     if (settings.dropboxEmail) {
       if (!dropboxPreset) {
-        settings.sendPresets.push({
-          id: 'dropbox',
-          name: 'バックアップ（Dropbox）',
-          recipients: [settings.dropboxEmail],
-          isActive: true
-        })
+        settings.sendPresets.push(SettingsService.createDropboxPreset(settings.dropboxEmail))
       } else if (!dropboxPreset.isActive || dropboxPreset.recipients.length === 0) {
         dropboxPreset.isActive = true
         dropboxPreset.recipients = [settings.dropboxEmail]
@@ -164,7 +179,7 @@ export class SettingsService {
     }
 
     // メインプリセットの更新
-    const mainPreset = settings.sendPresets.find((p) => p.id === 'main')
+    const mainPreset = settings.sendPresets.find((p) => p.id === PRESET_IDS.MAIN)
     if (settings.email && mainPreset) {
       if (mainPreset.recipients[0] !== settings.email) {
         mainPreset.recipients = [settings.email]
@@ -183,17 +198,12 @@ export class SettingsService {
       (email): email is string => !!email
     )
 
-    const allPreset = settings.sendPresets.find((p) => p.id === 'all')
+    const allPreset = settings.sendPresets.find((p) => p.id === PRESET_IDS.ALL)
 
     if (allRecipients.length > 1) {
       if (!allPreset) {
         // プリセットが存在しない場合は追加
-        settings.sendPresets.push({
-          id: 'all',
-          name: 'すべてに送信',
-          recipients: allRecipients,
-          isActive: true
-        })
+        settings.sendPresets.push(SettingsService.createAllPreset(allRecipients))
       } else {
         // 既存のプリセットを更新
         allPreset.recipients = allRecipients
@@ -210,33 +220,24 @@ export class SettingsService {
    */
   static updatePresetsFromTempSettings(tempSettings: AppSettings): void {
     // メインプリセット
-    let mainPreset = tempSettings.sendPresets.find((p) => p.id === 'main')
+    let mainPreset = tempSettings.sendPresets.find((p) => p.id === PRESET_IDS.MAIN)
     if (!mainPreset) {
-      mainPreset = {
-        id: 'main',
-        name: 'メインアドレス',
-        recipients: [],
-        isActive: true
-      }
+      mainPreset = SettingsService.createMainPreset('')
       tempSettings.sendPresets.push(mainPreset)
     }
     mainPreset.recipients = tempSettings.email.trim() ? [tempSettings.email.trim()] : []
     mainPreset.isActive = mainPreset.recipients.length > 0
 
     // Dropboxプリセット
-    let dropboxPreset = tempSettings.sendPresets.find((p) => p.id === 'dropbox')
+    let dropboxPreset = tempSettings.sendPresets.find((p) => p.id === PRESET_IDS.DROPBOX)
     if (tempSettings.dropboxEmail?.trim()) {
       if (!dropboxPreset) {
-        dropboxPreset = {
-          id: 'dropbox',
-          name: 'バックアップ（Dropbox）',
-          recipients: [],
-          isActive: true
-        }
+        dropboxPreset = SettingsService.createDropboxPreset(tempSettings.dropboxEmail.trim())
         tempSettings.sendPresets.push(dropboxPreset)
+      } else {
+        dropboxPreset.recipients = [tempSettings.dropboxEmail.trim()]
+        dropboxPreset.isActive = true
       }
-      dropboxPreset.recipients = [tempSettings.dropboxEmail.trim()]
-      dropboxPreset.isActive = true
     } else if (dropboxPreset) {
       // メールアドレスが空の場合は無効化
       dropboxPreset.recipients = []
